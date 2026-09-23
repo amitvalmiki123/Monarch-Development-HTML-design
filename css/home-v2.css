@@ -68,6 +68,7 @@ input,select,textarea{ font-family:inherit; font-size:16px; }
 
 h1,h2,h3,h4{ margin:0; font-family:var(--display); font-weight:400; letter-spacing:-0.01em; color:var(--ink); }
 h2{ font-size:clamp(32px,4.4vw,56px); line-height:1.1; font-weight:600; }
+h1{ font-weight:600; }
 p{ margin:0; }
 
 .eyebrow{
@@ -307,8 +308,8 @@ section[id]:not(.hero){ scroll-margin-top:130px; }
 .about-media{ position:relative; overflow:hidden; border-radius:var(--radius); }
 .about-media img{ width:100%; aspect-ratio:4/5; object-fit:cover; }
 .about-media .crest-badge{
-  position:absolute; left:-28px; bottom:-28px; background:var(--ink); color:var(--paper);
-  width:132px; height:132px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+  position:absolute; left:0; bottom:0; background:var(--ink); color:var(--paper);
+  width:132px; height:132px; border-top-right-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
   box-shadow:0 24px 48px rgba(17,17,17,.28);
 }
 .crest-badge .num{ font-family:var(--display); font-size:32px; color:var(--gold); line-height:1; }
