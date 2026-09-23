@@ -1,10 +1,10 @@
 document.documentElement.classList.add('js');
 document.body.classList.add('js');
 
-/* Header solid-on-scroll */
+/* Header scrolls away with the hero, then sticks + turns solid past 400px */
 var header = document.querySelector('.site-header');
 function onScroll(){
-  if (window.scrollY > 40) header.classList.add('is-solid');
+  if (window.scrollY > 400) header.classList.add('is-solid');
   else header.classList.remove('is-solid');
 }
 window.addEventListener('scroll', onScroll, { passive:true });
