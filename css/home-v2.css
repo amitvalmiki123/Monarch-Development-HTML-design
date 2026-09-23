@@ -40,8 +40,8 @@ html{ scroll-behavior:smooth; }
   *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important; }
 }
 
-body.js .reveal{ opacity:0; transform:translateY(36px); }
-body.js .reveal.is-in{ opacity:1; transform:none; transition:opacity 1s var(--ease-soft), transform 1s var(--ease-soft); transition-delay:calc(var(--i, 0) * 90ms); }
+body.js .reveal{ opacity:0; transform:translateY(36px); filter:blur(6px); }
+body.js .reveal.is-in{ opacity:1; transform:none; filter:blur(0); transition:opacity 1s var(--ease-soft), transform 1s var(--ease-soft), filter .9s var(--ease-soft); transition-delay:calc(var(--i, 0) * 90ms); }
 body.js .reveal-scale{ opacity:0; transform:scale(1.08); }
 body.js .reveal-scale.is-in{ opacity:1; transform:scale(1); transition:opacity 1.1s var(--ease-soft), transform 1.4s var(--ease-soft); }
 body.js .reveal-line{ opacity:0; transform:translateY(100%); }
@@ -538,6 +538,55 @@ section{ position:relative; }
 .mobile-bar a{ flex:1; text-align:center; padding:14px; font-size:12.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
 .mobile-bar .call{ background:var(--paper); color:var(--ink); }
 .mobile-bar .quote{ background:var(--gold); color:var(--ink); }
+
+/* ===========================================================
+   SCROLL ANIMATIONS — section-wise entrances (layout-preserving)
+   Directional reveals, image clip-mask, crest draw, line draw,
+   button shine, active nav. Hidden states are scoped under
+   body.js so the page renders fully without JavaScript.
+   =========================================================== */
+
+/* Directional variants — use with .reveal + data-reveal="..." */
+body.js [data-reveal="left"]{ opacity:0; transform:translateX(-56px); filter:blur(5px); }
+body.js [data-reveal="left"].is-in{ opacity:1; transform:none; filter:blur(0); transition:opacity 1s var(--ease-soft), transform 1s var(--ease-soft), filter .9s var(--ease-soft); transition-delay:calc(var(--i, 0) * 90ms); }
+body.js [data-reveal="right"]{ opacity:0; transform:translateX(56px); filter:blur(5px); }
+body.js [data-reveal="right"].is-in{ opacity:1; transform:none; filter:blur(0); transition:opacity 1s var(--ease-soft), transform 1s var(--ease-soft), filter .9s var(--ease-soft); transition-delay:calc(var(--i, 0) * 90ms); }
+body.js [data-reveal="scale"]{ opacity:0; transform:scale(.94); filter:blur(5px); }
+body.js [data-reveal="scale"].is-in{ opacity:1; transform:none; filter:blur(0); transition:opacity 1s var(--ease-soft), transform 1.1s var(--ease-soft), filter .9s var(--ease-soft); transition-delay:calc(var(--i, 0) * 90ms); }
+body.js [data-reveal="fade"]{ opacity:0; }
+body.js [data-reveal="fade"].is-in{ opacity:1; transition:opacity 1.1s var(--ease-soft); transition-delay:calc(var(--i, 0) * 90ms); }
+
+/* Clip-mask image reveal — frame unmasks while the photo settles from a slight zoom */
+body.js [data-reveal="clip"]{ opacity:0; clip-path:inset(10% 6% 10% 6%); }
+body.js [data-reveal="clip"].is-in{ opacity:1; clip-path:inset(0 0 0 0); transition:opacity 1s var(--ease-soft), clip-path 1.25s var(--ease-soft); transition-delay:calc(var(--i, 0) * 90ms); }
+body.js [data-reveal="clip"] img{ transform:scale(1.14); }
+body.js [data-reveal="clip"].is-in img{ transform:scale(1); transition:transform 1.6s var(--ease-soft); }
+
+/* Eyebrow crest — draws itself once its section enters */
+body.js .eyebrow svg path{ stroke-dasharray:90; stroke-dashoffset:90; }
+body.js .is-in .eyebrow svg path, body.js .eyebrow.is-in svg path{ stroke-dashoffset:0; transition:stroke-dashoffset 1.1s var(--ease-soft) .25s; }
+
+/* Process connector line — draws left to right */
+body.js .process-rail::before{ transform:scaleX(0); transform-origin:left center; }
+body.js .process-rail.is-in::before{ transform:scaleX(1); transition:transform 1.6s var(--ease-soft) .35s; }
+
+/* Footer watermark — rises softly */
+body.js .footer-word{ opacity:0; transform:translateY(40px); }
+body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s var(--ease-soft), transform 1.2s var(--ease-soft); }
+
+/* Button shine sweep on hover */
+.btn::after{ content:''; position:absolute; top:-10%; bottom:-10%; left:-70%; width:45%; background:linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent); transform:skewX(-20deg); transition:left .65s var(--ease); pointer-events:none; }
+.btn:hover::after{ left:135%; }
+
+/* Active section link in the desktop nav */
+.main-nav a.is-active::after{ transform:scaleX(1); }
+.site-header:not(.is-solid) .main-nav a.is-active{ color:var(--gold); }
+.site-header.is-solid .main-nav a.is-active{ color:var(--gold-text); }
+
+/* Draggable project gallery */
+.gallery{ cursor:grab; }
+.gallery.is-dragging{ cursor:grabbing; scroll-snap-type:none; }
+.gallery.is-dragging img{ pointer-events:none; }
 
 /* ===========================================================
    RESPONSIVE

@@ -83,7 +83,7 @@ document.querySelectorAll('[data-stagger]').forEach(function(group){
 });
 
 /* Reveal on scroll — IntersectionObserver + scroll-sweep fallback */
-var reveals = document.querySelectorAll('.reveal, .reveal-scale, .reveal-line');
+var reveals = document.querySelectorAll('.reveal, .reveal-scale, .reveal-line, .process-rail, .footer-word');
 function sweep(){
   var vh = window.innerHeight;
   reveals.forEach(function(el){
@@ -198,3 +198,68 @@ if (quoteForm){
 /* Footer year */
 var yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+/* Hero content parallax — drifts up and fades on scroll (desktop only) */
+(function(){
+  var hero = document.querySelector('.hero');
+  var inner = document.querySelector('.hero-inner');
+  if (!hero || !inner) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!window.matchMedia('(min-width: 961px)').matches) return;
+  var ticking = false;
+  function update(){
+    ticking = false;
+    var h = hero.offsetHeight;
+    var y = window.scrollY;
+    if (y <= 0){ inner.style.transform = ''; inner.style.opacity = ''; return; }
+    if (y > h) return;
+    inner.style.transform = 'translate3d(0,' + (y * 0.28).toFixed(1) + 'px,0)';
+    inner.style.opacity = Math.max(0, 1 - (y / h) * 1.15).toFixed(3);
+  }
+  window.addEventListener('scroll', function(){
+    if (!ticking){ ticking = true; requestAnimationFrame(update); }
+  }, { passive:true });
+})();
+
+/* Active nav link for the section currently in view */
+(function(){
+  var links = document.querySelectorAll('.main-nav a[href^="#"]');
+  if (!links.length || !('IntersectionObserver' in window)) return;
+  var map = {};
+  links.forEach(function(a){
+    var id = a.getAttribute('href');
+    if (id.length > 1 && document.querySelector(id)) map[id] = a;
+  });
+  var ids = Object.keys(map);
+  if (!ids.length) return;
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('is-active'); });
+        var a = map['#' + e.target.id];
+        if (a) a.classList.add('is-active');
+      }
+    });
+  }, { rootMargin:'-40% 0px -55% 0px', threshold:0 });
+  ids.forEach(function(id){ obs.observe(document.querySelector(id)); });
+})();
+
+/* Drag-to-scroll for the project gallery (arrow buttons keep working) */
+(function(){
+  var g = document.querySelector('.gallery');
+  if (!g) return;
+  var down = false, startX = 0, startScroll = 0;
+  g.addEventListener('pointerdown', function(e){
+    down = true; startX = e.clientX; startScroll = g.scrollLeft;
+    g.classList.add('is-dragging');
+    try { g.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  g.addEventListener('pointermove', function(e){
+    if (!down) return;
+    g.scrollLeft = startScroll - (e.clientX - startX);
+  });
+  function end(){ down = false; g.classList.remove('is-dragging'); }
+  g.addEventListener('pointerup', end);
+  g.addEventListener('pointercancel', end);
+  g.addEventListener('dragstart', function(e){ e.preventDefault(); });
+})();

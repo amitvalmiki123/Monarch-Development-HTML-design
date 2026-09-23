@@ -181,11 +181,11 @@
 <section class="pad bg-photo about-dark" id="about" style="background-image:url('images/Background/ab521744-9a46-4633-a840-2036d0cca190.png'); --overlay: rgba(8,8,8,.87);">
   <div class="container">
     <div class="about-grid">
-      <div class="about-media reveal-scale">
+      <div class="about-media reveal" data-reveal="clip">
         <img src="images/service-kitchen.png" alt="Grey and timber kitchen renovation with herringbone floor and pendant lantern lighting">
         <div class="crest-badge"><span class="num"><span data-count="10" data-suffix="+">0</span></span><span class="lbl">Years Building &amp; Renovating</span></div>
       </div>
-      <div class="about-body reveal">
+      <div class="about-body reveal" data-reveal="right">
         <div class="eyebrow">
           <svg width="20" height="13" viewBox="0 0 22 14" fill="none"><path d="M1 13V4L6 9L11 1L16 9L21 4V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           About Monarc
@@ -316,7 +316,7 @@
 <section class="pad alt">
   <div class="container">
     <div class="why-rail">
-      <div class="why-sticky reveal">
+      <div class="why-sticky reveal" data-reveal="left">
         <div class="eyebrow">
           <svg width="20" height="13" viewBox="0 0 22 14" fill="none"><path d="M1 13V4L6 9L11 1L16 9L21 4V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Why Monarc
@@ -532,28 +532,28 @@
       <p>A few things homeowners usually ask before getting started.</p>
     </div>
 
-    <div class="faq-wrap reveal">
-      <div class="faq-item open">
+    <div class="faq-wrap reveal" data-stagger>
+      <div class="faq-item open reveal">
         <button class="faq-q">Do you provide free quotes?<span class="faq-plus"></span></button>
         <div class="faq-a"><p>Yes — every project starts with a free, no-obligation consultation and quote. There's no pressure and no cost to find out where you stand.</p></div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item reveal">
         <button class="faq-q">What suburbs do you service?<span class="faq-plus"></span></button>
         <div class="faq-a"><p>We're based in Rowville and take on projects across Melbourne's eastern &amp; south-eastern suburbs, including Glen Waverley, Wheelers Hill, Mulgrave, Knoxfield, Ferntree Gully, Doncaster, Kew, Camberwell, Oakleigh, Brighton and Sandringham.</p></div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item reveal">
         <button class="faq-q">What types of renovations do you handle?<span class="faq-plus"></span></button>
         <div class="faq-a"><p>Full home renovations, kitchen renovations, bathroom renovations and laundry renovations — every project is managed by the same small, owner-operated crew.</p></div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item reveal">
         <button class="faq-q">Will I deal with one person throughout my project?<span class="faq-plus"></span></button>
         <div class="faq-a"><p>Yes — your renovation is managed end to end, from design through to construction, by one point of contact rather than a rotating cast of subcontractors.</p></div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item reveal">
         <button class="faq-q">What budget ranges do you work with?<span class="faq-plus"></span></button>
         <div class="faq-a"><p>Our quote form covers projects from $15k–$30k through to $120k+, depending on scope — kitchens and bathrooms at one end, full home renovations at the other.</p></div>
       </div>
-      <div class="faq-item">
+      <div class="faq-item reveal">
         <button class="faq-q">How do I get started?<span class="faq-plus"></span></button>
         <div class="faq-a"><p>Fill out the quote form below or give us a call on 0449 802 353. We'll talk through your project and arrange a free consultation.</p></div>
       </div>
@@ -572,7 +572,7 @@
       <h2>Servicing Melbourne's eastern &amp; south-eastern suburbs.</h2>
     </div>
 
-    <div class="map-wrap reveal">
+    <div class="map-wrap reveal" data-reveal="scale">
       <div class="map-frame">
         <iframe src="https://www.google.com/maps?q=Rowville+VIC+3178,+Australia&output=embed" referrerpolicy="no-referrer-when-downgrade" title="Monarc Developments service area map centred on Rowville VIC"></iframe>
       </div>
@@ -682,7 +682,7 @@
     <div class="footer-cta-crest">
       <svg viewBox="0 0 22 14" fill="none"><path d="M1 13V4L6 9L11 1L16 9L21 4V13" stroke="currentColor" stroke-width="1.2"/></svg>
     </div>
-    <div class="container footer-cta-inner">
+    <div class="container footer-cta-inner reveal">
       <h2>Ready to start your renovation?</h2>
       <div class="footer-cta-actions">
         <a href="#quote" class="btn btn-gold">Request A Free Quote</a>
@@ -691,8 +691,8 @@
     </div>
   </div>
 
-  <div class="container footer-top">
-    <div class="footer-brand">
+  <div class="container footer-top" data-stagger>
+    <div class="footer-brand reveal">
       <img src="images/Footer logo White.png" alt="Monarc Developments logo">
       <p>Premium kitchen, bathroom, laundry and full home renovations across Melbourne's eastern &amp; south-eastern suburbs. Owner-operated. Done properly, the first time.</p>
       <div class="footer-social">
@@ -701,7 +701,7 @@
         <a href="#reviews" aria-label="Google Reviews"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 12.23c0-.75-.07-1.47-.19-2.16H12v4.1h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.75 2.99-4.33 2.99-7.46z"/><path d="M12 22c2.7 0 4.97-.9 6.62-2.43l-3.23-2.5c-.9.6-2.04.96-3.39.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.58A10 10 0 0 0 12 22z"/><path d="M6.41 13.91A6 6 0 0 1 6.09 12c0-.66.11-1.31.32-1.91V7.51H3.07A10 10 0 0 0 2 12c0 1.61.39 3.14 1.07 4.49z"/><path d="M12 5.98c1.47 0 2.79.51 3.82 1.5l2.87-2.87C16.96 2.99 14.7 2 12 2 8.13 2 4.78 4.24 3.07 7.51l3.34 2.58C7.2 7.73 9.4 5.98 12 5.98z"/></svg></a>
       </div>
     </div>
-    <div class="footer-col">
+    <div class="footer-col reveal">
       <h5>Company</h5>
       <ul>
         <li><a href="#about">About Us</a></li>
@@ -711,7 +711,7 @@
         <li><a href="#faq">FAQ</a></li>
       </ul>
     </div>
-    <div class="footer-col">
+    <div class="footer-col reveal">
       <h5>Renovations</h5>
       <ul>
         <li><a href="full-home-renovations.html">Full Home Renovations</a></li>
@@ -720,7 +720,7 @@
         <li><a href="laundry-renovations.html">Laundry Renovations</a></li>
       </ul>
     </div>
-    <div class="footer-col">
+    <div class="footer-col reveal">
       <h5>Service Areas</h5>
       <ul>
         <li><a href="service-areas.html#rowville">Rowville</a></li>
@@ -730,7 +730,7 @@
         <li><a href="#map">View All Areas</a></li>
       </ul>
     </div>
-    <div class="footer-col">
+    <div class="footer-col reveal">
       <h5>Contact</h5>
       <ul>
         <li><address>Rowville, VIC 3178<br>Servicing Melbourne's Eastern &amp; South-Eastern Suburbs</address></li>
@@ -742,7 +742,7 @@
 
   <div class="footer-word" aria-hidden="true">MONARC</div>
 
-  <div class="container footer-bottom">
+  <div class="container footer-bottom reveal" data-reveal="fade">
     <span>&copy; <span id="year"></span> Monarc Developments. All rights reserved. Designed by <a href="https://www.digitalmovement.com.au/" target="_blank" rel="noopener">Digital Movement</a></span>
     <button class="footer-top-btn" aria-label="Back to top" onclick="document.documentElement.style.scrollBehavior='smooth';window.scrollTo(0,0)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
