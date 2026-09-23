@@ -216,6 +216,19 @@ if (heroForm){
 var yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
+/* Active nav link for the current page */
+(function(){
+  var file = location.pathname.split('/').pop() || 'index-v2.html';
+  document.querySelectorAll('.main-nav > ul > li > a, .mnav-list > li > a').forEach(function(a){
+    var href = a.getAttribute('href');
+    if (!href || href.charAt(0) === '#') return;
+    if (href.split('#')[0] === file) a.classList.add('is-active');
+  });
+  if (file === 'service-areas.html'){
+    document.querySelectorAll('.mnav-sub-toggle').forEach(function(b){ b.classList.add('is-active'); });
+  }
+})();
+
 /* Active nav link for the section currently in view */
 (function(){
   var links = document.querySelectorAll('.main-nav a[href^="#"]');
