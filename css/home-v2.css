@@ -177,7 +177,7 @@ section[id]:not(.hero){ scroll-margin-top:130px; }
 .brand{ display:grid; align-items:center; }
 .brand img{ height:120px; width:auto; transition:height .3s var(--ease); }
 .site-header.is-solid .brand img{ height:90px; }
-.brand-logo{ grid-area:1/1; height:100px; width:auto; transition:height .3s var(--ease), opacity .3s var(--ease); }
+.brand-logo{ grid-area:1/1; height:120px; width:auto; transition:height .3s var(--ease), opacity .3s var(--ease); }
 .site-header.is-solid .brand-logo{ height:90px; }
 .brand-logo-color{ opacity:0; }
 .brand-logo-white{ opacity:1; }
