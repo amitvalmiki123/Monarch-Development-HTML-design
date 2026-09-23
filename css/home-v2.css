@@ -153,7 +153,7 @@ section[id]:not(.hero){ scroll-margin-top:130px; }
    HEADER
    =========================================================== */
 .site-header{
-  position:absolute; top:0; left:0; right:0; z-index:100;
+  position:fixed; top:0; left:0; right:0; z-index:100;
   background:transparent;
   transition:background .35s var(--ease), box-shadow .35s var(--ease);
 }
@@ -163,8 +163,7 @@ section[id]:not(.hero){ scroll-margin-top:130px; }
   max-width:var(--container); margin:0 auto;
   transition:padding .35s var(--ease);
 }
-.site-header.is-solid{ position:fixed; background:rgba(247,245,241,.96); backdrop-filter:blur(10px); box-shadow:0 1px 0 var(--line); animation:headerSlideDown .5s var(--ease-soft); }
-@keyframes headerSlideDown{ from{ transform:translateY(-100%); } to{ transform:translateY(0); } }
+.site-header.is-solid{ background:rgba(247,245,241,.96); backdrop-filter:blur(10px); box-shadow:0 1px 0 var(--line); }
 .site-header.is-solid .header-top{ padding-top:14px; padding-bottom:14px; }
 
 .header-bottom{ border-top:1px solid rgba(255,255,255,.18); transition:border-color .35s var(--ease); }
