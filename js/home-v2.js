@@ -195,6 +195,23 @@ if (quoteForm){
   });
 }
 
+/* Hero form — front-end only mock submit (mirrors quote form) */
+var heroForm = document.getElementById('hero-form');
+if (heroForm){
+  heroForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    var required = heroForm.querySelectorAll('[required]');
+    var firstInvalid = null;
+    required.forEach(function(f){
+      if (!f.value.trim()){ f.style.borderColor = '#b23b3b'; if(!firstInvalid) firstInvalid = f; }
+      else { f.style.borderColor = ''; }
+    });
+    if (firstInvalid){ firstInvalid.focus(); return; }
+    heroForm.classList.add('hide');
+    document.getElementById('hero-form-success').classList.add('show');
+  });
+}
+
 /* Footer year */
 var yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();

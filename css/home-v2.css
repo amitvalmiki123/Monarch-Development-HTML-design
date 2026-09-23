@@ -67,7 +67,7 @@ input,select,textarea{ font-family:inherit; font-size:16px; }
 .bleed{ width:100vw; position:relative; left:50%; right:50%; margin-left:-50vw; margin-right:-50vw; }
 
 h1,h2,h3,h4{ margin:0; font-family:var(--display); font-weight:400; letter-spacing:-0.01em; color:var(--ink); }
-h2{ font-size:clamp(32px,4.4vw,56px); line-height:1.1; }
+h2{ font-size:clamp(32px,4.4vw,56px); line-height:1.1; font-weight:600; }
 p{ margin:0; }
 
 .eyebrow{
@@ -239,9 +239,10 @@ section{ position:relative; }
 }
 .hero-inner{
   position:relative; z-index:3; width:100%;
-  padding:250px var(--gutter) 0;
+  padding:225px var(--gutter) 0;
   max-width:var(--container); margin:0 auto;
 }
+.hero-grid{ display:grid; grid-template-columns:1.25fr .95fr; gap:56px; align-items:start; }
 .hero-eyebrow{
   font-size:13px; font-weight:700; letter-spacing:.3em; text-transform:uppercase;
   color:var(--gold); margin-bottom:26px; display:flex; align-items:center; gap:12px;
@@ -254,6 +255,17 @@ section{ position:relative; }
 }
 .hero-sub{ margin-top:30px; font-size:18.5px; line-height:1.7; max-width:48ch; color:rgba(255,255,255,.92); text-shadow:0 2px 16px rgba(0,0,0,.45); }
 .hero-cta{ display:flex; flex-wrap:wrap; gap:18px; margin-top:42px; }
+
+.hero-form-card{
+  background:rgba(255,255,255,.98); border-radius:var(--radius);
+  padding:clamp(28px,3vw,38px); box-shadow:0 40px 80px rgba(0,0,0,.4);
+}
+.hero-form-card h3{ font-size:23px; color:var(--ink); }
+.hero-form-card > p{ margin-top:8px; font-size:14px; color:var(--ink-mute); line-height:1.5; }
+.hero-form-card form{ margin-top:24px; }
+.hero-form-card .field{ margin-bottom:16px; }
+.hero-form-card .field label{ margin-bottom:7px; }
+.hero-form-card .form-success{ margin-top:0; }
 
 .hero-dots{ position:absolute; right:var(--gutter); bottom:125px; z-index:3; display:flex; gap:10px; }
 .hero-dots button{ width:28px; height:3px; background:rgba(255,255,255,.35); border:none; padding:0; transition:background .3s var(--ease), width .3s var(--ease); }
@@ -489,7 +501,7 @@ section{ position:relative; }
 .form-note{ font-size:12px; color:var(--ink-mute); margin-top:8px; }
 .form-success{ display:none; padding:22px; border:1px solid var(--line); background:var(--paper); text-align:center; font-size:15px; }
 .form-success.show{ display:block; }
-.quote-form form.hide{ display:none; }
+form.hide{ display:none; }
 
 /* ===========================================================
    FOOTER
@@ -637,6 +649,8 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
   .trust-item{ flex:1 1 240px; }
   .trust-item:nth-child(2), .trust-item:last-child{ justify-content:flex-start; }
   .hero-dots, .scroll-cue{ display:none; }
+  .hero-grid{ grid-template-columns:1fr; gap:32px; }
+  .hero-form-card{ max-width:460px; }
 }
 
 @media (max-width:760px){
