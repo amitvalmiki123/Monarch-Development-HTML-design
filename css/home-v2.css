@@ -175,7 +175,7 @@ section[id]:not(.hero){ scroll-margin-top:130px; }
 .site-header.is-solid .header-bottom .main-nav{ padding-top:11px; padding-bottom:11px; }
 
 .brand{ display:grid; align-items:center; }
-.brand img{ height:100px; width:auto; transition:height .3s var(--ease); }
+.brand img{ height:120px; width:auto; transition:height .3s var(--ease); }
 .site-header.is-solid .brand img{ height:90px; }
 .brand-logo{ grid-area:1/1; height:100px; width:auto; transition:height .3s var(--ease), opacity .3s var(--ease); }
 .site-header.is-solid .brand-logo{ height:90px; }
@@ -241,7 +241,7 @@ section[id]:not(.hero){ scroll-margin-top:130px; }
 }
 .hero-inner{
   position:relative; z-index:3; width:100%;
-  padding:225px var(--gutter) 0;
+  padding:300px var(--gutter) 50px;
   max-width:var(--container); margin:0 auto;
 }
 .hero-grid{ display:grid; grid-template-columns:1.25fr .95fr; gap:56px; align-items:start; }
@@ -252,7 +252,7 @@ section[id]:not(.hero){ scroll-margin-top:130px; }
 }
 .hero h1{ overflow:hidden; }
 .hero h1 span{
-  display:block; font-size:clamp(46px,4.8vw,108px); line-height:1.02; color:var(--white); max-width:20ch;
+  display:block; font-size:clamp(46px,4.5vw,108px); line-height:1.02; color:var(--white); max-width:20ch;
   letter-spacing:-0.015em; text-shadow:0 4px 30px rgba(0,0,0,.45);
 }
 .hero-sub{ margin-top:30px; font-size:18.5px; line-height:1.7; max-width:48ch; color:rgba(255,255,255,.92); text-shadow:0 2px 16px rgba(0,0,0,.45); }
@@ -270,7 +270,7 @@ section[id]:not(.hero){ scroll-margin-top:130px; }
 .hero-form-card .form-success{ margin-top:0; }
 
 .hero-dots{ position:absolute; right:var(--gutter); bottom:125px; z-index:3; display:flex; gap:10px; }
-.hero-dots button{ width:28px; height:3px; background:rgba(255,255,255,.35); border:none; padding:0; transition:background .3s var(--ease), width .3s var(--ease); }
+.hero-dots button{ width:28px; height:3px; background:rgba(255,255,255,.35); border:none; padding:0; transition:background .3s var(--ease), width .3s var(--ease);display:none; }
 .hero-dots button.active{ background:var(--gold); width:44px; }
 
 .trust-strip{
