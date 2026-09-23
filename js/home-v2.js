@@ -1,12 +1,22 @@
 document.documentElement.classList.add('js');
 document.body.classList.add('js');
 
-/* Header scrolls away with the hero, then sticks + turns solid past 400px */
+/* Header scrolls away with the hero, then sticks + turns solid near banner end */
 var header = document.querySelector('.site-header');
+var heroSection = document.querySelector('.hero');
+var stickyLimit = 800;
+function calcStickyLimit(){
+  var h = heroSection ? heroSection.offsetHeight : 1000;
+  stickyLimit = Math.min(Math.max(h - 160, 500), 900);
+}
 function onScroll(){
-  if (window.scrollY > 400) header.classList.add('is-solid');
+  if (window.scrollY > stickyLimit) header.classList.add('is-solid');
   else header.classList.remove('is-solid');
 }
+window.addEventListener('resize', calcStickyLimit);
+window.addEventListener('load', calcStickyLimit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(calcStickyLimit);
+calcStickyLimit();
 window.addEventListener('scroll', onScroll, { passive:true });
 onScroll();
 
@@ -216,7 +226,7 @@ if (heroForm){
 var yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-/* Hero content parallax — drifts up and fades on scroll (desktop only) */
+/* Hero content parallax — gentle drift only, content stays fully readable (desktop only) */
 (function(){
   var hero = document.querySelector('.hero');
   var inner = document.querySelector('.hero-inner');
@@ -228,10 +238,9 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
     ticking = false;
     var h = hero.offsetHeight;
     var y = window.scrollY;
-    if (y <= 0){ inner.style.transform = ''; inner.style.opacity = ''; return; }
+    if (y <= 0){ inner.style.transform = ''; return; }
     if (y > h) return;
-    inner.style.transform = 'translate3d(0,' + (y * 0.28).toFixed(1) + 'px,0)';
-    inner.style.opacity = Math.max(0, 1 - (y / h) * 1.15).toFixed(3);
+    inner.style.transform = 'translate3d(0,' + (y * 0.12).toFixed(1) + 'px,0)';
   }
   window.addEventListener('scroll', function(){
     if (!ticking){ ticking = true; requestAnimationFrame(update); }
