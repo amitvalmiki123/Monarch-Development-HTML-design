@@ -762,7 +762,7 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 /* sticky state: single compact row — logo + menus + button */
 .site-header.is-solid .header-inner{ flex-wrap:nowrap; column-gap:26px; padding-top:12px; padding-bottom:12px; }
 .site-header.is-solid .header-inner .main-nav{ flex:1 1 auto; width:auto; order:0; margin-top:0; padding-top:0; border-top:none; }
-.site-header.is-solid .main-nav > ul{ justify-content:center; gap:15px; }
+.site-header.is-solid .main-nav > ul{ justify-content:center; gap:17px; }
 .site-header.is-solid .main-nav a{ font-size:13px; }
 .site-header.is-solid .header-phone{ display:none; }
 /* keep both header states collision-free on smaller desktop widths */
@@ -770,13 +770,13 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
   .site-header:not(.is-solid) .main-nav a{ font-size:14px; }
   .site-header:not(.is-solid) .main-nav > ul{ gap:10px; }
   .site-header.is-solid .main-nav a{ font-size:12.5px; }
-  .site-header.is-solid .main-nav > ul{ gap:12px; }
+  .site-header.is-solid .main-nav > ul{ gap:14px; }
 }
 @media (max-width:1450px){
   .site-header:not(.is-solid) .main-nav a{ font-size:13.5px; }
   .site-header.is-solid .header-inner{ column-gap:18px; }
   .site-header.is-solid .main-nav a{ font-size:12px; }
-  .site-header.is-solid .main-nav > ul{ gap:10px; }
+  .site-header.is-solid .main-nav > ul{ gap:12px; }
 }
 .dropdown-1col{ columns:1; min-width:270px; }
 
@@ -811,8 +811,8 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 .reviews-dark .link-arrow{ color:var(--paper); }
 
 /* instagram cards */
-.reel-col{ display:grid; grid-template-columns:1fr 1fr; gap:30px; align-content:start; align-items:start; }
-.ig-card{ background:var(--white); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+.reel-col{ display:grid; grid-template-columns:1fr 1fr; gap:30px; align-content:start; align-items:stretch; }
+.ig-card{ background:var(--white); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; display:flex; flex-direction:column; }
 .ig-head{ display:flex; align-items:center; gap:12px; padding:14px 16px; }
 .ig-avatar{ width:38px; height:38px; border-radius:50%; overflow:hidden; flex:none; background:var(--paper-alt); }
 .ig-avatar img{ width:100%; height:100%; object-fit:cover; }
@@ -831,13 +831,13 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 .ig-actions{ display:flex; align-items:center; justify-content:space-between; padding:13px 16px 6px; }
 .ig-icons{ display:flex; align-items:center; gap:18px; }
 .ig-ic{ width:25px; height:25px; fill:none; stroke:var(--ink); stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-.ig-meta{ padding:6px 16px 18px; font-size:14px; line-height:1.6; color:var(--ink-soft); }
+.ig-meta{ padding:6px 16px 18px; font-size:14px; line-height:1.6; color:var(--ink-soft); margin-top:auto; }
 .ig-meta strong{ margin-right:6px; color:var(--ink); }
 .reel-col .reel-btn{ justify-self:start; margin-top:2px; grid-column:1/-1; }
 
 @media (max-width:1180px){
   .proof-layout{ grid-template-columns:1fr; }
-  .reel-col{ grid-template-columns:1fr 1fr; align-items:start; }
+  .reel-col{ grid-template-columns:1fr 1fr; align-items:stretch; }
   .reel-col .reel-btn{ grid-column:1/-1; }
 }
 @media (max-width:760px){
