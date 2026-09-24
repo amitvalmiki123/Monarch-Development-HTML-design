@@ -748,17 +748,36 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
   transition:padding .35s var(--ease);
 }
 .site-header .header-inner .main-nav{ min-width:0; }
-.site-header .header-inner .main-nav > ul{ justify-content:center; }
-/* normal state: cta pinned right, nav wraps to its own row below */
+.site-header .header-inner .main-nav > ul{ flex-wrap:nowrap; }
+/* normal state: cta pinned right, nav wraps to its own row below,
+   spread edge-to-edge within the container */
 .site-header:not(.is-solid) .header-cta{ margin-left:auto; }
 .site-header:not(.is-solid) .header-inner .main-nav{
-  flex:1 1 100%; order:5; width:100%;
+  flex:1 1 100%; order:5; width:100%; max-width:100%;
   margin-top:14px; padding-top:13px;
   border-top:1px solid rgba(255,255,255,.18);
 }
+.site-header:not(.is-solid) .main-nav > ul{ justify-content:space-between; width:100%; gap:12px; }
+.site-header:not(.is-solid) .main-nav a{ font-size:15px; }
 /* sticky state: single compact row — logo + menus + button */
-.site-header.is-solid .header-inner{ flex-wrap:nowrap; padding-top:12px; padding-bottom:12px; }
+.site-header.is-solid .header-inner{ flex-wrap:nowrap; column-gap:26px; padding-top:12px; padding-bottom:12px; }
 .site-header.is-solid .header-inner .main-nav{ flex:1 1 auto; width:auto; order:0; margin-top:0; padding-top:0; border-top:none; }
+.site-header.is-solid .main-nav > ul{ justify-content:center; gap:15px; }
+.site-header.is-solid .main-nav a{ font-size:13px; }
+.site-header.is-solid .header-phone{ display:none; }
+/* keep both header states collision-free on smaller desktop widths */
+@media (max-width:1600px){
+  .site-header:not(.is-solid) .main-nav a{ font-size:14px; }
+  .site-header:not(.is-solid) .main-nav > ul{ gap:10px; }
+  .site-header.is-solid .main-nav a{ font-size:12.5px; }
+  .site-header.is-solid .main-nav > ul{ gap:12px; }
+}
+@media (max-width:1450px){
+  .site-header:not(.is-solid) .main-nav a{ font-size:13.5px; }
+  .site-header.is-solid .header-inner{ column-gap:18px; }
+  .site-header.is-solid .main-nav a{ font-size:12px; }
+  .site-header.is-solid .main-nav > ul{ gap:10px; }
+}
 .dropdown-1col{ columns:1; min-width:270px; }
 
 /* reputation proof layout: Google reviews + Instagram side by side */
