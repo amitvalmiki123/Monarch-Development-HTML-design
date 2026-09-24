@@ -47,7 +47,7 @@ body.js .reveal-scale.is-in{ opacity:1; transform:scale(1); transition:opacity 1
 body.js .reveal-line{ opacity:0; transform:translateY(100%); }
 body.js .reveal-line.is-in{ opacity:1; transform:translateY(0); transition:opacity .9s var(--ease-soft), transform 1s var(--ease-soft); transition-delay:calc(var(--i,0) * 110ms); }
 
-html,body{ margin:0; padding:0; overflow-x:hidden; }
+html,body{ margin:0; padding:0; overflow-x:hidden; overflow-x:clip; }
 body{
   background:var(--paper);
   color:var(--ink);
@@ -638,11 +638,6 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
   .nav-toggle{ display:flex; }
   .site-header.is-solid .header-cta{ margin-left:auto; }
 }
-@media (max-width:1100px){
-  .brand img{ height:80px; }
-  .site-header.is-solid .brand img{ height:72px; }
-  .header-phone{ display:none; }
-}
 
 @media (max-width:640px){
   .header-phone{ display:none; }
@@ -772,19 +767,31 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 .site-header.is-solid .header-inner .main-nav{ flex:1 1 auto; width:auto; order:0; margin-top:0; padding-top:0; border-top:none; }
 .site-header.is-solid .main-nav > ul{ justify-content:center; gap:17px; }
 .site-header.is-solid .main-nav a{ font-size:13px; }
-.site-header.is-solid .header-phone{ display:none; }
+.site-header.is-solid .header-cta{ gap:14px; }
+.site-header.is-solid .header-phone{ font-size:10.5px; gap:2px; }
+.site-header.is-solid .header-phone strong{ font-size:14px; }
+.site-header.is-solid .header-cta .btn{ padding:11px 20px; font-size:11px; white-space:nowrap; }
 /* keep both header states collision-free on smaller desktop widths */
 @media (max-width:1600px){
   .site-header:not(.is-solid) .main-nav a{ font-size:14px; }
   .site-header:not(.is-solid) .main-nav > ul{ gap:10px; }
   .site-header.is-solid .main-nav a{ font-size:12.5px; }
   .site-header.is-solid .main-nav > ul{ gap:14px; }
+  .site-header.is-solid .header-phone span{ display:none; }
+  .site-header.is-solid .header-phone strong{ font-size:13px; }
+  .site-header.is-solid .header-cta{ gap:12px; }
+  .site-header.is-solid .header-cta .btn{ padding:10px 16px; font-size:10.5px; }
 }
 @media (max-width:1450px){
   .site-header:not(.is-solid) .main-nav a{ font-size:13.5px; }
   .site-header.is-solid .header-inner{ column-gap:18px; }
   .site-header.is-solid .main-nav a{ font-size:12px; }
   .site-header.is-solid .main-nav > ul{ gap:12px; }
+  .site-header.is-solid .header-cta{ gap:10px; }
+  .site-header.is-solid .header-cta .btn{ padding:9px 14px; font-size:10px; }
+}
+@media (max-width:1400px){
+  .site-header.is-solid .header-phone{ display:none; }
 }
 .dropdown-1col{ columns:1; min-width:270px; }
 
