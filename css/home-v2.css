@@ -636,6 +636,12 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 @media (max-width:1300px){
   .main-nav{ display:none; }
   .nav-toggle{ display:flex; }
+  .site-header.is-solid .header-cta{ margin-left:auto; }
+}
+@media (max-width:1100px){
+  .brand img{ height:80px; }
+  .site-header.is-solid .brand img{ height:72px; }
+  .header-phone{ display:none; }
 }
 
 @media (max-width:640px){
@@ -675,6 +681,8 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 
 @media (max-width:760px){
   .mobile-bar{ display:flex; }
+  .brand img{ height:56px; }
+  .site-header.is-solid .brand img{ height:48px; }
   body{ padding-bottom:70px; }
   .header-cta .btn{ display:none; }
   .svc-row{ padding:24px 4px; gap:16px; }
@@ -811,7 +819,7 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 .reviews-dark .link-arrow{ color:var(--paper); }
 
 /* instagram cards */
-.reel-col{ display:grid; grid-template-columns:1fr 1fr; gap:30px; align-content:start; align-items:stretch; }
+.reel-col{ display:grid; grid-template-columns:1fr 1fr; gap:30px; align-content:start; align-items:stretch; align-self:start; position:sticky; top:150px; }
 .ig-card{ background:var(--white); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; display:flex; flex-direction:column; }
 .ig-head{ display:flex; align-items:center; gap:12px; padding:14px 16px; }
 .ig-avatar{ width:38px; height:38px; border-radius:50%; overflow:hidden; flex:none; background:var(--paper-alt); }
@@ -837,7 +845,7 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 
 @media (max-width:1180px){
   .proof-layout{ grid-template-columns:1fr; }
-  .reel-col{ grid-template-columns:1fr 1fr; align-items:stretch; }
+  .reel-col{ grid-template-columns:1fr 1fr; align-self:stretch; position:static; }
   .reel-col .reel-btn{ grid-column:1/-1; }
 }
 @media (max-width:760px){
