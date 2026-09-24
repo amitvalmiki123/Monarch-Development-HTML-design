@@ -23,33 +23,31 @@
 
 <!-- ============ HEADER ============ -->
 <header class="site-header">
-  <div class="header-top">
+  <div class="header-inner">
     <a href="index-v2.html" class="brand">
       <img src="images/logo-White.png" alt="Monarc Developments" class="brand-logo brand-logo-white">
       <img src="images/logo.png" alt="Monarc Developments" class="brand-logo brand-logo-color">
     </a>
 
-    <div class="header-cta">
-      <div class="header-phone">
-        <span>Free, No-Obligation Quote</span>
-        <strong>0449 802 353</strong>
-      </div>
-      <a href="#quote" class="btn btn-primary btn-sm">Request A Quote</a>
-      <button class="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
-    </div>
-  </div>
-
-  <div class="header-bottom">
     <nav class="main-nav">
       <ul>
         <li><a href="index-v2.html">Home</a></li>
         <li><a href="about-us.html">About Us</a></li>
-        <li><a href="full-home-renovations.html">Home Renovations</a></li>
+        <li class="has-drop">
+          <a href="full-home-renovations.html" data-nav-group="home-renovations">Home Renovations <span class="caret"></span></a>
+          <div class="dropdown dropdown-1col">
+            <a href="full-home-renovations.html">Full Home Renovations</a>
+            <a href="home-extensions.html">Home Extensions</a>
+            <a href="decks-and-pergolas.html">Decks &amp; Pergolas</a>
+            <a href="laundry-renovations.html">Laundry Renovations</a>
+            <a href="balcony-renovations.html">Balcony Renovations</a>
+            <a href="new-home-builds.html">New Home Builds</a>
+          </div>
+        </li>
         <li><a href="kitchen-renovations.html">Kitchen Renovations</a></li>
         <li><a href="bathroom-renovations.html">Bathroom Renovations</a></li>
-        <li><a href="laundry-renovations.html">Laundry Renovations</a></li>
         <li class="has-drop">
-          <a href="service-areas.html">Service Areas <span class="caret"></span></a>
+          <a href="service-areas.html" data-nav-group="service-areas">Service Areas <span class="caret"></span></a>
           <div class="dropdown">
             <a href="service-areas.html#rowville">Rowville</a>
             <a href="service-areas.html#glen-waverley">Glen Waverley</a>
@@ -70,6 +68,15 @@
         <li><a href="contact-us.html">Contact Us</a></li>
       </ul>
     </nav>
+
+    <div class="header-cta">
+      <div class="header-phone">
+        <span>Free, No-Obligation Quote</span>
+        <strong>0449 802 353</strong>
+      </div>
+      <a href="#quote" class="btn btn-primary btn-sm">Request A Quote</a>
+      <button class="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </div>
   </div>
 </header>
 
@@ -82,12 +89,21 @@
   <ul class="mnav-list">
     <li><a href="index-v2.html">Home</a></li>
     <li><a href="about-us.html">About Us</a></li>
-    <li><a href="full-home-renovations.html">Home Renovations</a></li>
+    <li>
+      <button class="mnav-sub-toggle" data-nav-group="home-renovations">Home Renovations <span class="caret"></span></button>
+      <ul class="mnav-sub">
+        <li><a href="full-home-renovations.html">Full Home Renovations</a></li>
+        <li><a href="home-extensions.html">Home Extensions</a></li>
+        <li><a href="decks-and-pergolas.html">Decks &amp; Pergolas</a></li>
+        <li><a href="laundry-renovations.html">Laundry Renovations</a></li>
+        <li><a href="balcony-renovations.html">Balcony Renovations</a></li>
+        <li><a href="new-home-builds.html">New Home Builds</a></li>
+      </ul>
+    </li>
     <li><a href="kitchen-renovations.html">Kitchen Renovations</a></li>
     <li><a href="bathroom-renovations.html">Bathroom Renovations</a></li>
-    <li><a href="laundry-renovations.html">Laundry Renovations</a></li>
     <li>
-      <button class="mnav-sub-toggle">Service Areas <span class="caret"></span></button>
+      <button class="mnav-sub-toggle" data-nav-group="service-areas">Service Areas <span class="caret"></span></button>
       <ul class="mnav-sub">
         <li><a href="service-areas.html#rowville">Rowville</a></li>
         <li><a href="service-areas.html#glen-waverley">Glen Waverley</a></li>
@@ -351,40 +367,106 @@
 </section>
 
 <!-- ============ REPUTATION ============ -->
-<section class="pad bg-photo reviews-dark" id="reviews" style="background-image:url('images/Background/5ac6f4f2-3c07-405c-8fec-e05d384d7098.png'); --overlay: rgba(8,8,8,.84);">
+<section class="pad" id="reviews">
   <div class="container">
-    <div class="reviews-top reveal">
-      <div>
-        <div class="eyebrow">
-          <svg width="20" height="13" viewBox="0 0 22 14" fill="none"><path d="M1 13V4L6 9L11 1L16 9L21 4V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Reputation
-        </div>
-        <h2>5.0★ on Google — straight from our clients.</h2>
+    <div class="section-head center reveal">
+      <div class="eyebrow">
+        <svg width="20" height="13" viewBox="0 0 22 14" fill="none"><path d="M1 13V4L6 9L11 1L16 9L21 4V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Reputation
       </div>
-      <div class="rating-badge">
-        <span class="stars">★★★★★</span>
-        <div>
-          <div class="num"><span data-count="5.0">0</span></div>
-          <div class="meta">7 Verified Google Reviews</div>
-        </div>
-      </div>
+      <h2>5.0★ on Google — straight from our clients.</h2>
     </div>
 
-    <div class="review-rail" data-stagger>
-      <div class="review-card reveal">
-        <span class="quote-mark">&ldquo;</span>
-        <p>I don't readily give five star reviews, but we were very satisfied with the whole experience of choosing Monarc Developments for our renovation. Jaan was attentive, punctual and importantly did the work and provided a great result&hellip;</p>
-        <div class="review-foot"><div class="review-avatar">J</div><div><div class="review-name">Joe Tigel</div><div class="review-src">Google Review</div></div></div>
+    <div class="proof-layout reveal">
+      <div class="reviews-col">
+        <div class="reviews-head">
+          <span class="google-badge">Google</span>
+          <span class="stars">★★★★★</span>
+          <span class="reviews-meta">7 Verified Google Reviews</span>
+        </div>
+        <div class="review-card-stack" data-stagger>
+          <div class="review-card reveal">
+            <span class="quote-mark">&ldquo;</span>
+            <p>I don't readily give five star reviews, but we were very satisfied with the whole experience of choosing Monarc Developments for our renovation. Jaan was attentive, punctual and importantly did the work and provided a great result&hellip;</p>
+            <div class="review-foot"><div class="review-avatar">J</div><div><div class="review-name">Joe Tigel</div><div class="review-src">Google Review</div></div></div>
+          </div>
+          <div class="review-card reveal">
+            <span class="quote-mark">&ldquo;</span>
+            <p>Really happy with Monarc Developments. The team was always on time, clean and tidy, and finished everything when they said they would. The final result was even better than we expected. Would definitely recommend them.</p>
+            <div class="review-foot"><div class="review-avatar">E</div><div><div class="review-name">Eleni Pendalis</div><div class="review-src">Google Review</div></div></div>
+          </div>
+          <div class="review-card reveal">
+            <span class="quote-mark">&ldquo;</span>
+            <p>Couldn't be any happier. The whole team was professional, respectful and easy to deal with. The workmanship was immaculate and you can tell they genuinely care about the quality of their work. They kept the site clean throughout&hellip;</p>
+            <div class="review-foot"><div class="review-avatar">T</div><div><div class="review-name">Tim Huan</div><div class="review-src">Google Review</div></div></div>
+          </div>
+        </div>
+        <a href="reviews.html" class="link-arrow">
+          Read all reviews
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3.75 9h10.5M10 5.25L13.75 9 10 12.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
       </div>
-      <div class="review-card reveal">
-        <span class="quote-mark">&ldquo;</span>
-        <p>Really happy with Monarc Developments. The team was always on time, clean and tidy, and finished everything when they said they would. The final result was even better than we expected. Would definitely recommend them.</p>
-        <div class="review-foot"><div class="review-avatar">E</div><div><div class="review-name">Eleni Pendalis</div><div class="review-src">Google Review</div></div></div>
-      </div>
-      <div class="review-card reveal">
-        <span class="quote-mark">&ldquo;</span>
-        <p>Couldn't be any happier. The whole team was professional, respectful and easy to deal with. The workmanship was immaculate and you can tell they genuinely care about the quality of their work. They kept the site clean throughout&hellip;</p>
-        <div class="review-foot"><div class="review-avatar">T</div><div><div class="review-name">Tim Huan</div><div class="review-src">Google Review</div></div></div>
+
+      <div class="reel-col">
+        <article class="ig-card">
+          <header class="ig-head">
+            <span class="ig-avatar"><img src="images/logo.png" alt="Monarc Developments"></span>
+            <div class="ig-user">
+              <strong>monarcdevelopments</strong>
+              <span>Melbourne, VIC</span>
+            </div>
+            <a href="https://www.instagram.com/monarcdevelopments/" target="_blank" rel="noopener" class="ig-follow">Follow</a>
+          </header>
+          <div class="ig-media">
+            <img src="images/499873958_122109959438860559_3767225104326132015_n.jpg" alt="Finished double-vanity bathroom renovation by Monarc Developments">
+            <span class="ig-badge" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff" stroke="none"/><path d="M21 15l-5-5L5 21"/></svg>
+              Post
+            </span>
+          </div>
+          <div class="ig-actions">
+            <div class="ig-icons">
+              <svg viewBox="0 0 24 24" class="ig-ic"><path d="M12 21s-7.5-4.7-10-9.3C.6 8.9 2 5.5 5.2 5.1 7 4.9 8.7 5.9 12 9c3.3-3.1 5-4.1 6.8-3.9C22 5.5 23.4 8.9 22 11.7 19.5 16.3 12 21 12 21z"/></svg>
+              <svg viewBox="0 0 24 24" class="ig-ic"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 7.6L3 21l1.9-6A8.4 8.4 0 1 1 21 11.5z"/></svg>
+              <svg viewBox="0 0 24 24" class="ig-ic"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </div>
+            <svg viewBox="0 0 24 24" class="ig-ic"><path d="M6 2h12a1 1 0 0 1 1 1v18l-7-4-7 4V3a1 1 0 0 1 1-1z"/></svg>
+          </div>
+          <div class="ig-meta">
+            <p><strong>monarcdevelopments</strong>A finished bathroom renovation across Melbourne's south-east. ✨</p>
+          </div>
+        </article>
+
+        <article class="ig-card">
+          <header class="ig-head">
+            <span class="ig-avatar"><img src="images/logo.png" alt="Monarc Developments"></span>
+            <div class="ig-user">
+              <strong>monarcdevelopments</strong>
+              <span>Melbourne, VIC</span>
+            </div>
+            <a href="https://www.instagram.com/monarcdevelopments/" target="_blank" rel="noopener" class="ig-follow">Follow</a>
+          </header>
+          <div class="ig-media">
+            <img src="images/677797752_122165559548860559_1133449900491496470_n.jpg" alt="Full home renovation entryway with stone feature wall by Monarc Developments">
+            <span class="ig-badge" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff" stroke="none"/><path d="M21 15l-5-5L5 21"/></svg>
+              Post
+            </span>
+          </div>
+          <div class="ig-actions">
+            <div class="ig-icons">
+              <svg viewBox="0 0 24 24" class="ig-ic"><path d="M12 21s-7.5-4.7-10-9.3C.6 8.9 2 5.5 5.2 5.1 7 4.9 8.7 5.9 12 9c3.3-3.1 5-4.1 6.8-3.9C22 5.5 23.4 8.9 22 11.7 19.5 16.3 12 21 12 21z"/></svg>
+              <svg viewBox="0 0 24 24" class="ig-ic"><path d="M21 11.5a8.4 8.4 0 0 1-11.9 7.6L3 21l1.9-6A8.4 8.4 0 1 1 21 11.5z"/></svg>
+              <svg viewBox="0 0 24 24" class="ig-ic"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </div>
+            <svg viewBox="0 0 24 24" class="ig-ic"><path d="M6 2h12a1 1 0 0 1 1 1v18l-7-4-7 4V3a1 1 0 0 1 1-1z"/></svg>
+          </div>
+          <div class="ig-meta">
+            <p><strong>monarcdevelopments</strong>Full home renovation detail, Melbourne. 🏠</p>
+          </div>
+        </article>
+
+        <a href="https://www.instagram.com/monarcdevelopments/" target="_blank" rel="noopener" class="btn btn-ghost reel-btn">View More On Instagram</a>
       </div>
     </div>
   </div>
