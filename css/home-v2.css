@@ -811,15 +811,15 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 .reviews-dark .link-arrow{ color:var(--paper); }
 
 /* instagram cards */
-.reel-col{ display:grid; gap:30px; align-content:start; }
+.reel-col{ display:grid; grid-template-columns:1fr 1fr; gap:30px; align-content:start; align-items:start; }
 .ig-card{ background:var(--white); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
 .ig-head{ display:flex; align-items:center; gap:12px; padding:14px 16px; }
 .ig-avatar{ width:38px; height:38px; border-radius:50%; overflow:hidden; flex:none; background:var(--paper-alt); }
 .ig-avatar img{ width:100%; height:100%; object-fit:cover; }
-.ig-user{ display:flex; flex-direction:column; line-height:1.35; }
-.ig-user strong{ font-size:14px; }
-.ig-user span{ font-size:12px; color:var(--ink-mute); }
-.ig-follow{ margin-left:auto; font-size:13.5px; font-weight:700; color:var(--gold-text); border:1px solid var(--line); border-radius:100px; padding:7px 18px; transition:background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease); }
+.ig-user{ display:flex; flex-direction:column; line-height:1.35; min-width:0; }
+.ig-user strong{ font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ig-user span{ font-size:12px; color:var(--ink-mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ig-follow{ margin-left:auto; flex:none; font-size:13.5px; font-weight:700; color:var(--gold-text); border:1px solid var(--line); border-radius:100px; padding:7px 18px; transition:background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease); }
 .ig-follow:hover{ background:var(--ink); border-color:var(--ink); color:var(--white); }
 .ig-media{ position:relative; }
 .ig-media img{ width:100%; aspect-ratio:4/5; object-fit:cover; display:block; }
@@ -833,7 +833,7 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 .ig-ic{ width:25px; height:25px; fill:none; stroke:var(--ink); stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 .ig-meta{ padding:6px 16px 18px; font-size:14px; line-height:1.6; color:var(--ink-soft); }
 .ig-meta strong{ margin-right:6px; color:var(--ink); }
-.reel-col .reel-btn{ justify-self:start; margin-top:2px; }
+.reel-col .reel-btn{ justify-self:start; margin-top:2px; grid-column:1/-1; }
 
 @media (max-width:1180px){
   .proof-layout{ grid-template-columns:1fr; }
