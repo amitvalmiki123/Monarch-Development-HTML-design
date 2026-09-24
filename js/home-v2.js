@@ -224,9 +224,14 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
     if (!href || href.charAt(0) === '#') return;
     if (href.split('#')[0] === file) a.classList.add('is-active');
   });
-  if (file === 'service-areas.html'){
-    document.querySelectorAll('.mnav-sub-toggle').forEach(function(b){ b.classList.add('is-active'); });
-  }
+  var groups = {
+    'home-renovations': ['full-home-renovations.html', 'laundry-renovations.html', 'home-extensions.html', 'decks-and-pergolas.html', 'balcony-renovations.html', 'new-home-builds.html'],
+    'service-areas': ['service-areas.html']
+  };
+  document.querySelectorAll('[data-nav-group]').forEach(function(el){
+    var files = groups[el.getAttribute('data-nav-group')] || [];
+    if (files.indexOf(file) !== -1) el.classList.add('is-active');
+  });
 })();
 
 /* Active nav link for the section currently in view */
