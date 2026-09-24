@@ -856,3 +856,8 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 @media (max-width:760px){
   .reel-col{ grid-template-columns:1fr; }
 }
+
+/* Centered hero copy variant (eyebrow + heading only, e.g. Contact page) */
+.hero-copy.center{ text-align:center; }
+.hero-copy.center .hero-eyebrow{ justify-content:center; }
+.hero-copy.center h1 span{ margin-left:auto; margin-right:auto; }
