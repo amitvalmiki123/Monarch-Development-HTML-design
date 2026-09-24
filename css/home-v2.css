@@ -736,18 +736,29 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 .mnav-foot{ margin-top:auto; padding:24px var(--gutter) 40px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:14px; }
 
 /* ===========================================================
-   NEW MARKUP SUPPORT — single-row header, Reputation proof layout, Instagram cards
+   NEW MARKUP SUPPORT — two-row header, Reputation proof layout, Instagram cards
    (added for latest page uploads; all existing rules above untouched)
    =========================================================== */
-/* single-row header: brand + nav + cta in one flex row */
+/* two-row header in normal state (logo row + menu row below),
+   collapsing to a single compact bar once sticky (.is-solid) */
 .site-header .header-inner{
-  display:flex; align-items:center; gap:clamp(20px,3vw,44px);
-  max-width:var(--container); margin:0 auto; padding:18px var(--gutter);
+  display:flex; flex-wrap:wrap; align-items:center;
+  column-gap:clamp(20px,3vw,44px);
+  max-width:var(--container); margin:0 auto; padding:18px var(--gutter) 16px;
   transition:padding .35s var(--ease);
 }
-.site-header.is-solid .header-inner{ padding-top:12px; padding-bottom:12px; }
-.site-header .header-inner .main-nav{ flex:1 1 auto; width:auto; min-width:0; }
+.site-header .header-inner .main-nav{ min-width:0; }
 .site-header .header-inner .main-nav > ul{ justify-content:center; }
+/* normal state: cta pinned right, nav wraps to its own row below */
+.site-header:not(.is-solid) .header-cta{ margin-left:auto; }
+.site-header:not(.is-solid) .header-inner .main-nav{
+  flex:1 1 100%; order:5; width:100%;
+  margin-top:14px; padding-top:13px;
+  border-top:1px solid rgba(255,255,255,.18);
+}
+/* sticky state: single compact row — logo + menus + button */
+.site-header.is-solid .header-inner{ flex-wrap:nowrap; padding-top:12px; padding-bottom:12px; }
+.site-header.is-solid .header-inner .main-nav{ flex:1 1 auto; width:auto; order:0; margin-top:0; padding-top:0; border-top:none; }
 .dropdown-1col{ columns:1; min-width:270px; }
 
 /* reputation proof layout: Google reviews + Instagram side by side */
