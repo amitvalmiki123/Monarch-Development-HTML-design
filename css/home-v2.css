@@ -857,7 +857,10 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
   .reel-col{ grid-template-columns:1fr; }
 }
 
-/* Centered hero copy variant (eyebrow + heading only, e.g. Contact page) */
+/* Vertically-centered hero variant (Contact page): content sits equidistant
+   from hero top and bottom; top pad slightly larger to clear the header */
+.hero-center{ align-items:center; }
+.hero-center .hero-inner{ padding-top:150px; padding-bottom:130px; }
 .hero-copy.center{ text-align:center; }
 .hero-copy.center .hero-eyebrow{ justify-content:center; }
 .hero-copy.center h1 span{ margin-left:auto; margin-right:auto; }
