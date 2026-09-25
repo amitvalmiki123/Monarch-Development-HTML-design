@@ -895,4 +895,12 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
   .section-head p{ margin-left:auto; margin-right:auto; }
   .svc-row-desc{ margin-left:auto; margin-right:auto; }
   .review-foot, .trust-item, .reviews-head, .footer-social{ justify-content:center; }
+  .about-foot{ align-items:center; }
+  .footer-col ul, .footer-col li{ text-align:center; }
+  .footer-brand{ text-align:center; }
+  .footer-brand img{ display:block; margin-left:auto; margin-right:auto; }
+  .footer-brand p{ margin-left:auto; margin-right:auto; }
+  .footer-word{ font-size:clamp(44px,15vw,72px); }
+  .footer-cta-inner{ justify-content:center; text-align:center; }
+  .promise-dark .promise-icon{ margin-left:auto; margin-right:auto; }
 }
