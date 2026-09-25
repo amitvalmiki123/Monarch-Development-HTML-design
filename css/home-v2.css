@@ -877,3 +877,20 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 @media (max-width:760px){
   .ig-grid{ grid-template-columns:1fr; }
 }
+
+/* Header phone icon — shows beside the hamburger on tablet/mobile */
+.phone-icon{ display:none; align-items:center; justify-content:center; width:42px; height:42px; flex:none; border:1px solid rgba(255,255,255,.5); border-radius:50%; color:var(--white); transition:background .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease); }
+.phone-icon svg{ width:18px; height:18px; }
+.site-header.is-solid .phone-icon{ color:var(--ink); border-color:rgba(17,17,17,.3); }
+.phone-icon:hover{ background:var(--gold); border-color:var(--gold); color:var(--ink); }
+@media (max-width:1300px){ .phone-icon{ display:flex; } }
+
+/* ---- Site-wide center alignment (list contents + form fields stay left) ---- */
+body{ text-align:center; }
+ul, li, label, input, select, textarea{ text-align:left; }
+.eyebrow, .hero-eyebrow{ justify-content:center; }
+.hero h1 span{ margin-left:auto; margin-right:auto; }
+.hero-sub{ margin-left:auto; margin-right:auto; }
+.section-head p{ margin-left:auto; margin-right:auto; }
+.svc-row-desc{ margin-left:auto; margin-right:auto; }
+.review-foot, .trust-item, .reviews-head, .footer-social{ justify-content:center; }
