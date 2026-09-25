@@ -885,12 +885,14 @@ body.js .footer-word.is-in{ opacity:1; transform:none; transition:opacity 1.2s v
 .phone-icon:hover{ background:var(--gold); border-color:var(--gold); color:var(--ink); }
 @media (max-width:1300px){ .phone-icon{ display:flex; } }
 
-/* ---- Site-wide center alignment (list contents + form fields stay left) ---- */
-body{ text-align:center; }
-ul, li, label, input, select, textarea{ text-align:left; }
-.eyebrow, .hero-eyebrow{ justify-content:center; }
-.hero h1 span{ margin-left:auto; margin-right:auto; }
-.hero-sub{ margin-left:auto; margin-right:auto; }
-.section-head p{ margin-left:auto; margin-right:auto; }
-.svc-row-desc{ margin-left:auto; margin-right:auto; }
-.review-foot, .trust-item, .reviews-head, .footer-social{ justify-content:center; }
+/* ---- Mobile-only center alignment (lists + form fields stay left) ---- */
+@media (max-width:760px){
+  body{ text-align:center; }
+  ul, li, label, input, select, textarea{ text-align:left; }
+  .eyebrow, .hero-eyebrow{ justify-content:center; }
+  .hero h1 span{ margin-left:auto; margin-right:auto; }
+  .hero-sub{ margin-left:auto; margin-right:auto; }
+  .section-head p{ margin-left:auto; margin-right:auto; }
+  .svc-row-desc{ margin-left:auto; margin-right:auto; }
+  .review-foot, .trust-item, .reviews-head, .footer-social{ justify-content:center; }
+}
