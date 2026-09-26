@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import Avatar from '../common/Avatar';
 import { formatMessageTime } from '../../utils/format';
 
@@ -19,24 +20,67 @@ function lastMessagePreview(chat) {
 }
 
 const ICON_BY_TYPE = { group: '👥 ', channel: '📢 ', saved: '🔖 ' };
+const LONG_PRESS_MS = 420;
 
-export default function ChatListItem({ chat, active, onClick, currentUserId }) {
+export default function ChatListItem({ chat, active, onClick, onLongPress, selected, selectionMode, currentUserId }) {
   const isDirect = chat.type === 'direct';
   const statusUser = isDirect ? chat.peer : null;
   const lm = chat.lastMessage;
 
+  const timerRef = useRef(null);
+  const firedRef = useRef(false);
+
+  const start = () => {
+    firedRef.current = false;
+    timerRef.current = setTimeout(() => {
+      firedRef.current = true;
+      if (navigator.vibrate) navigator.vibrate(15);
+      onLongPress?.();
+    }, LONG_PRESS_MS);
+  };
+  const cancel = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+  const handleClick = () => {
+    if (firedRef.current) {
+      firedRef.current = false;
+      return;
+    }
+    onClick();
+  };
+
   return (
-    <div className={`chat-list-item${active ? ' active' : ''}`} onClick={onClick}>
+    <div
+      className={`chat-list-item${active ? ' active' : ''}${selected ? ' selected' : ''}`}
+      onClick={handleClick}
+      onTouchStart={start}
+      onTouchEnd={cancel}
+      onTouchMove={cancel}
+      onTouchCancel={cancel}
+      onMouseDown={start}
+      onMouseUp={cancel}
+      onMouseLeave={cancel}
+      onContextMenu={(e) => { e.preventDefault(); if (!firedRef.current) { firedRef.current = true; onLongPress?.(); } }}
+    >
+      {selectionMode && (
+        <span className={`chat-list-item__checkbox${selected ? ' checked' : ''}`}>{selected ? '✓' : ''}</span>
+      )}
       <Avatar
         name={chat.name}
         color={chat.avatarColor}
         photoUrl={statusUser?.avatarUrl}
-        showStatus={isDirect}
+        showStatus={isDirect && !selectionMode}
         status={statusUser?.status}
       />
       <div className="chat-list-item__body">
         <div className="chat-list-item__top">
-          <span className="chat-list-item__name">{ICON_BY_TYPE[chat.type] || ''}{chat.name}</span>
+          <span className="chat-list-item__name">
+            {chat.pinned && <span className="chat-list-item__pin" title="Pinned">📌</span>}
+            {ICON_BY_TYPE[chat.type] || ''}{chat.name}
+          </span>
           {lm && <span className="chat-list-item__time">{formatMessageTime(lm.createdAt)}</span>}
         </div>
         <div className="chat-list-item__bottom">
@@ -44,6 +88,7 @@ export default function ChatListItem({ chat, active, onClick, currentUserId }) {
             {lm && lm.senderId === currentUserId && !lm.deleted ? 'You: ' : ''}
             {lastMessagePreview(chat)}
           </span>
+          {chat.muted && <span className="chat-list-item__muted" title="Muted">🔕</span>}
           {chat.unreadCount > 0 && <span className="chat-list-item__unread">{chat.unreadCount}</span>}
         </div>
       </div>

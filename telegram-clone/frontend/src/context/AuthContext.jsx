@@ -148,9 +148,15 @@ export function AuthProvider({ children }) {
     setUser(acc.user);
     setOffline(false);
     connectSocket(acc.token);
-    // Full reload keeps every context (chats, sockets, message caches)
-    // perfectly clean for the newly-active account.
-    window.location.reload();
+    // Previously did a full window.location.reload() here to guarantee a
+    // clean slate for the newly-active account. That's a bad tradeoff on
+    // two counts: (1) it shows a jarring "Loading FairyChat..." screen on
+    // every switch instead of Telegram's instant one-tap swap, and (2) a
+    // full page/WebView reload can abort an in-flight native permission
+    // request or push-registration call on Android mid-flight, leaving it
+    // permanently stuck — a real contributor to push notifications never
+    // registering. ChatContext now resets its own per-account state (chats,
+    // messages, etc) whenever `token` changes, so this reload isn't needed.
   }, [accounts]);
 
   const logout = useCallback((userId) => {

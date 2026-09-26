@@ -176,6 +176,26 @@ CREATE TABLE IF NOT EXISTS push_tokens (
 CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
 `);
 
+// --- Migration: per-member chat pin/mute state (long-press a chat in the
+// list -> Pin / Mute / Delete). Pinning and muting are personal (each
+// member of a group can pin or mute it independently), so these live on
+// chat_members rather than chats.
+(function migrateChatMembersPinMute() {
+  const cols = db.prepare("PRAGMA table_info(chat_members)").all();
+  if (!cols.some((c) => c.name === 'pinned_at')) {
+    db.exec('ALTER TABLE chat_members ADD COLUMN pinned_at INTEGER');
+  }
+  if (!cols.some((c) => c.name === 'muted')) {
+    db.exec('ALTER TABLE chat_members ADD COLUMN muted INTEGER NOT NULL DEFAULT 0');
+  }
+  // "Clear History" (chat header -> ⋮ menu) hides everything up to this
+  // point from just this member's view — Telegram-style clear-for-me,
+  // the other side's copy of the chat is untouched.
+  if (!cols.some((c) => c.name === 'cleared_before_seq')) {
+    db.exec('ALTER TABLE chat_members ADD COLUMN cleared_before_seq INTEGER NOT NULL DEFAULT 0');
+  }
+})();
+
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like
 // better-sqlite3 did, so provide a tiny drop-in replacement with the same
 // call shape: `db.transaction(fn)` returns a function that runs fn inside a

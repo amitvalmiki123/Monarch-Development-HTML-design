@@ -22,6 +22,8 @@ const ChatContext = createContext(null);
 function compareChats(a, b) {
   if (a.type === 'saved') return -1;
   if (b.type === 'saved') return 1;
+  if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+  if (a.pinned && b.pinned) return (b.pinnedAt || 0) - (a.pinnedAt || 0);
   const at = a.lastMessage ? a.lastMessage.createdAt : a.createdAt;
   const bt = b.lastMessage ? b.lastMessage.createdAt : b.createdAt;
   return bt - at;
@@ -211,6 +213,35 @@ export function ChatProvider({ children }) {
     return res.data.chat;
   }, [upsertChat]);
 
+  const togglePinChat = useCallback(async (chatId) => {
+    const res = await http.post(`/chats/${chatId}/pin`);
+    setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, pinned: res.data.pinned, pinnedAt: res.data.pinned ? Date.now() : null } : c)).sort(compareChats));
+    return res.data.pinned;
+  }, []);
+
+  const toggleMuteChat = useCallback(async (chatId) => {
+    const res = await http.post(`/chats/${chatId}/mute`);
+    setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, muted: res.data.muted } : c)));
+    return res.data.muted;
+  }, []);
+
+  const clearChatHistory = useCallback(async (chatId) => {
+    await http.post(`/chats/${chatId}/clear`);
+    setMessagesByChat((prev) => ({ ...prev, [chatId]: [] }));
+    setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, lastMessage: null } : c)));
+  }, []);
+
+  const deleteChat = useCallback(async (chatId) => {
+    await http.delete(`/chats/${chatId}/me`);
+    setChats((prev) => prev.filter((c) => c.id !== chatId));
+    setMessagesByChat((prev) => {
+      const next = { ...prev };
+      delete next[chatId];
+      return next;
+    });
+    if (activeChatIdRef.current === chatId) setActiveChatId(null);
+  }, []);
+
   const searchUsers = useCallback(async (q) => {
     if (!q.trim()) return [];
     const res = await http.get('/users/search', { params: { q } });
@@ -303,7 +334,7 @@ export function ChatProvider({ children }) {
       const isOpenAndVisible = activeChatIdRef.current === message.chatId && document.visibilityState === 'visible';
       if (message.senderId !== user.id && !isOpenAndVisible) {
         const chat = chatsRef.current.find((c) => c.id === message.chatId);
-        if (chat) {
+        if (chat && !chat.muted) {
           const senderName = chat.members?.find((m) => m.id === message.senderId)?.name;
           const isGroup = chat.type === 'group' || chat.type === 'channel';
           const title = isGroup
@@ -365,6 +396,16 @@ export function ChatProvider({ children }) {
   }, [token, user, markRead]);
 
   useEffect(() => {
+    // Account switching no longer does a full app reload, so this has to
+    // clear out the previous account's chats/messages itself — otherwise
+    // you'd briefly see the old account's chat list/messages before the
+    // fresh loadChats() call below finishes.
+    setChats([]);
+    setChatsLoaded(false);
+    setActiveChatId(null);
+    setMessagesByChat({});
+    setHasMoreByChat({});
+    setTypingByChat({});
     if (token) loadChats().catch(() => {});
   }, [token, loadChats]);
 
@@ -374,6 +415,7 @@ export function ChatProvider({ children }) {
     startTyping, stopTyping, createDirectChat, createGroupChat, createChannelChat,
     addChatMember, updateChatInfo, searchUsers, matchContacts, listContacts, searchGifs, trendingGifs,
     searchStickers, trendingStickers, uploadFile,
+    togglePinChat, toggleMuteChat, deleteChat, clearChatHistory,
     loadMoreMessages: loadMessages, setActiveChatId
   };
 

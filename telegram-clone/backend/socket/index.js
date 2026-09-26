@@ -65,7 +65,7 @@ function setupSocket(io) {
         // routes/push.js), so it's always safe to call.
         const sender = db.prepare('SELECT name FROM users WHERE id = ?').get(userId);
         const chat = db.prepare('SELECT name, type FROM chats WHERE id = ?').get(chatId);
-        const otherMemberIds = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?')
+        const otherMemberIds = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ? AND muted = 0')
           .all(chatId, userId).map((r) => r.user_id);
         const title = chat && (chat.type === 'group' || chat.type === 'channel')
           ? `${sender?.name || 'Someone'} • ${chat.name}`

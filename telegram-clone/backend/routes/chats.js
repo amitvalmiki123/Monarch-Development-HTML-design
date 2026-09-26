@@ -35,10 +35,11 @@ function chatSummary(chat, currentUserId) {
   const members = db.prepare(`SELECT u.id, u.username, u.name, u.avatar_color, u.avatar_url, u.status, u.last_seen, cm.role
     FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.chat_id = ?`).all(chat.id);
 
-  const lastMsg = db.prepare(`SELECT * FROM messages WHERE chat_id = ? ORDER BY seq DESC LIMIT 1`).get(chat.id);
   const myMember = db.prepare('SELECT * FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat.id, currentUserId);
+  const clearedBefore = myMember ? myMember.cleared_before_seq : 0;
+  const lastMsg = db.prepare(`SELECT * FROM messages WHERE chat_id = ? AND seq > ? ORDER BY seq DESC LIMIT 1`).get(chat.id, clearedBefore);
   const unread = db.prepare(`SELECT COUNT(*) as c FROM messages WHERE chat_id = ? AND seq > ? AND sender_id != ? AND deleted = 0`)
-    .get(chat.id, myMember ? myMember.last_read_message_seq : 0, currentUserId).c;
+    .get(chat.id, Math.max(myMember ? myMember.last_read_message_seq : 0, clearedBefore), currentUserId).c;
 
   let title = chat.name;
   let avatarColor = chat.avatar_color;
@@ -65,6 +66,9 @@ function chatSummary(chat, currentUserId) {
     members: members.map(m => ({ id: m.id, username: m.username, name: m.name, avatarColor: m.avatar_color, avatarUrl: m.avatar_url || null, status: m.status, lastSeen: m.last_seen, role: m.role })),
     myRole: myMember ? myMember.role : null,
     canPost,
+    pinned: !!(myMember && myMember.pinned_at),
+    pinnedAt: myMember ? myMember.pinned_at : null,
+    muted: !!(myMember && myMember.muted),
     subscriberCount: chat.type === 'channel' ? members.length : undefined,
     lastMessage: lastMsg ? {
       id: lastMsg.id,
@@ -88,6 +92,8 @@ router.get('/', auth, (req, res) => {
   summaries.sort((a, b) => {
     if (a.type === 'saved') return -1;
     if (b.type === 'saved') return 1;
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    if (a.pinned && b.pinned) return b.pinnedAt - a.pinnedAt;
     const at = a.lastMessage ? a.lastMessage.createdAt : a.createdAt;
     const bt = b.lastMessage ? b.lastMessage.createdAt : b.createdAt;
     return bt - at;
@@ -223,11 +229,13 @@ router.get('/:chatId/messages', auth, (req, res) => {
   if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat not found' });
   const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const before = req.query.before ? parseInt(req.query.before) : null;
+  const myMember = db.prepare('SELECT cleared_before_seq FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat.id, req.user.id);
+  const clearedBefore = myMember ? myMember.cleared_before_seq : 0;
   let rows;
   if (before) {
-    rows = db.prepare('SELECT * FROM messages WHERE chat_id = ? AND seq < ? ORDER BY seq DESC LIMIT ?').all(chat.id, before, limit);
+    rows = db.prepare('SELECT * FROM messages WHERE chat_id = ? AND seq < ? AND seq > ? ORDER BY seq DESC LIMIT ?').all(chat.id, before, clearedBefore, limit);
   } else {
-    rows = db.prepare('SELECT * FROM messages WHERE chat_id = ? ORDER BY seq DESC LIMIT ?').all(chat.id, limit);
+    rows = db.prepare('SELECT * FROM messages WHERE chat_id = ? AND seq > ? ORDER BY seq DESC LIMIT ?').all(chat.id, clearedBefore, limit);
   }
   rows.reverse();
 
@@ -253,6 +261,52 @@ router.get('/:chatId/messages', auth, (req, res) => {
     })),
     hasMore: rows.length === limit
   });
+});
+
+// Long-press a chat in the list -> Pin/Unpin. Personal to each member, so
+// pinning a group chat doesn't pin it for everyone else in it.
+router.post('/:chatId/pin', auth, (req, res) => {
+  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.chatId);
+  if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat not found' });
+  const member = db.prepare('SELECT * FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat.id, req.user.id);
+  const nextPinned = !member.pinned_at;
+  db.prepare('UPDATE chat_members SET pinned_at = ? WHERE chat_id = ? AND user_id = ?')
+    .run(nextPinned ? Date.now() : null, chat.id, req.user.id);
+  res.json({ pinned: nextPinned });
+});
+
+// Long-press a chat in the list -> Mute/Unmute. Silences local + push
+// notifications for this chat only, for this account only.
+router.post('/:chatId/mute', auth, (req, res) => {
+  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.chatId);
+  if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat not found' });
+  const member = db.prepare('SELECT * FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat.id, req.user.id);
+  const nextMuted = member.muted ? 0 : 1;
+  db.prepare('UPDATE chat_members SET muted = ? WHERE chat_id = ? AND user_id = ?').run(nextMuted, chat.id, req.user.id);
+  res.json({ muted: !!nextMuted });
+});
+
+// Long-press a chat in the list -> Delete. Removes it from just this
+// account's chat list (reuses the existing self-removal path from
+// chat_members) — for a direct chat this is "delete conversation for me",
+// for a group/channel this is "leave".
+router.delete('/:chatId/me', auth, (req, res) => {
+  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.chatId);
+  if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat not found' });
+  if (chat.type === 'saved') return res.status(400).json({ error: "Saved Messages can't be deleted" });
+  db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(chat.id, req.user.id);
+  res.json({ ok: true });
+});
+
+// Chat header -> ⋮ menu -> Clear History. Hides every message up to now
+// from just this member's view (Telegram's "clear for me") — the other
+// side's copy of the conversation is untouched.
+router.post('/:chatId/clear', auth, (req, res) => {
+  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.chatId);
+  if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat not found' });
+  const maxSeq = db.prepare('SELECT MAX(seq) as s FROM messages WHERE chat_id = ?').get(chat.id).s || 0;
+  db.prepare('UPDATE chat_members SET cleared_before_seq = ? WHERE chat_id = ? AND user_id = ?').run(maxSeq, chat.id, req.user.id);
+  res.json({ ok: true });
 });
 
 router.post('/:chatId/read', auth, (req, res) => {
