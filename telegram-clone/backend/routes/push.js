@@ -2,6 +2,13 @@ const express = require('express');
 const db = require('../db');
 const auth = require('../middleware/auth');
 const { id } = require('../utils');
+// firebase-admin v12+ (we're on v14) reworked its CommonJS default export to
+// a lean shim (initializeApp/getApp/getApps/cert/applicationDefault only) —
+// the old admin.apps / admin.credential.cert / admin.messaging() namespaced
+// API from v8-v11 no longer exists on it. Use the modular submodule imports
+// instead, which is the correct, current API.
+const { initializeApp, cert, getApps, getApp } = require('firebase-admin/app');
+const { getMessaging } = require('firebase-admin/messaging');
 
 const router = express.Router();
 
@@ -17,29 +24,39 @@ const router = express.Router();
 // Until that's done, everything below safely no-ops: tokens are stored (in
 // case you configure Firebase later) but nothing ever tries to send a real
 // push, and the app never even asks the device to register for one.
-let admin = null;
+let app = null;
 let firebaseReady = false;
-function getFirebaseAdmin() {
-  if (firebaseReady) return admin;
+let lastInitError = null;
+
+function getFirebaseApp() {
+  if (firebaseReady) return app;
   firebaseReady = true;
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!raw) return null;
+  if (!raw) {
+    lastInitError = 'FIREBASE_SERVICE_ACCOUNT environment variable is not set';
+    return null;
+  }
   try {
-    // eslint-disable-next-line global-require
-    admin = require('firebase-admin');
-    if (!admin.apps.length) {
-      admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)) });
-    }
-    return admin;
+    const existing = getApps();
+    app = existing.length ? getApp() : initializeApp({ credential: cert(JSON.parse(raw)) });
+    lastInitError = null;
+    return app;
   } catch (e) {
+    lastInitError = e.message;
     console.error('Firebase Admin init failed — push notifications disabled:', e.message);
-    admin = null;
+    app = null;
     return null;
   }
 }
 
+// Reports whether push is *actually* working server-side, not just whether
+// the env var string is non-empty — this is what the Settings diagnostics
+// screen calls to tell you exactly why push isn't going out, without needing
+// server log access.
 router.get('/config', auth, (req, res) => {
-  res.json({ enabled: !!process.env.FIREBASE_SERVICE_ACCOUNT });
+  const fbApp = getFirebaseApp();
+  const tokenCount = db.prepare('SELECT COUNT(*) as c FROM push_tokens WHERE user_id = ?').get(req.user.id).c;
+  res.json({ enabled: !!fbApp, error: fbApp ? null : lastInitError, myTokenCount: tokenCount });
 });
 
 router.post('/register-token', auth, (req, res) => {
@@ -50,15 +67,36 @@ router.post('/register-token', auth, (req, res) => {
   res.json({ ok: true });
 });
 
+// Lets the logged-in user fire a real push at their own registered
+// device(s), for end-to-end debugging straight from Settings — no second
+// account or waiting for someone else to message you required.
+router.post('/test', auth, async (req, res) => {
+  const fbApp = getFirebaseApp();
+  if (!fbApp) return res.status(400).json({ error: lastInitError || 'Firebase is not configured on this server' });
+  const tokens = db.prepare('SELECT token FROM push_tokens WHERE user_id = ?').all(req.user.id).map((r) => r.token);
+  if (tokens.length === 0) return res.status(400).json({ error: 'No device is registered for push yet — open the app once with notifications permission granted, then try again' });
+  try {
+    const resp = await getMessaging(fbApp).sendEachForMulticast({
+      tokens,
+      notification: { title: 'FairyChat', body: 'Test push notification — if you see this, it works!' },
+      data: { chatId: 'test' }
+    });
+    const errors = (resp.responses || []).filter((r) => !r.success).map((r) => r.error?.message || 'unknown error');
+    res.json({ sent: resp.successCount, failed: resp.failureCount, errors });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Called from the socket layer whenever a message is sent, for every member
 // who isn't the sender — a genuine no-op unless Firebase is configured.
 async function sendPushToUser(userId, { title, body, chatId }) {
-  const fbAdmin = getFirebaseAdmin();
-  if (!fbAdmin) return;
+  const fbApp = getFirebaseApp();
+  if (!fbApp) return;
   const tokens = db.prepare('SELECT token FROM push_tokens WHERE user_id = ?').all(userId).map((r) => r.token);
   if (tokens.length === 0) return;
   try {
-    const resp = await fbAdmin.messaging().sendEachForMulticast({
+    const resp = await getMessaging(fbApp).sendEachForMulticast({
       tokens,
       notification: { title, body },
       data: { chatId: String(chatId) }

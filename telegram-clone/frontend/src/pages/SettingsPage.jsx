@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme, WALLPAPERS } from '../context/ThemeContext';
 import { useChat } from '../context/ChatContext';
 import { EMOJI_CATEGORIES, REACTION_CHOICES, DEFAULT_QUICK_REACTIONS } from '../data/emojiData';
+import http from '../api/http';
+import { pushStatus, initNotifications, registerPushIfConfigured, sendLocalTestNotification, sendServerTestPush } from '../utils/notifications';
 
 function Row({ icon, iconColor = 'blue', label, sub, right, onClick, danger }) {
   return (
@@ -24,6 +26,100 @@ function Switch({ checked, onChange }) {
     <button className={`switch${checked ? ' on' : ''}`} onClick={onChange}>
       <span className="switch__knob" />
     </button>
+  );
+}
+
+function NotificationDiagnostics() {
+  const [open, setOpen] = useState(false);
+  const [, forceRender] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [lastResult, setLastResult] = useState(null);
+
+  const refresh = async () => {
+    setBusy(true);
+    setLastResult(null);
+    try {
+      await initNotifications();
+      await registerPushIfConfigured(http);
+    } finally {
+      forceRender((n) => n + 1);
+      setBusy(false);
+    }
+  };
+
+  const openPanel = async () => {
+    setOpen((v) => !v);
+    if (!open) await refresh();
+  };
+
+  const testLocal = async () => {
+    setBusy(true);
+    try {
+      await sendLocalTestNotification();
+      setLastResult({ ok: true, text: 'Local notification sent — check your notification tray now.' });
+    } catch (e) {
+      setLastResult({ ok: false, text: e.message });
+    } finally {
+      setBusy(false);
+      forceRender((n) => n + 1);
+    }
+  };
+
+  const testServer = async () => {
+    setBusy(true);
+    try {
+      const data = await sendServerTestPush(http);
+      setLastResult({
+        ok: data.sent > 0,
+        text: data.sent > 0
+          ? `Sent to ${data.sent} device(s) — check your notification tray (this can take a few seconds).`
+          : `Failed: ${data.errors?.join(', ') || 'no devices reachable'}`
+      });
+    } catch (e) {
+      setLastResult({ ok: false, text: e.response?.data?.error || e.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Row
+        icon="🔔"
+        iconColor="orange"
+        label="Notifications"
+        sub="Tap to check status and send a test notification"
+        onClick={openPanel}
+      />
+      {open && (
+        <div className="danger-confirm-box" style={{ borderColor: 'var(--border-soft)' }}>
+          <div style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+            <div>Platform: <b>{pushStatus.isNative ? 'Native app' : 'Web/PWA'}</b></div>
+            <div>Local alert permission: <b>{pushStatus.localPermission}</b></div>
+            <div>Server push configured: <b>{pushStatus.serverEnabled === null ? 'checking…' : pushStatus.serverEnabled ? 'yes' : 'no'}</b></div>
+            {pushStatus.serverError && <div style={{ color: 'var(--danger)' }}>Server error: {pushStatus.serverError}</div>}
+            <div>Device registered for push: <b>{pushStatus.tokenRegistered ? 'yes' : 'not yet'}</b></div>
+            {pushStatus.lastError && <div style={{ color: 'var(--danger)' }}>Last error: {pushStatus.lastError}</div>}
+          </div>
+          {lastResult && (
+            <div style={{ marginTop: 8, fontSize: 12.5, color: lastResult.ok ? 'var(--gold-light)' : 'var(--danger)' }}>
+              {lastResult.text}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <button className="btn-primary" style={{ flex: '1 1 auto', background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12.5, padding: '8px 10px' }} disabled={busy} onClick={refresh}>
+              Re-check status
+            </button>
+            <button className="btn-primary" style={{ flex: '1 1 auto', background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12.5, padding: '8px 10px' }} disabled={busy} onClick={testLocal}>
+              Send local test
+            </button>
+            <button className="btn-primary btn-gold" style={{ flex: '1 1 auto', fontSize: 12.5, padding: '8px 10px' }} disabled={busy || !pushStatus.serverEnabled} onClick={testServer}>
+              Send real push test
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -203,7 +299,7 @@ export default function SettingsPage({ onOpenSaved }) {
             right={<Switch checked={theme === 'dark'} onChange={toggleTheme} />}
           />
           <Row icon="🔖" iconColor="blue" label="Saved Messages" sub="Send notes and files to yourself" onClick={() => savedChat && onOpenSaved(savedChat.id)} />
-          <Row icon="🔔" iconColor="orange" label="Notifications" sub="Alerts while FairyChat is actively open. Reliable background/closed-app push needs Firebase (coming soon)." />
+          <NotificationDiagnostics />
         </div>
 
         <div className="settings-section">
