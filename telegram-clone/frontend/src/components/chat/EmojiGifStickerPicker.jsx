@@ -1,14 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import GifPicker from './GifPicker';
-import { EMOJI_CATEGORIES, STICKER_PACKS } from '../../data/emojiData';
+import StickerPicker from './StickerPicker';
+import { EMOJI_CATEGORIES } from '../../data/emojiData';
 
 // Telegram-style combined picker: Emoji (default) / GIFs / Stickers, switched
 // via the three tabs at the bottom of the panel. Emoji has its own category
-// strip along the top of the grid, same as the real app.
+// strip along the top of the grid, same as the real app. Stickers are real
+// animated stickers pulled from the same GIF provider (Klipy/Giphy both
+// expose a dedicated, transparent-background "stickers" collection).
+function useVisibleEmojiCategories() {
+  const [hidden, setHidden] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('monarch_hidden_emoji_categories') || '[]'); } catch { return []; }
+  });
+  // Settings page can change this while the picker is closed; re-read each
+  // time the picker is (re)opened so toggles there take effect immediately.
+  useEffect(() => {
+    try { setHidden(JSON.parse(localStorage.getItem('monarch_hidden_emoji_categories') || '[]')); } catch { /* ignore */ }
+  }, []);
+  const visible = EMOJI_CATEGORIES.filter((c) => !hidden.includes(c.id));
+  return visible.length > 0 ? visible : EMOJI_CATEGORIES;
+}
+
 export default function EmojiGifStickerPicker({ onSelectEmoji, onSelectGif, onSelectSticker, onClose }) {
   const [tab, setTab] = useState('emoji'); // emoji | gif | sticker
-  const [emojiCategory, setEmojiCategory] = useState(EMOJI_CATEGORIES[0].id);
-  const [stickerPack, setStickerPack] = useState(STICKER_PACKS[0].id);
+  const categories = useVisibleEmojiCategories();
+  const [emojiCategory, setEmojiCategory] = useState(categories[0].id);
   const boxRef = useRef(null);
 
   useEffect(() => {
@@ -19,8 +35,7 @@ export default function EmojiGifStickerPicker({ onSelectEmoji, onSelectGif, onSe
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [onClose]);
 
-  const activeCategory = EMOJI_CATEGORIES.find((c) => c.id === emojiCategory) || EMOJI_CATEGORIES[0];
-  const activePack = STICKER_PACKS.find((p) => p.id === stickerPack) || STICKER_PACKS[0];
+  const activeCategory = categories.find((c) => c.id === emojiCategory) || categories[0];
 
   return (
     <div ref={boxRef} className="emg-picker">
@@ -28,7 +43,7 @@ export default function EmojiGifStickerPicker({ onSelectEmoji, onSelectGif, onSe
         {tab === 'emoji' && (
           <>
             <div className="emg-cat-strip">
-              {EMOJI_CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <button
                   key={cat.id}
                   className={`emg-cat-btn${cat.id === emojiCategory ? ' active' : ''}`}
@@ -49,27 +64,7 @@ export default function EmojiGifStickerPicker({ onSelectEmoji, onSelectGif, onSe
 
         {tab === 'gif' && <GifPicker onSelect={onSelectGif} />}
 
-        {tab === 'sticker' && (
-          <>
-            <div className="emg-cat-strip">
-              {STICKER_PACKS.map((pack) => (
-                <button
-                  key={pack.id}
-                  className={`emg-cat-btn${pack.id === stickerPack ? ' active' : ''}`}
-                  onClick={() => setStickerPack(pack.id)}
-                  title={pack.label}
-                >
-                  {pack.stickers[0]}
-                </button>
-              ))}
-            </div>
-            <div className="emg-sticker-grid">
-              {activePack.stickers.map((s, i) => (
-                <button key={`${s}-${i}`} className="emg-sticker-btn" onClick={() => onSelectSticker(s)}>{s}</button>
-              ))}
-            </div>
-          </>
-        )}
+        {tab === 'sticker' && <StickerPicker onSelect={onSelectSticker} />}
       </div>
 
       <div className="emg-tabbar">
@@ -80,7 +75,7 @@ export default function EmojiGifStickerPicker({ onSelectEmoji, onSelectGif, onSe
           <span>🎞️</span> GIFs
         </button>
         <button className={`emg-tab${tab === 'sticker' ? ' active' : ''}`} onClick={() => setTab('sticker')}>
-          <span>🌟</span> Stickers
+          <span>🧩</span> Stickers
         </button>
       </div>
     </div>

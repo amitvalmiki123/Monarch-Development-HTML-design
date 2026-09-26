@@ -88,14 +88,20 @@ export default function MessageBubble({
     setShowReactBar(false);
   };
 
-  // Stickers render as a large emoji with no bubble background, same as
-  // Telegram (and single-emoji-only text messages there too, but we keep
-  // that simple here and only special-case the explicit sticker type).
+  // Stickers render with no bubble background, same as Telegram: a real
+  // animated sticker image (fileUrl, from the Stickers tab) when present,
+  // falling back to a big emoji for any older sticker messages that only
+  // ever stored a plain emoji character.
   if (message.type === 'sticker') {
+    const stickerImg = message.fileUrl ? resolveMediaUrl(message.fileUrl) : null;
     return (
       <div className={`bubble-row ${isOwn ? 'out' : 'in'}`}>
         <div className="sticker-bubble">
-          <div className="sticker-bubble__emoji">{message.content}</div>
+          {stickerImg ? (
+            <img className="sticker-bubble__img" src={stickerImg} alt={message.fileName || 'Sticker'} loading="lazy" />
+          ) : (
+            <div className="sticker-bubble__emoji">{message.content}</div>
+          )}
           <div className="sticker-bubble__meta">
             {formatMessageTime(message.createdAt)}
             {isOwn && <Ticks read={message.read} pending={message.pending} failed={message.failed} />}

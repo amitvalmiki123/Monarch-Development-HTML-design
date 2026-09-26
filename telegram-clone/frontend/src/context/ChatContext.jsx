@@ -205,6 +205,17 @@ export function ChatProvider({ children }) {
     return res.data;
   }, []);
 
+  // Real animated stickers (Telegram-style), same provider as GIFs.
+  const searchStickers = useCallback(async (q) => {
+    const res = await http.get('/gifs/stickers/search', { params: { q } });
+    return res.data;
+  }, []);
+
+  const trendingStickers = useCallback(async () => {
+    const res = await http.get('/gifs/stickers/trending');
+    return res.data;
+  }, []);
+
   const uploadFile = useCallback(async (file, onProgress) => {
     const form = new FormData();
     form.append('file', file);
@@ -316,7 +327,8 @@ export function ChatProvider({ children }) {
     chats, chatsLoaded, activeChatId, messagesByChat, hasMoreByChat, typingByChat,
     loadChats, openChat, sendMessage, editMessage, deleteMessage, reactToMessage,
     startTyping, stopTyping, createDirectChat, createGroupChat, createChannelChat,
-    addChatMember, updateChatInfo, searchUsers, matchContacts, listContacts, searchGifs, trendingGifs, uploadFile,
+    addChatMember, updateChatInfo, searchUsers, matchContacts, listContacts, searchGifs, trendingGifs,
+    searchStickers, trendingStickers, uploadFile,
     loadMoreMessages: loadMessages, setActiveChatId
   };
 

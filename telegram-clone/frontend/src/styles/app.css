@@ -621,21 +621,32 @@
   color: var(--text-secondary);
 }
 
+/* GIF grid: fixed row height (not aspect-ratio, for older WebView support)
+   so tiles always lay out into clean, non-overlapping rows regardless of
+   each GIF's own natural size. */
 .gif-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 110px;
   gap: 6px;
   overflow-y: auto;
+  align-content: start;
+  flex: 1;
+  min-height: 0;
 }
 
 .gif-grid__item {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
   border: none;
   background: var(--bg-elevated);
   border-radius: 8px;
   overflow: hidden;
   padding: 0;
+  margin: 0;
   cursor: pointer;
-  aspect-ratio: 1.4;
 }
 
 .gif-grid__item img {
@@ -643,9 +654,54 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  pointer-events: none;
 }
 
 .gif-grid__item:hover {
+  outline: 2px solid var(--gold);
+}
+
+/* Sticker grid: dense, small square tiles like Telegram's own sticker tray
+   (see reference screenshot) — real animated stickers, transparent
+   background, no card chrome. */
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 78px;
+  gap: 6px;
+  overflow-y: auto;
+  align-content: start;
+  flex: 1;
+  min-height: 0;
+}
+
+.sticker-grid__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  border: none;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 4px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.sticker-grid__item img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.sticker-grid__item:hover {
   outline: 2px solid var(--gold);
 }
 
@@ -880,7 +936,7 @@
 }
 .emg-cat-btn.active { opacity: 1; background: var(--bg-elevated); }
 
-.emg-emoji-grid, .emg-sticker-grid {
+.emg-emoji-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
@@ -896,17 +952,8 @@
 }
 .emg-emoji-btn:hover { background: var(--bg-hover); }
 
-.emg-sticker-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.emg-sticker-btn {
-  border: none;
-  background: var(--bg-elevated);
-  border-radius: 10px;
-  font-size: 34px;
-  padding: 8px 0;
-  line-height: 1;
-}
-.emg-sticker-btn:hover { background: var(--bg-hover); }
-
+/* Shared content wrapper for the GIFs and Stickers tabs (search box on top,
+   scrollable results grid filling the rest). */
 .emg-gif-tab { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 .emg-tabbar {
@@ -989,6 +1036,12 @@
 }
 .bubble-row.in .sticker-bubble { align-items: flex-start; }
 .sticker-bubble__emoji { font-size: 72px; line-height: 1; }
+.sticker-bubble__img {
+  width: 148px;
+  height: 148px;
+  object-fit: contain;
+  display: block;
+}
 .sticker-bubble__meta {
   display: flex;
   align-items: center;

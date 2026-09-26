@@ -11,7 +11,7 @@ function lastMessagePreview(chat) {
   if (lm.deleted) return 'This message was deleted';
   if (lm.type === 'image') return '📷 Photo';
   if (lm.type === 'gif') return '🎞️ GIF';
-  if (lm.type === 'sticker') return `${lm.content || '🌟'} Sticker`;
+  if (lm.type === 'sticker') return lm.fileUrl ? '🧩 Sticker' : `${lm.content || '🌟'} Sticker`;
   if (lm.type === 'video') return '🎬 Video';
   if (lm.type === 'audio') return '🎙️ Audio message';
   if (lm.type === 'file') return '📎 File';

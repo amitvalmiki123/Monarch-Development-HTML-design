@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme, WALLPAPERS } from '../context/ThemeContext';
 import { useChat } from '../context/ChatContext';
-import { STICKER_PACKS, REACTION_CHOICES, DEFAULT_QUICK_REACTIONS } from '../data/emojiData';
+import { EMOJI_CATEGORIES, REACTION_CHOICES, DEFAULT_QUICK_REACTIONS } from '../data/emojiData';
 
 function Row({ icon, label, sub, right, onClick, danger }) {
   return (
@@ -71,17 +71,19 @@ export default function SettingsPage({ onOpenSaved }) {
   const { theme, toggleTheme, wallpaper, setWallpaper } = useTheme();
   const { chats } = useChat();
   const navigate = useNavigate();
-  const [hiddenPacks, setHiddenPacks] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('monarch_hidden_sticker_packs') || '[]'); } catch { return []; }
+  const [hiddenCategories, setHiddenCategories] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('monarch_hidden_emoji_categories') || '[]'); } catch { return []; }
   });
 
   const savedChat = chats.find((c) => c.type === 'saved');
   const quickReactions = user?.quickReactions?.length ? user.quickReactions : DEFAULT_QUICK_REACTIONS;
 
-  const togglePack = (packId) => {
-    setHiddenPacks((prev) => {
-      const next = prev.includes(packId) ? prev.filter((p) => p !== packId) : [...prev, packId];
-      localStorage.setItem('monarch_hidden_sticker_packs', JSON.stringify(next));
+  const toggleCategory = (catId) => {
+    setHiddenCategories((prev) => {
+      // Always keep at least one category visible in the emoji picker.
+      if (!prev.includes(catId) && prev.length >= EMOJI_CATEGORIES.length - 1) return prev;
+      const next = prev.includes(catId) ? prev.filter((p) => p !== catId) : [...prev, catId];
+      localStorage.setItem('monarch_hidden_emoji_categories', JSON.stringify(next));
       return next;
     });
   };
@@ -160,17 +162,21 @@ export default function SettingsPage({ onOpenSaved }) {
 
         <div className="settings-section">
           <div className="settings-section__title">Stickers &amp; Emoji</div>
-          <div style={{ padding: '2px 16px 10px', fontSize: 12, color: 'var(--text-muted)' }}>
-            Tap a pack to show or hide it in the sticker picker.
+          <Row
+            icon="🧩"
+            label="Stickers"
+            sub="Real, animated Telegram-style stickers — search or browse trending in the Stickers tab"
+          />
+          <div style={{ padding: '2px 16px 6px', fontSize: 12, color: 'var(--text-muted)' }}>
+            Tap a category below to show or hide it in the Emoji tab.
           </div>
-          {STICKER_PACKS.map((pack) => (
+          {EMOJI_CATEGORIES.map((cat) => (
             <Row
-              key={pack.id}
-              icon={pack.stickers[0]}
-              label={pack.label}
-              sub={`${pack.stickers.length} stickers`}
-              onClick={() => togglePack(pack.id)}
-              right={<Switch checked={!hiddenPacks.includes(pack.id)} onChange={() => togglePack(pack.id)} />}
+              key={cat.id}
+              icon={cat.icon}
+              label={cat.label}
+              onClick={() => toggleCategory(cat.id)}
+              right={<Switch checked={!hiddenCategories.includes(cat.id)} onChange={() => toggleCategory(cat.id)} />}
             />
           ))}
         </div>

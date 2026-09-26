@@ -72,6 +72,7 @@ function chatSummary(chat, currentUserId) {
       senderId: lastMsg.sender_id,
       type: lastMsg.type,
       content: lastMsg.deleted ? null : lastMsg.content,
+      fileUrl: lastMsg.deleted ? null : lastMsg.file_url,
       deleted: !!lastMsg.deleted,
       createdAt: lastMsg.created_at
     } : null,

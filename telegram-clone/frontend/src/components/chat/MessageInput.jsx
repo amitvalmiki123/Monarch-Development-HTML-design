@@ -90,8 +90,15 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
     onCancelReply?.();
   };
 
-  const handleSelectSticker = (emoji) => {
-    sendMessage(chatId, { type: 'sticker', content: emoji, replyToId: replyingTo?.id || null });
+  const handleSelectSticker = (sticker) => {
+    sendMessage(chatId, {
+      type: 'sticker',
+      content: null,
+      fileUrl: sticker.url,
+      fileName: sticker.title || 'Sticker',
+      fileSize: null,
+      replyToId: replyingTo?.id || null
+    });
     setShowPicker(false);
     onCancelReply?.();
   };

@@ -98,32 +98,6 @@ export const EMOJI_CATEGORIES = [
   }
 ];
 
-// "Stickers" — built-in jumbo-emoji packs. There's no custom sticker-upload
-// pipeline yet, so each sticker is simply a single emoji rendered large and
-// sent as a message of type "sticker" (no bubble background, like Telegram).
-export const STICKER_PACKS = [
-  {
-    id: 'classic',
-    label: 'Classic',
-    stickers: ['😂', '😍', '😭', '😡', '😱', '🥳', '😴', '🤔', '😎', '🙈', '👀', '💩']
-  },
-  {
-    id: 'love',
-    label: 'Love',
-    stickers: ['❤️', '💕', '💖', '💘', '😘', '🥰', '💋', '💐', '🌹', '💑', '👩‍❤️‍👨', '💍']
-  },
-  {
-    id: 'animals',
-    label: 'Animals',
-    stickers: ['🐶', '🐱', '🐼', '🐨', '🦊', '🐸', '🐵', '🦁', '🐷', '🐹', '🐧', '🦄']
-  },
-  {
-    id: 'reactions',
-    label: 'Reactions',
-    stickers: ['👍', '👎', '👏', '🙌', '🙏', '💪', '🔥', '✨', '🎉', '💯', '⚡', '💀']
-  }
-];
-
 // Superset a user can pick their quick-reaction bar from (Settings -> Message
 // Reactions). Telegram's own default set is the first six here.
 export const REACTION_CHOICES = [
