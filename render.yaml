@@ -12,3 +12,7 @@ services:
         value: 22.22.3
       - key: JWT_SECRET
         generateValue: true
+      - key: GIF_PROVIDER
+        value: giphy
+      - key: GIF_API_KEY
+        sync: false

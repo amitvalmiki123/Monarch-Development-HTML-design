@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
+import GifPicker from './GifPicker';
 
 export default function MessageInput({ chatId, replyingTo, onCancelReply, readOnly }) {
   const { sendMessage, startTyping, stopTyping, uploadFile } = useChat();
   const [text, setText] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const fileInputRef = useRef(null);
   const typingTimeout = useRef(null);
   const textareaRef = useRef(null);
@@ -70,8 +72,24 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
     );
   }
 
+  const handleGifSelect = (gif) => {
+    sendMessage(chatId, {
+      type: 'gif',
+      content: null,
+      fileUrl: gif.url,
+      fileName: gif.title || 'GIF',
+      fileSize: null,
+      replyToId: replyingTo?.id || null
+    });
+    setShowGifPicker(false);
+    onCancelReply?.();
+  };
+
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      {showGifPicker && (
+        <GifPicker onSelect={handleGifSelect} onClose={() => setShowGifPicker(false)} />
+      )}
       {replyingTo && (
         <div className="reply-preview">
           <div>
@@ -88,6 +106,7 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
         <button className="attach-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading} title="File bhejein">
           {uploading ? '⏳' : '📎'}
         </button>
+        <button className="attach-btn" onClick={() => setShowGifPicker((v) => !v)} title="GIF bhejein">🎞️</button>
         <textarea
           ref={textareaRef}
           rows={1}

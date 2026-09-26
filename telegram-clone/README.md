@@ -15,12 +15,20 @@ Ek Telegram-jaisa **real-time messaging app**, lekin:
   profile field only — there is **no real SMS/OTP verification** in this version,
   so it behaves like a normal app login rather than Telegram's phone-verified login.
   (Adding real phone OTP later requires a paid SMS provider like Twilio/MSG91.)
-- 1:1 direct chats + group chats (multiple members, admin role)
+- 1:1 direct chats, **group chats** (admin role) and **channels** (broadcast —
+  only the owner/admins can post, everyone else is a read-only subscriber)
+- **Saved Messages** — a private self-chat, auto-created per user and pinned
+  to the top of the chat list, exactly like Telegram's "Saved Messages"
 - **Real-time messaging** via WebSockets (Socket.IO) — turant deliver hota hai
 - Typing indicators ("... type kar rahe hain")
 - Online / offline presence + "last seen"
 - Single tick (✓ sent) / double gold tick (✓✓ read) — read receipts
 - Media sharing: images, videos, audio, files (upload + preview)
+- **GIF picker** in the composer (🎞️ button) — needs a free `GIF_API_KEY`,
+  see [GIFs setup](#-optional-enabling-gifs) below
+- **Contact sync** (mobile app only) — reads the phone's contact list and
+  shows which contacts already use Monarch Chat, so you can start chatting
+  in one tap without typing a username
 - Message edit & delete (for sender)
 - Reply-to-message (quoted preview)
 - Unread message counters, chat list sorted by latest activity
@@ -29,7 +37,7 @@ Ek Telegram-jaisa **real-time messaging app**, lekin:
 - Fully responsive — mobile par WhatsApp/Telegram jaisa single-column view
 - PWA: installable, custom app icon, offline caching of app shell & media
 
-> Scope note: ye "core chat" version hai. Voice/video calls, stickers/GIFs, bots, channels aur secret chats is version me shamil nahi hain — agar chahiye to inhe phase 2 me add kiya ja sakta hai.
+> Scope note: voice/video calls, stickers, bots, secret chats aur channel invite-links is version me shamil nahi hain.
 
 ---
 
@@ -90,6 +98,47 @@ npm run build                # outputs static PWA build to dist/
 Serve `dist/` from any static host (Nginx, Vercel, Netlify, etc.) and point it at your deployed backend by setting `VITE_BACKEND_URL` at build time, or by configuring your production reverse-proxy to forward `/api`, `/uploads` and `/socket.io` to the backend service — the same way the Vite dev proxy does.
 
 For the backend in production: run behind a process manager (pm2 / systemd), put it behind Nginx/Caddy with HTTPS, and swap `JWT_SECRET` for a long random value.
+
+### 🎞️ Optional: enabling GIFs
+
+The composer's 🎞️ button calls `GET /api/gifs/search` on the backend, which
+proxies to a GIF provider. Without a key it responds with `configured: false`
+and the UI shows a friendly "not set up yet" message instead of erroring.
+
+To enable it, get a **free** API key (no credit card) from either:
+
+- [Giphy](https://developers.giphy.com/dashboard/) — sign up, create an app,
+  copy the "Beta" key. Generous free-tier rate limits.
+- [Klipy](https://klipy.com) — a newer, fully free GIF/sticker API (built by
+  ex-Tenor engineers, popular replacement now that Google has discontinued
+  the Tenor API).
+
+Then set these two environment variables on the backend (locally in
+`telegram-clone/backend/.env`, or as Render dashboard env vars):
+
+```
+GIF_PROVIDER=giphy   # or "klipy"
+GIF_API_KEY=your_key_here
+```
+
+No restart-proof caching or extra setup needed — the picker works the next
+time the backend restarts with the key set.
+
+> Note: Tenor's public GIF API was shut down by Google in mid-2026, and
+> Giphy's old public "beta" demo key (`dc6zaTOxFJmzC`) has since been banned
+> — both are why this app needs your own free key rather than a shared one.
+
+### 📱 Optional: how contact sync works
+
+The "📱 Contacts" tab in **New Chat** uses the `@capacitor/contacts` plugin to
+read the phone's address book — this only works inside the installed
+Android/iOS app (a website has no permission to read a phone's contacts), so
+it's automatically hidden on the web build. Only phone numbers ever leave the
+device; they're compared (last-10-digits match, so formatting differences
+like `+91 98765 43210` vs `9876543210` don't matter) against registered users
+on the backend via `POST /api/users/contacts/match`, and matches are shown so
+you can start a chat in one tap. No contact names, photos or other details
+are ever sent anywhere.
 
 ### Deploying the backend permanently (recommended: Render, free)
 

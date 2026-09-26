@@ -176,6 +176,21 @@ export function ChatProvider({ children }) {
     return res.data.users;
   }, []);
 
+  const matchContacts = useCallback(async (phones) => {
+    const res = await http.post('/users/contacts/match', { phones });
+    return res.data.matches;
+  }, []);
+
+  const searchGifs = useCallback(async (q) => {
+    const res = await http.get('/gifs/search', { params: { q } });
+    return res.data;
+  }, []);
+
+  const trendingGifs = useCallback(async () => {
+    const res = await http.get('/gifs/trending');
+    return res.data;
+  }, []);
+
   const uploadFile = useCallback(async (file, onProgress) => {
     const form = new FormData();
     form.append('file', file);
@@ -287,7 +302,7 @@ export function ChatProvider({ children }) {
     chats, chatsLoaded, activeChatId, messagesByChat, hasMoreByChat, typingByChat,
     loadChats, openChat, sendMessage, editMessage, deleteMessage,
     startTyping, stopTyping, createDirectChat, createGroupChat, createChannelChat,
-    addChatMember, updateChatInfo, searchUsers, uploadFile,
+    addChatMember, updateChatInfo, searchUsers, matchContacts, searchGifs, trendingGifs, uploadFile,
     loadMoreMessages: loadMessages, setActiveChatId
   };
 

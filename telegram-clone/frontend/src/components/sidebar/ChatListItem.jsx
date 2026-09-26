@@ -10,6 +10,7 @@ function lastMessagePreview(chat) {
   }
   if (lm.deleted) return 'Ye message delete kar diya gaya';
   if (lm.type === 'image') return '📷 Photo';
+  if (lm.type === 'gif') return '🎞️ GIF';
   if (lm.type === 'video') return '🎬 Video';
   if (lm.type === 'audio') return '🎙️ Audio message';
   if (lm.type === 'file') return '📎 File';

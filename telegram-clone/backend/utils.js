@@ -48,4 +48,15 @@ function publicUser(u) {
   };
 }
 
-module.exports = { id, pickColor, signToken, verifyToken, publicUser, JWT_SECRET };
+// Phone numbers typed at signup and phone numbers read from a device's
+// contact book rarely share the same formatting (spaces, dashes, country
+// code prefix). Comparing the last 10 digits is a pragmatic way to match
+// "+91 98765 43210", "9876543210" and "098-765-43210" as the same number.
+function normalizePhone(phone) {
+  if (!phone) return null;
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.length < 6) return null;
+  return digits.slice(-10);
+}
+
+module.exports = { id, pickColor, signToken, verifyToken, publicUser, normalizePhone, JWT_SECRET };

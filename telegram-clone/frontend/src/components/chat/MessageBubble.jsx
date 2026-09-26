@@ -13,6 +13,9 @@ function FilePreview({ message }) {
   if (message.type === 'image') {
     return <img className="msg-image" src={fileUrl} alt={message.fileName || 'photo'} onClick={() => window.open(fileUrl, '_blank')} />;
   }
+  if (message.type === 'gif') {
+    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'GIF'} loading="lazy" />;
+  }
   if (message.type === 'video') {
     return <video src={fileUrl} controls style={{ maxWidth: 320, borderRadius: 12, marginBottom: 4 }} />;
   }

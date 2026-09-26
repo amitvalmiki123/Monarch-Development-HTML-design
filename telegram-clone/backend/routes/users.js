@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const auth = require('../middleware/auth');
-const { publicUser, id } = require('../utils');
+const { publicUser, id, normalizePhone } = require('../utils');
 
 const router = express.Router();
 
@@ -26,18 +26,42 @@ router.get('/search', auth, (req, res) => {
   res.json({ users: rows.map(publicUser) });
 });
 
+router.get('/contacts', auth, (req, res) => {
+  const rows = db.prepare(`SELECT u.* FROM contacts c JOIN users u ON u.id = c.contact_id WHERE c.owner_id = ? ORDER BY u.name`)
+    .all(req.user.id);
+  res.json({ contacts: rows.map(publicUser) });
+});
+
+// Device-contact sync: the app (mobile only) reads the phone's contact book
+// locally and sends us just the phone numbers — never names or anything else
+// — so we can tell the user which of their contacts are already on Monarch
+// Chat. Matches are auto-added to the contacts list.
+// NOTE: this must be registered before the '/contacts/:userId' route below,
+// otherwise Express would match "match" as a :userId path param.
+router.post('/contacts/match', auth, (req, res) => {
+  const { phones } = req.body;
+  if (!Array.isArray(phones) || phones.length === 0) return res.json({ matches: [] });
+
+  const wanted = new Set(phones.map(normalizePhone).filter(Boolean));
+  if (wanted.size === 0) return res.json({ matches: [] });
+
+  const candidates = db.prepare('SELECT * FROM users WHERE phone IS NOT NULL AND id != ?').all(req.user.id);
+  const matches = candidates.filter((u) => wanted.has(normalizePhone(u.phone)));
+
+  const now = Date.now();
+  for (const m of matches) {
+    db.prepare('INSERT OR IGNORE INTO contacts (owner_id, contact_id, created_at) VALUES (?, ?, ?)').run(req.user.id, m.id, now);
+  }
+
+  res.json({ matches: matches.map(publicUser) });
+});
+
 router.post('/contacts/:userId', auth, (req, res) => {
   const target = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.userId);
   if (!target) return res.status(404).json({ error: 'User nahi mila' });
   db.prepare('INSERT OR IGNORE INTO contacts (owner_id, contact_id, created_at) VALUES (?, ?, ?)')
     .run(req.user.id, target.id, Date.now());
   res.json({ ok: true, user: publicUser(target) });
-});
-
-router.get('/contacts', auth, (req, res) => {
-  const rows = db.prepare(`SELECT u.* FROM contacts c JOIN users u ON u.id = c.contact_id WHERE c.owner_id = ? ORDER BY u.name`)
-    .all(req.user.id);
-  res.json({ contacts: rows.map(publicUser) });
 });
 
 module.exports = router;
