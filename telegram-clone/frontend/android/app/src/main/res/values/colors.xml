@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Used as the tint for FCM's auto-generated background/killed-app
+         notifications (see the default_notification_color meta-data in
+         AndroidManifest.xml) -->
+    <color name="notification_icon_color">#d9b64c</color>
+</resources>

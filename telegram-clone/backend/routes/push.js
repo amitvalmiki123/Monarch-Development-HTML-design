@@ -12,6 +12,27 @@ const { getMessaging } = require('firebase-admin/messaging');
 
 const router = express.Router();
 
+// Explicitly routes every push at the same high-importance Android
+// notification channel ("messages") the app creates at runtime (see
+// frontend utils/notifications.js) — without this, Android/FCM silently
+// posts background/killed-app notifications to its own hidden low-priority
+// "Miscellaneous" channel, which can suppress the heads-up popup and sound
+// even though the notification technically "arrived".
+function androidConfig() {
+  return {
+    priority: 'high',
+    notification: {
+      channelId: 'messages',
+      icon: 'ic_stat_notify',
+      color: '#d9b64c',
+      sound: 'default',
+      defaultSound: true,
+      priority: 'max',
+      visibility: 'public'
+    }
+  };
+}
+
 // Full background push (delivered even after the app is fully closed/
 // killed) needs a real Firebase Cloud Messaging project:
 //   1. Create a free project at https://console.firebase.google.com
@@ -79,6 +100,7 @@ router.post('/test', auth, async (req, res) => {
     const resp = await getMessaging(fbApp).sendEachForMulticast({
       tokens,
       notification: { title: 'FairyChat', body: 'Test push notification — if you see this, it works!' },
+      android: androidConfig(),
       data: { chatId: 'test' }
     });
     const errors = (resp.responses || []).filter((r) => !r.success).map((r) => r.error?.message || 'unknown error');
@@ -99,6 +121,7 @@ async function sendPushToUser(userId, { title, body, chatId }) {
     const resp = await getMessaging(fbApp).sendEachForMulticast({
       tokens,
       notification: { title, body },
+      android: androidConfig(),
       data: { chatId: String(chatId) }
     });
     (resp.responses || []).forEach((r, idx) => {

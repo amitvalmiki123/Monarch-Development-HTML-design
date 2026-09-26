@@ -34,6 +34,25 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Without these, a push notification delivered while the app is
+             backgrounded/killed falls back to Android's default look (often
+             a plain white square icon on some OEMs) and gets posted to a
+             hidden low-importance "Miscellaneous" channel that Android auto
+             creates on the fly, which can suppress the heads-up popup and
+             sound entirely. Pointing FCM at the same "messages" channel we
+             create at runtime (see utils/notifications.js) keeps every
+             notification's sound/importance/vibration consistent whether it
+             came from a local notification or a real push. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_icon_color" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="messages" />
     </application>
 
     <!-- Permissions -->
