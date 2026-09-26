@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "762253318227",
+    "project_id": "fairychat-40cc9",
+    "storage_bucket": "fairychat-40cc9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:762253318227:android:8fd6bf2bdaf114a7f78ea6",
+        "android_client_info": {
+          "package_name": "com.monarch.chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD710EZTshiWDMf1QlB37H9Q_Ti5W8bQVI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

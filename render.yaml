@@ -16,3 +16,5 @@ services:
         value: klipy
       - key: GIF_API_KEY
         sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
