@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function ChatWindow({ chat, onBack }) {
   const { user } = useAuth();
-  const { messagesByChat, hasMoreByChat, typingByChat, editMessage, deleteMessage, loadMoreMessages } = useChat();
+  const { messagesByChat, hasMoreByChat, typingByChat, editMessage, deleteMessage, reactToMessage, loadMoreMessages } = useChat();
   const messages = messagesByChat[chat.id] || [];
   const hasMore = hasMoreByChat[chat.id];
   const scrollRef = useRef(null);
@@ -61,13 +61,17 @@ export default function ChatWindow({ chat, onBack }) {
   };
 
   const handleEdit = (messageId, content) => {
-    editMessage(messageId, content).catch(() => alert('Edit nahi ho paya'));
+    editMessage(messageId, content).catch(() => alert('Could not edit message'));
   };
 
   const handleDelete = (messageId) => {
-    if (confirm('Ye message delete karein?')) {
-      deleteMessage(messageId).catch(() => alert('Delete nahi ho paya'));
+    if (confirm('Delete this message?')) {
+      deleteMessage(messageId).catch(() => alert('Could not delete message'));
     }
+  };
+
+  const handleReact = (messageId, emoji) => {
+    reactToMessage(messageId, emoji).catch(() => {});
   };
 
   let lastDateKey = null;
@@ -79,7 +83,7 @@ export default function ChatWindow({ chat, onBack }) {
       <div className="messages-scroll" ref={scrollRef}>
         {hasMore && (
           <button className="load-more-btn" onClick={handleLoadMore} disabled={loadingMore}>
-            {loadingMore ? 'Load ho raha hai...' : 'Purane messages dekhein'}
+            {loadingMore ? 'Loading...' : 'Load earlier messages'}
           </button>
         )}
 
@@ -100,12 +104,15 @@ export default function ChatWindow({ chat, onBack }) {
                 isOwn={isOwn}
                 senderName={memberNameById[m.senderId] || 'Member'}
                 showSenderName={showSenderName}
+                currentUserId={user.id}
+                quickReactions={user.quickReactions}
                 onReply={setReplyingTo}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onReact={handleReact}
                 replyPreview={replyMsg ? {
-                  senderName: replyMsg.senderId === user.id ? 'Aap' : (memberNameById[replyMsg.senderId] || 'Member'),
-                  text: replyMsg.deleted ? 'Delete kiya gaya message' : (replyMsg.content || 'Media message')
+                  senderName: replyMsg.senderId === user.id ? 'You' : (memberNameById[replyMsg.senderId] || 'Member'),
+                  text: replyMsg.deleted ? 'Deleted message' : (replyMsg.content || 'Media message')
                 } : null}
               />
             </div>
@@ -115,8 +122,8 @@ export default function ChatWindow({ chat, onBack }) {
         {messages.length === 0 && (
           <div className="empty-state">
             <div className="glyph">👋</div>
-            <div>Koi message nahi hai</div>
-            <div style={{ fontSize: 12.5 }}>Neeche se pehla message bhejein</div>
+            <div>No messages yet</div>
+            <div style={{ fontSize: 12.5 }}>Send the first message below</div>
           </div>
         )}
         <div ref={bottomRef} />

@@ -43,5 +43,5 @@ setupSocket(io);
 
 const PORT = process.env.PORT || 8081;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`FairyChat backend chal raha hai on port ${PORT}`);
+  console.log(`FairyChat backend running on port ${PORT}`);
 });

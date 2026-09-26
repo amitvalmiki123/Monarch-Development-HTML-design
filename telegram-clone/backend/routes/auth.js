@@ -9,7 +9,7 @@ router.post('/register', async (req, res) => {
   try {
     const { name, username, phone, password } = req.body;
     if (!name || !username || !password) {
-      return res.status(400).json({ error: 'Naam, username aur password zaroori hai' });
+      return res.status(400).json({ error: 'Name, username and password are required' });
     }
     if (username.length < 3 || !/^[a-zA-Z0-9_]+$/.test(username)) {
       return res.status(400).json({ error: 'Username kam se kam 3 characters ka ho, sirf letters/numbers/underscore' });
@@ -18,11 +18,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Password kam se kam 6 characters ka hona chahiye' });
     }
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username.toLowerCase());
-    if (existing) return res.status(409).json({ error: 'Ye username pehle se use ho raha hai' });
+    if (existing) return res.status(409).json({ error: 'This username is already taken' });
 
     if (phone) {
       const existingPhone = db.prepare('SELECT id FROM users WHERE phone = ?').get(phone);
-      if (existingPhone) return res.status(409).json({ error: 'Ye phone number pehle se registered hai' });
+      if (existingPhone) return res.status(409).json({ error: 'This phone number is already registered' });
     }
 
     const hash = await bcrypt.hash(password, 10);
@@ -44,7 +44,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
-    if (!identifier || !password) return res.status(400).json({ error: 'Username/phone aur password dein' });
+    if (!identifier || !password) return res.status(400).json({ error: 'Enter your username/phone and password' });
     const user = db.prepare('SELECT * FROM users WHERE username = ? OR phone = ?').get(identifier.toLowerCase(), identifier);
     if (!user) return res.status(401).json({ error: 'Galat username/phone ya password' });
     const ok = await bcrypt.compare(password, user.password_hash);

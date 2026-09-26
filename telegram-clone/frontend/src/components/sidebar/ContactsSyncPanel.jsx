@@ -33,7 +33,7 @@ export default function ContactsSyncPanel({ onStartChat }) {
         setStatus('denied');
       } else {
         setStatus('error');
-        setError(msg || 'Contacts padhne me error aaya');
+        setError(msg || 'Something went wrong reading contacts');
       }
     }
   };
@@ -51,7 +51,7 @@ export default function ContactsSyncPanel({ onStartChat }) {
   if (!native) {
     return (
       <div style={{ padding: '18px 6px', color: 'var(--text-muted)', fontSize: 13.5, lineHeight: 1.6 }}>
-        📱 Contact sync sirf installed Android/iOS app me kaam karta hai — web browser ke paas phone ke contacts padhne ki permission nahi hoti. FairyChat app khol kar yahan se try karein.
+        📱 Contact sync only works in the installed Android/iOS app — a web browser can't read your phone's contacts. Open the FairyChat app to try this.
       </div>
     );
   }
@@ -61,38 +61,38 @@ export default function ContactsSyncPanel({ onStartChat }) {
       {status === 'idle' && (
         <>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 14, lineHeight: 1.6 }}>
-            Apne phone ke contacts se dekhein kaun pehle se FairyChat pe hai. Sirf phone numbers check kiye jaate hain — naam ya kisi aur detail ko kahin bheja/save nahi kiya jaata.
+            See who from your phone's contacts is already on FairyChat. Only phone numbers are checked — no names or other details are ever sent or saved anywhere.
           </div>
-          <button className="btn-primary btn-gold" onClick={scan}>📱 Contacts Scan Karein</button>
+          <button className="btn-primary btn-gold" onClick={scan}>📱 Scan Contacts</button>
         </>
       )}
 
       {status === 'scanning' && (
-        <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: 16, textAlign: 'center' }}>Contacts check ho rahe hain...</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: 16, textAlign: 'center' }}>Checking contacts...</div>
       )}
 
       {status === 'denied' && (
         <div>
-          <div className="auth-error">Contacts permission nahi mili. Phone ki Settings → Apps → FairyChat → Permissions me jaakar Contacts allow karein.</div>
-          <button className="btn-primary" style={{ marginTop: 10, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={scan}>Dobara Try Karein</button>
+          <div className="auth-error">Contacts permission was denied. Go to Phone Settings → Apps → FairyChat → Permissions to allow Contacts.</div>
+          <button className="btn-primary" style={{ marginTop: 10, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={scan}>Try Again</button>
         </div>
       )}
 
       {status === 'error' && (
         <div>
           <div className="auth-error">{error}</div>
-          <button className="btn-primary" style={{ marginTop: 10, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={scan}>Dobara Try Karein</button>
+          <button className="btn-primary" style={{ marginTop: 10, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={scan}>Try Again</button>
         </div>
       )}
 
       {status === 'done' && (
         <>
           <div style={{ color: 'var(--text-muted)', fontSize: 12.5, marginBottom: 10 }}>
-            {scannedCount} contacts check kiye — {matches.length} FairyChat pe mile
+            Checked {scannedCount} contacts — {matches.length} found on FairyChat
           </div>
           <div className="modal-list">
             {matches.length === 0 && (
-              <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: 8 }}>Aapke contacts me se koi bhi abhi FairyChat use nahi kar raha</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: 8 }}>None of your contacts are using FairyChat yet</div>
             )}
             {matches.map((u) => (
               <div key={u.id} className="user-pick-row" onClick={() => startChat(u)}>
@@ -105,7 +105,7 @@ export default function ContactsSyncPanel({ onStartChat }) {
               </div>
             ))}
           </div>
-          <button className="btn-primary" style={{ marginTop: 12, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={scan}>🔄 Dobara Scan Karein</button>
+          <button className="btn-primary" style={{ marginTop: 12, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={scan}>🔄 Scan Again</button>
         </>
       )}
     </div>

@@ -26,9 +26,9 @@ export default function TopMenu({ onNewDirect, onNewGroup, onNewChannel }) {
       <button className="icon-btn" onClick={() => setOpen((v) => !v)} title="Menu">⋮</button>
       {open && (
         <div className="top-menu">
-          {item(onNewDirect, '💬', 'Nayi Chat')}
-          {item(onNewGroup, '👥', 'Naya Group')}
-          {item(onNewChannel, '📢', 'Naya Channel')}
+          {item(onNewDirect, '💬', 'New Chat')}
+          {item(onNewGroup, '👥', 'New Group')}
+          {item(onNewChannel, '📢', 'New Channel')}
           <div className="top-menu__divider" />
           {item(toggleTheme, theme === 'dark' ? '☀️' : '🌙', theme === 'dark' ? 'Light Mode' : 'Dark Mode')}
         </div>

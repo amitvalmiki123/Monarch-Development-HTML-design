@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
 
-export default function GifPicker({ onSelect, onClose }) {
+// Content-only GIF search + grid, meant to be embedded as the "GIFs" tab of
+// <EmojiGifStickerPicker>. No outer floating box / click-outside handling —
+// the parent picker owns that.
+export default function GifPicker({ onSelect }) {
   const { searchGifs, trendingGifs } = useChat();
   const [query, setQuery] = useState('');
   const [gifs, setGifs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [configured, setConfigured] = useState(true);
-  const boxRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -21,20 +23,12 @@ export default function GifPicker({ onSelect, onClose }) {
     return () => { active = false; };
   }, [query, searchGifs, trendingGifs]);
 
-  useEffect(() => {
-    const onClickOutside = (e) => {
-      if (boxRef.current && !boxRef.current.contains(e.target)) onClose();
-    };
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [onClose]);
-
   return (
-    <div ref={boxRef} className="gif-picker">
+    <div className="emg-gif-tab">
       <div className="field-inline" style={{ marginBottom: 8 }}>
         <input
           autoFocus
-          placeholder="GIF dhoondein..."
+          placeholder="Search GIFs..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -42,17 +36,17 @@ export default function GifPicker({ onSelect, onClose }) {
 
       {!configured && (
         <div style={{ color: 'var(--text-muted)', fontSize: 12.5, padding: '14px 6px', lineHeight: 1.6 }}>
-          🎞️ GIF search abhi set up nahi hai. Backend admin ko ek free Giphy/Klipy API key add karni hogi
-          (<code>GIF_API_KEY</code> env variable — dekhein <code>telegram-clone/README.md</code>).
+          🎞️ GIF search isn't set up yet. The backend admin needs to add a free Giphy/Klipy API key
+          (<code>GIF_API_KEY</code> env variable — see <code>telegram-clone/README.md</code>).
         </div>
       )}
 
       {configured && loading && (
-        <div style={{ color: 'var(--text-muted)', fontSize: 12.5, padding: 14, textAlign: 'center' }}>Load ho raha hai...</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 12.5, padding: 14, textAlign: 'center' }}>Loading...</div>
       )}
 
       {configured && !loading && gifs.length === 0 && (
-        <div style={{ color: 'var(--text-muted)', fontSize: 12.5, padding: 14, textAlign: 'center' }}>Koi GIF nahi mila</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 12.5, padding: 14, textAlign: 'center' }}>No GIFs found</div>
       )}
 
       {configured && !loading && gifs.length > 0 && (

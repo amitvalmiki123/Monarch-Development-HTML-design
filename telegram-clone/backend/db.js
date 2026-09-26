@@ -93,6 +93,28 @@ CREATE INDEX IF NOT EXISTS idx_members_user ON chat_members(user_id);
   }
 })();
 
+// --- Migration: birthday (optional profile field, "Add Birthday" in Settings)
+// and quick_reactions (the user's customisable set of quick message-reaction
+// emoji, managed from Settings -> Message Reactions).
+(function migrateUsersProfileExtras() {
+  const cols = db.prepare("PRAGMA table_info(users)").all();
+  if (!cols.some((c) => c.name === 'birthday')) {
+    db.exec('ALTER TABLE users ADD COLUMN birthday TEXT');
+  }
+  if (!cols.some((c) => c.name === 'quick_reactions')) {
+    db.exec("ALTER TABLE users ADD COLUMN quick_reactions TEXT DEFAULT '[\"❤️\",\"👍\",\"🔥\",\"😂\",\"😮\",\"😢\"]'");
+  }
+})();
+
+// --- Migration: per-message reactions, stored as a JSON object mapping
+// emoji -> array of userIds who reacted with it, e.g. {"❤️":["u1","u2"]}.
+(function migrateMessagesReactions() {
+  const cols = db.prepare("PRAGMA table_info(messages)").all();
+  if (!cols.some((c) => c.name === 'reactions')) {
+    db.exec("ALTER TABLE messages ADD COLUMN reactions TEXT DEFAULT '{}'");
+  }
+})();
+
 // --- Migration: older databases were created before 'channel' and 'saved'
 // chat types (and the chats.description column) existed. CREATE TABLE IF NOT
 // EXISTS above is a no-op on those, so widen the CHECK constraint and add the

@@ -11,10 +11,15 @@ router.get('/me', auth, (req, res) => {
 });
 
 router.put('/me', auth, (req, res) => {
-  const { name, bio, avatarColor, avatarUrl } = req.body;
+  const { name, bio, avatarColor, avatarUrl, birthday, quickReactions } = req.body;
   db.prepare(`UPDATE users SET name = COALESCE(?, name), bio = COALESCE(?, bio),
-    avatar_color = COALESCE(?, avatar_color), avatar_url = COALESCE(?, avatar_url) WHERE id = ?`)
-    .run(name ?? null, bio ?? null, avatarColor ?? null, avatarUrl ?? null, req.user.id);
+    avatar_color = COALESCE(?, avatar_color), avatar_url = COALESCE(?, avatar_url),
+    birthday = COALESCE(?, birthday), quick_reactions = COALESCE(?, quick_reactions) WHERE id = ?`)
+    .run(
+      name ?? null, bio ?? null, avatarColor ?? null, avatarUrl ?? null,
+      birthday ?? null, Array.isArray(quickReactions) ? JSON.stringify(quickReactions) : null,
+      req.user.id
+    );
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   res.json({ user: publicUser(updated) });
 });
@@ -59,7 +64,7 @@ router.post('/contacts/match', auth, (req, res) => {
 
 router.post('/contacts/:userId', auth, (req, res) => {
   const target = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.userId);
-  if (!target) return res.status(404).json({ error: 'User nahi mila' });
+  if (!target) return res.status(404).json({ error: 'User not found' });
   db.prepare('INSERT OR IGNORE INTO contacts (owner_id, contact_id, created_at) VALUES (?, ?, ?)')
     .run(req.user.id, target.id, Date.now());
   res.json({ ok: true, user: publicUser(target) });

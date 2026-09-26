@@ -14,7 +14,7 @@ export default defineConfig({
       manifest: {
         name: 'FairyChat',
         short_name: 'FairyChat',
-        description: 'Ek private, real-time messaging app – apne khud ke backend ke saath.',
+        description: 'A private, real-time messaging app — with your own backend.',
         theme_color: '#151b28',
         background_color: '#151b28',
         display: 'standalone',

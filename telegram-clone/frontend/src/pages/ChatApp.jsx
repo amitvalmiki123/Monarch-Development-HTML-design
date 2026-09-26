@@ -40,8 +40,8 @@ export default function ChatApp() {
               <div className="chat-panel">
                 <div className="empty-state">
                   <div className="glyph">👑</div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>FairyChat me swagat hai</div>
-                  <div style={{ maxWidth: 320 }}>Chat shuru karne ke liye left panel se koi baatcheet chunein ya ⋮ menu se nayi chat banayein.</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Welcome to FairyChat</div>
+                  <div style={{ maxWidth: 320 }}>Pick a conversation from the left panel, or use the ⋮ menu to start a new chat.</div>
                 </div>
               </div>
             )}

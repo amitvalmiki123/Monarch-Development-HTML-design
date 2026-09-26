@@ -42,6 +42,8 @@ function createMessage({ chatId, senderId, type = 'text', content = null, fileUr
 function getMessage(messageId) {
   const m = db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
   if (!m) return null;
+  let reactions = {};
+  try { reactions = JSON.parse(m.reactions || '{}'); } catch { reactions = {}; }
   return {
     id: m.id,
     seq: m.seq,
@@ -55,8 +57,36 @@ function getMessage(messageId) {
     replyToId: m.reply_to_id,
     editedAt: m.edited_at,
     deleted: !!m.deleted,
+    reactions: m.deleted ? {} : reactions,
     createdAt: m.created_at
   };
+}
+
+// Toggles `emoji` as userId's reaction on a message. A user may only have one
+// active reaction per message at a time (same as Telegram's default
+// behaviour) — picking a different emoji switches it, tapping the same one
+// again removes it.
+function toggleReaction(messageId, userId, emoji) {
+  const m = db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+  if (!m) throw new Error('NOT_FOUND');
+  if (!isMember(m.chat_id, userId)) throw new Error('FORBIDDEN');
+  let reactions = {};
+  try { reactions = JSON.parse(m.reactions || '{}'); } catch { reactions = {}; }
+
+  const hadThisEmoji = Array.isArray(reactions[emoji]) && reactions[emoji].includes(userId);
+
+  // Remove this user from every emoji first (single-reaction-per-user rule).
+  for (const key of Object.keys(reactions)) {
+    reactions[key] = reactions[key].filter((uid) => uid !== userId);
+    if (reactions[key].length === 0) delete reactions[key];
+  }
+
+  if (!hadThisEmoji) {
+    reactions[emoji] = [...(reactions[emoji] || []), userId];
+  }
+
+  db.prepare('UPDATE messages SET reactions = ? WHERE id = ?').run(JSON.stringify(reactions), messageId);
+  return getMessage(messageId);
 }
 
 function editMessage(messageId, userId, content) {
@@ -79,4 +109,4 @@ function chatMemberIds(chatId) {
   return db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(chatId).map(r => r.user_id);
 }
 
-module.exports = { createMessage, getMessage, editMessage, deleteMessage, isMember, canPost, chatMemberIds };
+module.exports = { createMessage, getMessage, editMessage, deleteMessage, toggleReaction, isMember, canPost, chatMemberIds };

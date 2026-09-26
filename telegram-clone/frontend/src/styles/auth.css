@@ -41,14 +41,9 @@
 .auth-brand__crest {
   width: 46px;
   height: 46px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--bubble-out-from), var(--gold));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 20px;
-  color: #fff;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
   box-shadow: 0 6px 16px rgba(139, 92, 246, 0.35);
 }
 

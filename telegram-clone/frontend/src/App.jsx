@@ -9,7 +9,7 @@ import ChatApp from './pages/ChatApp';
 function Splash() {
   return (
     <div className="auth-screen">
-      <div style={{ color: 'var(--text-secondary)' }}>FairyChat load ho raha hai...</div>
+      <div style={{ color: 'var(--text-secondary)' }}>Loading FairyChat...</div>
     </div>
   );
 }

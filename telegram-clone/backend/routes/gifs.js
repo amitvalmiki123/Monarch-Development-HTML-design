@@ -77,7 +77,7 @@ router.get('/trending', auth, async (req, res) => {
     res.json(out);
   } catch (e) {
     console.error('GIF trending error', e);
-    res.status(500).json({ configured: !!API_KEY, results: [], error: 'GIF load nahi ho paye' });
+    res.status(500).json({ configured: !!API_KEY, results: [], error: 'Could not load GIFs' });
   }
 });
 

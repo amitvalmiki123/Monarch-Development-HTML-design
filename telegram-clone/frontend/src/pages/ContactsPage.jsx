@@ -35,12 +35,12 @@ export default function ContactsPage({ onOpenChat }) {
       </div>
 
       <div className="sidebar__search">
-        <input placeholder="Contacts me dhoondein..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input placeholder="Search contacts..." value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
       <div style={{ padding: '0 16px 10px' }}>
         <button className="btn-primary btn-gold" style={{ width: '100%' }} onClick={() => setShowSync((v) => !v)}>
-          {showSync ? '✕ Band Karein' : '📱 Phone Contacts Se Sync Karein'}
+          {showSync ? '✕ Close' : '📱 Sync From Phone Contacts'}
         </button>
         {showSync && (
           <div style={{ marginTop: 10, background: 'var(--bg-elevated)', borderRadius: 12, padding: 10 }}>
@@ -50,12 +50,12 @@ export default function ContactsPage({ onOpenChat }) {
       </div>
 
       <div className="chat-list">
-        {loading && <div className="empty-state"><div>Load ho raha hai...</div></div>}
+        {loading && <div className="empty-state"><div>Loading...</div></div>}
         {!loading && filtered.length === 0 && (
           <div className="empty-state">
             <div className="glyph">👥</div>
-            <div>Abhi tak koi contact save nahi hai</div>
-            <div style={{ fontSize: 12.5 }}>Naya chat shuru karein ya contacts sync karein</div>
+            <div>No saved contacts yet</div>
+            <div style={{ fontSize: 12.5 }}>Start a new chat or sync your contacts</div>
           </div>
         )}
         {filtered.map((c) => (

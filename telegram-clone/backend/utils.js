@@ -44,6 +44,8 @@ function publicUser(u) {
     bio: u.bio,
     avatarColor: u.avatar_color,
     avatarUrl: u.avatar_url || null,
+    birthday: u.birthday || null,
+    quickReactions: (() => { try { return JSON.parse(u.quick_reactions || '[]'); } catch { return []; } })(),
     status: u.status,
     lastSeen: u.last_seen
   };

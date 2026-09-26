@@ -36,6 +36,9 @@
 
   --shadow-soft: 0 12px 32px rgba(6, 2, 20, 0.45);
   --font-main: "Segoe UI", "Noto Sans Devanagari", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --glass-bg: rgba(32, 19, 71, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.08);
 }
 
 /* ===== Light mode ===== */
@@ -72,6 +75,9 @@
   --danger: #d1435b;
 
   --shadow-soft: 0 12px 32px rgba(90, 70, 140, 0.14);
+
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(139, 92, 246, 0.18);
 }
 
 [data-theme="light"] body {

@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatMessageTime, formatFileSize } from '../../utils/format';
 import { resolveMediaUrl } from '../../utils/resolveUrl';
+import { DEFAULT_QUICK_REACTIONS } from '../../data/emojiData';
 
 function Ticks({ read, pending, failed }) {
-  if (failed) return <span title="Bhejne me fail hua" style={{ color: 'var(--danger)' }}>⚠</span>;
-  if (pending) return <span title="Bheja ja raha hai">🕓</span>;
-  return <span className={`ticks${read ? ' read' : ''}`} title={read ? 'Padh liya gaya' : 'Bheja gaya'}>{read ? '✓✓' : '✓'}</span>;
+  if (failed) return <span title="Failed to send" style={{ color: 'var(--danger)' }}>⚠</span>;
+  if (pending) return <span title="Sending...">🕓</span>;
+  return <span className={`ticks${read ? ' read' : ''}`} title={read ? 'Read' : 'Sent'}>{read ? '✓✓' : '✓'}</span>;
 }
 
 function FilePreview({ message }) {
@@ -33,14 +34,46 @@ function FilePreview({ message }) {
   );
 }
 
-export default function MessageBubble({ message, isOwn, senderName, showSenderName, onReply, onEdit, onDelete, replyPreview }) {
+function ReactionPills({ reactions, currentUserId, onToggle }) {
+  const entries = Object.entries(reactions || {}).filter(([, users]) => users?.length > 0);
+  if (entries.length === 0) return null;
+  return (
+    <div className="reaction-pills">
+      {entries.map(([emoji, users]) => (
+        <button
+          key={emoji}
+          className={`reaction-pill${users.includes(currentUserId) ? ' mine' : ''}`}
+          onClick={() => onToggle(emoji)}
+        >
+          {emoji} <span>{users.length}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function MessageBubble({
+  message, isOwn, senderName, showSenderName, onReply, onEdit, onDelete, replyPreview,
+  currentUserId, quickReactions, onReact
+}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content || '');
+  const [showReactBar, setShowReactBar] = useState(false);
+  const reactBarRef = useRef(null);
+
+  useEffect(() => {
+    if (!showReactBar) return;
+    const onClickOutside = (e) => {
+      if (reactBarRef.current && !reactBarRef.current.contains(e.target)) setShowReactBar(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [showReactBar]);
 
   if (message.deleted) {
     return (
       <div className={`bubble-row ${isOwn ? 'out' : 'in'}`}>
-        <div className={`bubble ${isOwn ? 'out' : 'in'} deleted`}>Ye message delete kar diya gaya</div>
+        <div className={`bubble ${isOwn ? 'out' : 'in'} deleted`}>This message was deleted</div>
       </div>
     );
   }
@@ -49,6 +82,45 @@ export default function MessageBubble({ message, isOwn, senderName, showSenderNa
     if (draft.trim() && draft !== message.content) onEdit(message.id, draft.trim());
     setEditing(false);
   };
+
+  const toggleReaction = (emoji) => {
+    onReact?.(message.id, emoji);
+    setShowReactBar(false);
+  };
+
+  // Stickers render as a large emoji with no bubble background, same as
+  // Telegram (and single-emoji-only text messages there too, but we keep
+  // that simple here and only special-case the explicit sticker type).
+  if (message.type === 'sticker') {
+    return (
+      <div className={`bubble-row ${isOwn ? 'out' : 'in'}`}>
+        <div className="sticker-bubble">
+          <div className="sticker-bubble__emoji">{message.content}</div>
+          <div className="sticker-bubble__meta">
+            {formatMessageTime(message.createdAt)}
+            {isOwn && <Ticks read={message.read} pending={message.pending} failed={message.failed} />}
+          </div>
+          <ReactionPills reactions={message.reactions} currentUserId={currentUserId} onToggle={toggleReaction} />
+        </div>
+        {!editing && (
+          <div className="msg-actions">
+            <div className="react-popup-wrap" ref={reactBarRef}>
+              <button onClick={() => setShowReactBar((v) => !v)}>😊 React</button>
+              {showReactBar && (
+                <div className="quick-react-bar">
+                  {(quickReactions?.length ? quickReactions : DEFAULT_QUICK_REACTIONS).map((e) => (
+                    <button key={e} onClick={() => toggleReaction(e)}>{e}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={() => onReply(message)}>↩ Reply</button>
+            {isOwn && <button onClick={() => onDelete(message.id)}>🗑 Delete</button>}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`bubble-row ${isOwn ? 'out' : 'in'}`}>
@@ -89,10 +161,22 @@ export default function MessageBubble({ message, isOwn, senderName, showSenderNa
           <span>{formatMessageTime(message.createdAt)}</span>
           {isOwn && <Ticks read={message.read} pending={message.pending} failed={message.failed} />}
         </div>
+
+        <ReactionPills reactions={message.reactions} currentUserId={currentUserId} onToggle={toggleReaction} />
       </div>
 
       {!editing && (
         <div className="msg-actions">
+          <div className="react-popup-wrap" ref={reactBarRef}>
+            <button onClick={() => setShowReactBar((v) => !v)}>😊 React</button>
+            {showReactBar && (
+              <div className="quick-react-bar">
+                {(quickReactions?.length ? quickReactions : DEFAULT_QUICK_REACTIONS).map((e) => (
+                  <button key={e} onClick={() => toggleReaction(e)}>{e}</button>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={() => onReply(message)}>↩ Reply</button>
           {isOwn && message.type === 'text' && <button onClick={() => setEditing(true)}>✎ Edit</button>}
           {isOwn && <button onClick={() => onDelete(message.id)}>🗑 Delete</button>}

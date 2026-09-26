@@ -24,7 +24,7 @@ const upload = multer({
 const router = express.Router();
 
 router.post('/', auth, upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'File nahi mili' });
+  if (!req.file) return res.status(400).json({ error: 'No file received' });
   const url = `/uploads/${req.file.filename}`;
   const mime = req.file.mimetype || '';
   let kind = 'file';

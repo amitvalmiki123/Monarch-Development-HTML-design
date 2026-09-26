@@ -130,6 +130,15 @@ export function ChatProvider({ children }) {
     });
   }, []);
 
+  const reactToMessage = useCallback((messageId, emoji) => {
+    const socket = getSocket();
+    return new Promise((resolve, reject) => {
+      socket.emit('message:react', { messageId, emoji }, (res) => {
+        if (res?.error) reject(res.error); else resolve(res.message);
+      });
+    });
+  }, []);
+
   const startTyping = useCallback((chatId) => {
     const socket = getSocket();
     if (socket) socket.emit('typing:start', { chatId });
@@ -305,7 +314,7 @@ export function ChatProvider({ children }) {
 
   const value = {
     chats, chatsLoaded, activeChatId, messagesByChat, hasMoreByChat, typingByChat,
-    loadChats, openChat, sendMessage, editMessage, deleteMessage,
+    loadChats, openChat, sendMessage, editMessage, deleteMessage, reactToMessage,
     startTyping, stopTyping, createDirectChat, createGroupChat, createChannelChat,
     addChatMember, updateChatInfo, searchUsers, matchContacts, listContacts, searchGifs, trendingGifs, uploadFile,
     loadMoreMessages: loadMessages, setActiveChatId

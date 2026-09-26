@@ -32,15 +32,15 @@ export default function Sidebar({ activeChatId, onSelectChat }) {
       </div>
 
       <div className="sidebar__search">
-        <input placeholder="Chats me dhoondein..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input placeholder="Search chats..." value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
       <div className="chat-list">
         {chatsLoaded && filtered.length === 0 && (
           <div className="empty-state">
             <div className="glyph">💬</div>
-            <div>Koi chat nahi hai</div>
-            <div style={{ fontSize: 12.5 }}>⋮ menu se nayi baatcheet shuru karein</div>
+            <div>No chats yet</div>
+            <div style={{ fontSize: 12.5 }}>Use the ⋮ menu to start a new chat</div>
           </div>
         )}
         {filtered.map((chat) => (

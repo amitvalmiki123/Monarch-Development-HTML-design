@@ -38,7 +38,7 @@ export default function ProfilePage() {
       const res = await uploadFile(file);
       await updateProfile({ avatarUrl: res.url });
     } catch (err) {
-      alert('Photo upload nahi ho payi: ' + (err.response?.data?.error || err.message));
+      alert('Could not upload photo: ' + (err.response?.data?.error || err.message));
     } finally {
       setUploadingPhoto(false);
     }
@@ -70,7 +70,7 @@ export default function ProfilePage() {
             className="profile-hero__name-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Aapka naam"
+            placeholder="Your name"
             autoFocus
           />
         )}
@@ -81,7 +81,7 @@ export default function ProfilePage() {
           {user.phone && <Row icon="📱" label={user.phone} sub="Mobile" />}
           <Row icon="@" label={`@${user.username}`} sub="Username" />
           {!editing ? (
-            <Row icon="ℹ️" label={user.bio || 'Bio add karein'} sub="Bio" />
+            <Row icon="ℹ️" label={user.bio || 'Add a bio'} sub="Bio" />
           ) : (
             <div className="settings-row">
               <span className="settings-row__icon">ℹ️</span>
@@ -91,7 +91,7 @@ export default function ProfilePage() {
                   className="profile-inline-input"
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  placeholder="Apne baare me kuch likhein..."
+                  placeholder="Write something about yourself..."
                 />
               </div>
             </div>

@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
-import GifPicker from './GifPicker';
+import EmojiGifStickerPicker from './EmojiGifStickerPicker';
 
 export default function MessageInput({ chatId, replyingTo, onCancelReply, readOnly }) {
   const { sendMessage, startTyping, stopTyping, uploadFile } = useChat();
   const [text, setText] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const fileInputRef = useRef(null);
   const typingTimeout = useRef(null);
   const textareaRef = useRef(null);
@@ -58,7 +58,7 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
       });
       onCancelReply?.();
     } catch (err) {
-      alert('File upload nahi ho payi: ' + (err.response?.data?.error || err.message));
+      alert('Could not upload file: ' + (err.response?.data?.error || err.message));
     } finally {
       setUploading(false);
     }
@@ -67,12 +67,17 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
   if (readOnly) {
     return (
       <div className="message-input-bar" style={{ justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13, gap: 6 }}>
-        🔒 Is channel me sirf owner/admin hi post kar sakte hain
+        🔒 Only the owner/admins can post in this channel
       </div>
     );
   }
 
-  const handleGifSelect = (gif) => {
+  const handleSelectEmoji = (emoji) => {
+    setText((t) => t + emoji);
+    textareaRef.current?.focus();
+  };
+
+  const handleSelectGif = (gif) => {
     sendMessage(chatId, {
       type: 'gif',
       content: null,
@@ -81,19 +86,30 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
       fileSize: null,
       replyToId: replyingTo?.id || null
     });
-    setShowGifPicker(false);
+    setShowPicker(false);
+    onCancelReply?.();
+  };
+
+  const handleSelectSticker = (emoji) => {
+    sendMessage(chatId, { type: 'sticker', content: emoji, replyToId: replyingTo?.id || null });
+    setShowPicker(false);
     onCancelReply?.();
   };
 
   return (
     <div style={{ position: 'relative' }}>
-      {showGifPicker && (
-        <GifPicker onSelect={handleGifSelect} onClose={() => setShowGifPicker(false)} />
+      {showPicker && (
+        <EmojiGifStickerPicker
+          onSelectEmoji={handleSelectEmoji}
+          onSelectGif={handleSelectGif}
+          onSelectSticker={handleSelectSticker}
+          onClose={() => setShowPicker(false)}
+        />
       )}
       {replyingTo && (
         <div className="reply-preview">
           <div>
-            <div style={{ fontWeight: 700 }}>↩ Reply kar rahe hain</div>
+            <div style={{ fontWeight: 700 }}>↩ Replying</div>
             <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
               {replyingTo.content || 'Media message'}
             </div>
@@ -103,19 +119,19 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
       )}
       <div className="message-input-bar">
         <input type="file" ref={fileInputRef} className="hidden" onChange={handleFile} />
-        <button className="attach-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading} title="File bhejein">
+        <button className="attach-btn" onClick={() => setShowPicker((v) => !v)} title="Emoji, GIFs & Stickers">😊</button>
+        <button className="attach-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Send file">
           {uploading ? '⏳' : '📎'}
         </button>
-        <button className="attach-btn" onClick={() => setShowGifPicker((v) => !v)} title="GIF bhejein">🎞️</button>
         <textarea
           ref={textareaRef}
           rows={1}
-          placeholder="Message likhein..."
+          placeholder="Message"
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
         />
-        <button className="send-btn" onClick={doSend} disabled={!text.trim()} title="Bhejein">➤</button>
+        <button className="send-btn" onClick={doSend} disabled={!text.trim()} title="Send">➤</button>
       </div>
     </div>
   );

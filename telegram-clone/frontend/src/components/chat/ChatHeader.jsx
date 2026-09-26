@@ -7,13 +7,13 @@ export default function ChatHeader({ chat, typingNames, onBack, onShowInfo }) {
   const isDirect = chat.type === 'direct';
   let statusLine;
   if (typingNames && typingNames.length > 0) {
-    statusLine = `${typingNames.join(', ')} type kar rahe hain...`;
+    statusLine = `${typingNames.join(', ')} typing...`;
   } else if (chat.type === 'group') {
     statusLine = `${chat.members.length} members`;
   } else if (chat.type === 'channel') {
-    statusLine = `${chat.subscriberCount ?? chat.members.length} subscribers${chat.canPost ? ' • Aap post kar sakte hain' : ' • Sirf padhne ke liye'}`;
+    statusLine = `${chat.subscriberCount ?? chat.members.length} subscribers${chat.canPost ? ' • You can post' : ' • Read-only'}`;
   } else if (chat.type === 'saved') {
-    statusLine = 'Sirf aapke liye';
+    statusLine = 'Just for you';
   } else {
     statusLine = formatLastSeen(chat.peer?.status, chat.peer?.lastSeen);
   }

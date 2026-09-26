@@ -35,11 +35,11 @@ function setupSocket(io) {
       try {
         const { chatId, tempId, type, content, fileUrl, fileName, fileSize, replyToId } = payload;
         if (!messageService.isMember(chatId, userId)) {
-          if (ack) ack({ error: 'Aap is chat ke member nahi hain' });
+          if (ack) ack({ error: 'You are not a member of this chat' });
           return;
         }
         if (!messageService.canPost(chatId, userId)) {
-          if (ack) ack({ error: 'Is channel me sirf owner/admin hi post kar sakte hain' });
+          if (ack) ack({ error: 'Only the owner/admins can post in this channel' });
           return;
         }
         const message = messageService.createMessage({
@@ -60,7 +60,7 @@ function setupSocket(io) {
         io.to(`chat:${message.chatId}`).emit('message:updated', message);
         if (ack) ack({ message });
       } catch (e) {
-        if (ack) ack({ error: 'Edit nahi ho paya' });
+        if (ack) ack({ error: 'Could not edit message' });
       }
     });
 
@@ -71,7 +71,18 @@ function setupSocket(io) {
         io.to(`chat:${message.chatId}`).emit('message:updated', message);
         if (ack) ack({ message });
       } catch (e) {
-        if (ack) ack({ error: 'Delete nahi ho paya' });
+        if (ack) ack({ error: 'Could not delete message' });
+      }
+    });
+
+    socket.on('message:react', (payload, ack) => {
+      try {
+        const { messageId, emoji } = payload;
+        const message = messageService.toggleReaction(messageId, userId, emoji);
+        io.to(`chat:${message.chatId}`).emit('message:updated', message);
+        if (ack) ack({ message });
+      } catch (e) {
+        if (ack) ack({ error: 'Could not save reaction' });
       }
     });
 

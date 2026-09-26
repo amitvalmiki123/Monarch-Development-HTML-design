@@ -20,7 +20,7 @@ export default function Register() {
       await register({ name: name.trim(), username: username.trim().toLowerCase(), phone: phone.trim() || undefined, password });
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration nahi ho paya');
+      setError(err.response?.data?.error || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -30,20 +30,20 @@ export default function Register() {
     <div className="auth-screen">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="auth-brand__crest">M</div>
+          <img className="auth-brand__crest" src="/icons/brand-crest.png" alt="FairyChat" />
           <div>
             <h1>FairyChat</h1>
-            <span>Apka apna private messenger</span>
+            <span>Your own private messenger</span>
           </div>
         </div>
-        <h2>Naya account banayein</h2>
-        <p className="subtitle">Kuch seconds me shuru karein</p>
+        <h2>Create a new account</h2>
+        <p className="subtitle">Get started in a few seconds</p>
 
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={submit}>
           <div className="field">
-            <label>Poora naam</label>
+            <label>Full name</label>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Amit Sharma" required />
           </div>
           <div className="field">
@@ -56,14 +56,14 @@ export default function Register() {
           </div>
           <div className="field">
             <label>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Kam se kam 6 characters" required />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" required />
           </div>
-          <button className="btn-primary btn-gold" disabled={loading}>{loading ? 'Ban raha hai...' : 'Account Banayein'}</button>
+          <button className="btn-primary btn-gold" disabled={loading}>{loading ? 'Creating...' : 'Create Account'}</button>
         </form>
 
         <div className="auth-switch">
-          Pehle se account hai?
-          <Link to="/login"><button type="button">Login karein</button></Link>
+          Already have an account?
+          <Link to="/login"><button type="button">Log in</button></Link>
         </div>
       </div>
     </div>

@@ -4,13 +4,14 @@ import { formatMessageTime } from '../../utils/format';
 function lastMessagePreview(chat) {
   const lm = chat.lastMessage;
   if (!lm) {
-    if (chat.type === 'saved') return 'Apne notes, files aur links yahan save karein';
-    if (chat.type === 'channel') return 'Koi post nahi — pehla broadcast bhejein';
-    return 'Koi message nahi — Namaste bolke shuruaat karein';
+    if (chat.type === 'saved') return 'Save your notes, files and links here';
+    if (chat.type === 'channel') return 'No posts yet — send the first broadcast';
+    return 'No messages yet — say hello to start';
   }
-  if (lm.deleted) return 'Ye message delete kar diya gaya';
+  if (lm.deleted) return 'This message was deleted';
   if (lm.type === 'image') return '📷 Photo';
   if (lm.type === 'gif') return '🎞️ GIF';
+  if (lm.type === 'sticker') return `${lm.content || '🌟'} Sticker`;
   if (lm.type === 'video') return '🎬 Video';
   if (lm.type === 'audio') return '🎙️ Audio message';
   if (lm.type === 'file') return '📎 File';
@@ -40,7 +41,7 @@ export default function ChatListItem({ chat, active, onClick, currentUserId }) {
         </div>
         <div className="chat-list-item__bottom">
           <span className="chat-list-item__preview">
-            {lm && lm.senderId === currentUserId && !lm.deleted ? 'Aap: ' : ''}
+            {lm && lm.senderId === currentUserId && !lm.deleted ? 'You: ' : ''}
             {lastMessagePreview(chat)}
           </span>
           {chat.unreadCount > 0 && <span className="chat-list-item__unread">{chat.unreadCount}</span>}
