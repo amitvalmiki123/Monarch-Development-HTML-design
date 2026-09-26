@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import http from '../api/http';
 import { connectSocket, disconnectSocket } from '../api/socket';
+import { syncBackgroundSockets, disconnectAllBackgroundSockets } from '../api/backgroundSockets';
 
 const AuthContext = createContext(null);
 
@@ -76,6 +77,20 @@ export function AuthProvider({ children }) {
       })
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line
+
+  // Keep one extra lightweight socket connection alive per *other* saved
+  // account (see api/backgroundSockets.js), so switching the active account
+  // never fully silences notifications for the one you switched away from
+  // — as long as this app is still running on the device.
+  useEffect(() => {
+    if (!user) {
+      disconnectAllBackgroundSockets();
+      return;
+    }
+    syncBackgroundSockets(accounts, user.id);
+  }, [accounts, user]);
+
+  useEffect(() => () => disconnectAllBackgroundSockets(), []);
 
   const persistSession = useCallback((nextToken, nextUser) => {
     localStorage.setItem('monarch_token', nextToken);

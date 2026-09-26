@@ -203,7 +203,7 @@ export default function SettingsPage({ onOpenSaved }) {
             right={<Switch checked={theme === 'dark'} onChange={toggleTheme} />}
           />
           <Row icon="🔖" iconColor="blue" label="Saved Messages" sub="Send notes and files to yourself" onClick={() => savedChat && onOpenSaved(savedChat.id)} />
-          <Row icon="🔔" iconColor="orange" label="Notifications" sub="On — you'll get an alert while the app is open or running in the background" />
+          <Row icon="🔔" iconColor="orange" label="Notifications" sub="Alerts while FairyChat is actively open. Reliable background/closed-app push needs Firebase (coming soon)." />
         </div>
 
         <div className="settings-section">
