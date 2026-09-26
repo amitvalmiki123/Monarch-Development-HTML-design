@@ -293,10 +293,11 @@ export function ChatProvider({ children }) {
         const chat = chatsRef.current.find((c) => c.id === message.chatId);
         if (chat) {
           const senderName = chat.members?.find((m) => m.id === message.senderId)?.name;
-          const title = chat.type === 'group' || chat.type === 'channel'
+          const isGroup = chat.type === 'group' || chat.type === 'channel';
+          const title = isGroup
             ? `${senderName ? senderName + ' • ' : ''}${chat.name}`
             : chat.name;
-          notifyNewMessage({ title, body: messagePreviewText(message), chatId: message.chatId });
+          notifyNewMessage({ title, body: messagePreviewText(message), chatId: message.chatId, isGroup });
         }
       }
     };

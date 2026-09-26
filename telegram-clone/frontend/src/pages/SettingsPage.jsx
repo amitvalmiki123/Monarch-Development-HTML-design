@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/common/Avatar';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +6,7 @@ import { useTheme, WALLPAPERS } from '../context/ThemeContext';
 import { useChat } from '../context/ChatContext';
 import { EMOJI_CATEGORIES, REACTION_CHOICES, DEFAULT_QUICK_REACTIONS } from '../data/emojiData';
 import http from '../api/http';
-import { pushStatus, initNotifications, registerPushIfConfigured, sendLocalTestNotification, sendServerTestPush } from '../utils/notifications';
+import { pushStatus, subscribeStatus, initNotifications, registerPushIfConfigured, sendLocalTestNotification, sendServerTestPush, getNotifPrefs, setNotifPrefs } from '../utils/notifications';
 
 function Row({ icon, iconColor = 'blue', label, sub, right, onClick, danger }) {
   return (
@@ -29,28 +29,67 @@ function Switch({ checked, onChange }) {
   );
 }
 
-function NotificationDiagnostics() {
-  const [open, setOpen] = useState(false);
+function NotificationSettings() {
+  const [prefs, setPrefsState] = useState(() => getNotifPrefs());
+  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
+
+  const update = (patch) => setPrefsState(setNotifPrefs(patch));
+
+  return (
+    <>
+      <Row
+        icon="🔔"
+        iconColor="orange"
+        label="Message notifications"
+        sub="Alerts for new messages"
+        right={<Switch checked={prefs.messages} onChange={() => update({ messages: !prefs.messages })} />}
+      />
+      <Row
+        icon="👥"
+        iconColor="green"
+        label="Group notifications"
+        sub="Alerts for group and channel messages"
+        right={<Switch checked={prefs.groups} onChange={() => update({ groups: !prefs.groups })} />}
+      />
+      <Row
+        icon="🔊"
+        iconColor="purple"
+        label="Sound"
+        sub="Play a sound with notifications"
+        right={<Switch checked={prefs.sound} onChange={() => update({ sound: !prefs.sound })} />}
+      />
+      <Row
+        icon="🛠️"
+        iconColor="gray"
+        label="Troubleshoot notifications"
+        sub="Not getting notifications? Tap to check what's wrong"
+        onClick={() => setShowTroubleshoot((v) => !v)}
+      />
+      {showTroubleshoot && <NotificationTroubleshoot />}
+    </>
+  );
+}
+
+function NotificationTroubleshoot() {
   const [, forceRender] = useState(0);
   const [busy, setBusy] = useState(false);
   const [lastResult, setLastResult] = useState(null);
 
-  const refresh = async () => {
-    setBusy(true);
-    setLastResult(null);
-    try {
+  useEffect(() => {
+    // Subscribe to live status updates (native registration success/failure
+    // arrives asynchronously, well after the initial check resolves) and
+    // kick off a fresh check right away.
+    const unsubscribe = subscribeStatus(() => forceRender((n) => n + 1));
+    let cancelled = false;
+    (async () => {
+      setBusy(true);
       await initNotifications();
       await registerPushIfConfigured(http);
-    } finally {
-      forceRender((n) => n + 1);
-      setBusy(false);
-    }
-  };
-
-  const openPanel = async () => {
-    setOpen((v) => !v);
-    if (!open) await refresh();
-  };
+      if (!cancelled) setBusy(false);
+    })();
+    return () => { cancelled = true; unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const testLocal = async () => {
     setBusy(true);
@@ -61,7 +100,6 @@ function NotificationDiagnostics() {
       setLastResult({ ok: false, text: e.message });
     } finally {
       setBusy(false);
-      forceRender((n) => n + 1);
     }
   };
 
@@ -83,43 +121,29 @@ function NotificationDiagnostics() {
   };
 
   return (
-    <>
-      <Row
-        icon="🔔"
-        iconColor="orange"
-        label="Notifications"
-        sub="Tap to check status and send a test notification"
-        onClick={openPanel}
-      />
-      {open && (
-        <div className="danger-confirm-box" style={{ borderColor: 'var(--border-soft)' }}>
-          <div style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
-            <div>Platform: <b>{pushStatus.isNative ? 'Native app' : 'Web/PWA'}</b></div>
-            <div>Local alert permission: <b>{pushStatus.localPermission}</b></div>
-            <div>Server push configured: <b>{pushStatus.serverEnabled === null ? 'checking…' : pushStatus.serverEnabled ? 'yes' : 'no'}</b></div>
-            {pushStatus.serverError && <div style={{ color: 'var(--danger)' }}>Server error: {pushStatus.serverError}</div>}
-            <div>Device registered for push: <b>{pushStatus.tokenRegistered ? 'yes' : 'not yet'}</b></div>
-            {pushStatus.lastError && <div style={{ color: 'var(--danger)' }}>Last error: {pushStatus.lastError}</div>}
-          </div>
-          {lastResult && (
-            <div style={{ marginTop: 8, fontSize: 12.5, color: lastResult.ok ? 'var(--gold-light)' : 'var(--danger)' }}>
-              {lastResult.text}
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <button className="btn-primary" style={{ flex: '1 1 auto', background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12.5, padding: '8px 10px' }} disabled={busy} onClick={refresh}>
-              Re-check status
-            </button>
-            <button className="btn-primary" style={{ flex: '1 1 auto', background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12.5, padding: '8px 10px' }} disabled={busy} onClick={testLocal}>
-              Send local test
-            </button>
-            <button className="btn-primary btn-gold" style={{ flex: '1 1 auto', fontSize: 12.5, padding: '8px 10px' }} disabled={busy || !pushStatus.serverEnabled} onClick={testServer}>
-              Send real push test
-            </button>
-          </div>
+    <div className="danger-confirm-box" style={{ borderColor: 'var(--border-soft)' }}>
+      <div style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+        <div>Platform: <b>{pushStatus.isNative ? 'Native app' : 'Web/PWA'}</b></div>
+        <div>Local alert permission: <b>{pushStatus.localPermission}</b></div>
+        <div>Server push configured: <b>{pushStatus.serverEnabled === null ? 'checking…' : pushStatus.serverEnabled ? 'yes' : 'no'}</b></div>
+        {pushStatus.serverError && <div style={{ color: 'var(--danger)' }}>Server error: {pushStatus.serverError}</div>}
+        <div>Device registered for push: <b>{pushStatus.registering && !pushStatus.tokenRegistered ? 'checking…' : pushStatus.tokenRegistered ? 'yes' : 'not yet'}</b></div>
+        {pushStatus.lastError && <div style={{ color: 'var(--danger)' }}>Last error: {pushStatus.lastError}</div>}
+      </div>
+      {lastResult && (
+        <div style={{ marginTop: 8, fontSize: 12.5, color: lastResult.ok ? 'var(--gold-light)' : 'var(--danger)' }}>
+          {lastResult.text}
         </div>
       )}
-    </>
+      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+        <button className="btn-primary" style={{ flex: '1 1 auto', background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12.5, padding: '8px 10px' }} disabled={busy} onClick={testLocal}>
+          Send local test
+        </button>
+        <button className="btn-primary btn-gold" style={{ flex: '1 1 auto', fontSize: 12.5, padding: '8px 10px' }} disabled={busy || !pushStatus.serverEnabled} onClick={testServer}>
+          Send real push test
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -299,7 +323,7 @@ export default function SettingsPage({ onOpenSaved }) {
             right={<Switch checked={theme === 'dark'} onChange={toggleTheme} />}
           />
           <Row icon="🔖" iconColor="blue" label="Saved Messages" sub="Send notes and files to yourself" onClick={() => savedChat && onOpenSaved(savedChat.id)} />
-          <NotificationDiagnostics />
+          <NotificationSettings />
         </div>
 
         <div className="settings-section">
