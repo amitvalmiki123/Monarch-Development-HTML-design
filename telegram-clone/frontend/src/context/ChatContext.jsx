@@ -42,8 +42,20 @@ export function ChatProvider({ children }) {
 
   useEffect(() => {
     if (!token) return;
-    initNotifications();
-    registerPushIfConfigured(http);
+    let cancelled = false;
+    // These must run one after another, not in parallel: both internally
+    // request Android's notification permission (POST_NOTIFICATIONS), and
+    // Android can only have one permission-request dialog in flight at a
+    // time. Firing both at once causes the second plugin's callback to
+    // never resolve — registration then hangs forever with no token and no
+    // error, which is exactly the "Device registered for push: not yet"
+    // symptom that never times out.
+    (async () => {
+      await initNotifications();
+      if (cancelled) return;
+      await registerPushIfConfigured(http);
+    })();
+    return () => { cancelled = true; };
   }, [token]);
 
   const loadChats = useCallback(async () => {

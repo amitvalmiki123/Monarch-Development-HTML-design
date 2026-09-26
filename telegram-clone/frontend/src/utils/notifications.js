@@ -8,6 +8,22 @@ let notifIdCounter = 1;
 let pushListenersAttached = false;
 let registrationWatchdog = null;
 
+// Android can only have ONE permission-request dialog in flight at a time.
+// initNotifications() and registerPushIfConfigured() both request the same
+// underlying POST_NOTIFICATIONS permission (via two different Capacitor
+// plugins) — calling them concurrently from more than one place (e.g. the
+// app boot flow and the Settings troubleshoot screen both mounting around
+// the same time) causes the second plugin's callback to be silently
+// dropped, so registration hangs forever with no token and no error. This
+// tiny queue forces every call through here to run strictly one after
+// another, no matter who calls it or when.
+let permissionQueue = Promise.resolve();
+function serialized(fn) {
+  const run = permissionQueue.then(fn, fn);
+  permissionQueue = run.catch(() => {});
+  return run;
+}
+
 // --- User-facing preferences (Settings > Notifications) --------------------
 const PREFS_KEY = 'fairychat_notif_prefs';
 const DEFAULT_PREFS = { messages: true, groups: true, sound: true };
@@ -71,6 +87,10 @@ async function getPushNotifications() {
 //   channel a notification goes to rather than a per-notification flag).
 // - Web/PWA: the standard browser Notification permission.
 export async function initNotifications() {
+  return serialized(() => initNotificationsImpl());
+}
+
+async function initNotificationsImpl() {
   try {
     if (Capacitor.isNativePlatform()) {
       const LocalNotifications = await getLocalNotifications();
@@ -174,6 +194,10 @@ export async function sendLocalTestNotification() {
 // safe no-op — nothing here ever touches native Firebase code unless the
 // backend confirms it's actually configured.
 export async function registerPushIfConfigured(http) {
+  return serialized(() => registerPushIfConfiguredImpl(http));
+}
+
+async function registerPushIfConfiguredImpl(http) {
   try {
     if (!Capacitor.isNativePlatform()) return;
     const { data } = await http.get('/push/config');
