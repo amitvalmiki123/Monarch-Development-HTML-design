@@ -50,7 +50,7 @@ export default function ChatApp() {
 
         {tab === 'contacts' && <ContactsPage onOpenChat={handleSelect} />}
         {tab === 'settings' && <SettingsPage onOpenSaved={handleSelect} />}
-        {tab === 'profile' && <ProfilePage />}
+        {tab === 'profile' && <ProfilePage onOpenSettings={() => setTab('settings')} />}
       </div>
 
       <BottomNav active={tab} onChange={handleTabChange} unreadTotal={unreadTotal} />

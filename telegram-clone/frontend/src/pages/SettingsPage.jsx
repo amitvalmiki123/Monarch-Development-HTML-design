@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Avatar from '../components/common/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme, WALLPAPERS } from '../context/ThemeContext';
 import { useChat } from '../context/ChatContext';
 import { EMOJI_CATEGORIES, REACTION_CHOICES, DEFAULT_QUICK_REACTIONS } from '../data/emojiData';
 
-function Row({ icon, label, sub, right, onClick, danger }) {
+function Row({ icon, iconColor = 'blue', label, sub, right, onClick, danger }) {
   return (
     <div className={`settings-row${onClick ? ' clickable' : ''}`} onClick={onClick}>
-      <span className="settings-row__icon">{icon}</span>
+      <span className={`settings-row__icon--badge icon-badge--${iconColor}`}>{icon}</span>
       <div className="settings-row__text">
         <div className="settings-row__label" style={danger ? { color: 'var(--danger)' } : undefined}>{label}</div>
         {sub && <div className="settings-row__sub">{sub}</div>}
@@ -26,7 +27,7 @@ function Switch({ checked, onChange }) {
   );
 }
 
-function EditableRow({ icon, label, value, placeholder, type = 'text', onSave }) {
+function EditableRow({ icon, iconColor, label, value, placeholder, type = 'text', onSave }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || '');
 
@@ -39,6 +40,7 @@ function EditableRow({ icon, label, value, placeholder, type = 'text', onSave })
     return (
       <Row
         icon={icon}
+        iconColor={iconColor}
         label={value || placeholder}
         sub={label}
         onClick={() => { setDraft(value || ''); setEditing(true); }}
@@ -49,7 +51,7 @@ function EditableRow({ icon, label, value, placeholder, type = 'text', onSave })
 
   return (
     <div className="settings-row">
-      <span className="settings-row__icon">{icon}</span>
+      <span className={`settings-row__icon--badge icon-badge--${iconColor}`}>{icon}</span>
       <div className="settings-row__text">
         <div className="settings-row__sub">{label}</div>
         <input
@@ -114,30 +116,30 @@ export default function SettingsPage({ onOpenSaved }) {
       </div>
 
       <div className="settings-scroll">
-        <div className="settings-section">
-          <div className="settings-section__title">Appearance</div>
-          <Row
-            icon={theme === 'dark' ? '🌙' : '☀️'}
-            label="Dark Mode"
-            sub={theme === 'dark' ? 'On' : 'Off'}
-            right={<Switch checked={theme === 'dark'} onChange={toggleTheme} />}
-          />
+        <div className="settings-profile-head">
+          <Avatar name={user?.name} color={user?.avatarColor} photoUrl={user?.avatarUrl} size={62} />
+          <div>
+            <div className="settings-profile-head__name">{user?.name}</div>
+            <div className="settings-profile-head__sub">
+              {user?.phone ? `${user.phone} • ` : ''}@{user?.username}
+            </div>
+          </div>
         </div>
 
         <div className="settings-section">
           <div className="settings-section__title">Account</div>
-          <EditableRow icon="👤" label="Profile Name" value={user?.name} placeholder="Add your name" onSave={(v) => v && updateProfile({ name: v })} />
-          <EditableRow icon="ℹ️" label="Bio" value={user?.bio} placeholder="Add a bio" onSave={(v) => updateProfile({ bio: v })} />
-          <EditableRow icon="🎂" label="Birthday" value={user?.birthday} placeholder="Add Birthday" type="date" onSave={(v) => updateProfile({ birthday: v })} />
-          <Row icon="➕" label="Add Another Account" onClick={handleAddAnotherAccount} />
-          <Row icon="🚪" label="Log Out" onClick={logout} danger />
+          <EditableRow icon="👤" iconColor="blue" label="Profile Name" value={user?.name} placeholder="Add your name" onSave={(v) => v && updateProfile({ name: v })} />
+          <EditableRow icon="ℹ️" iconColor="green" label="Bio" value={user?.bio} placeholder="Add a bio" onSave={(v) => updateProfile({ bio: v })} />
+          <EditableRow icon="🎂" iconColor="pink" label="Birthday" value={user?.birthday} placeholder="Add Birthday" type="date" onSave={(v) => updateProfile({ birthday: v })} />
+          <Row icon="➕" iconColor="blue" label="Add Another Account" onClick={handleAddAnotherAccount} />
+          <Row icon="🚪" iconColor="red" label="Log Out" onClick={logout} danger />
         </div>
 
         <div className="settings-section">
           <div className="settings-section__title">Chat Settings</div>
           <div className="settings-row" style={{ display: 'block' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
-              <span className="settings-row__icon">🖼️</span>
+              <span className="settings-row__icon--badge icon-badge--orange">🖼️</span>
               <div className="settings-row__text">
                 <div className="settings-row__label">Chat Wallpaper</div>
                 <div className="settings-row__sub">Choose a background for your chats</div>
@@ -156,14 +158,22 @@ export default function SettingsPage({ onOpenSaved }) {
               ))}
             </div>
           </div>
-          <Row icon="🔖" label="Saved Messages" sub="Send notes and files to yourself" onClick={() => savedChat && onOpenSaved(savedChat.id)} />
-          <Row icon="🔔" label="Notifications" sub="Always on (this version)" />
+          <Row
+            icon={theme === 'dark' ? '🌙' : '☀️'}
+            iconColor="orange"
+            label="Night Mode"
+            sub={theme === 'dark' ? 'On' : 'Off'}
+            right={<Switch checked={theme === 'dark'} onChange={toggleTheme} />}
+          />
+          <Row icon="🔖" iconColor="blue" label="Saved Messages" sub="Send notes and files to yourself" onClick={() => savedChat && onOpenSaved(savedChat.id)} />
+          <Row icon="🔔" iconColor="orange" label="Notifications" sub="Always on (this version)" />
         </div>
 
         <div className="settings-section">
           <div className="settings-section__title">Stickers &amp; Emoji</div>
           <Row
             icon="🧩"
+            iconColor="purple"
             label="Stickers"
             sub="Real, animated Telegram-style stickers — search or browse trending in the Stickers tab"
           />
@@ -174,6 +184,7 @@ export default function SettingsPage({ onOpenSaved }) {
             <Row
               key={cat.id}
               icon={cat.icon}
+              iconColor="gray"
               label={cat.label}
               onClick={() => toggleCategory(cat.id)}
               right={<Switch checked={!hiddenCategories.includes(cat.id)} onChange={() => toggleCategory(cat.id)} />}
@@ -201,7 +212,7 @@ export default function SettingsPage({ onOpenSaved }) {
 
         <div className="settings-section">
           <div className="settings-section__title">About</div>
-          <Row icon="👑" label="FairyChat" sub="v1.0 — your own private messaging platform" />
+          <Row icon="👑" iconColor="gold" label="FairyChat" sub="v1.0 — your own private messaging platform" />
         </div>
       </div>
     </div>

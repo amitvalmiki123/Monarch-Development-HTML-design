@@ -134,11 +134,9 @@ export default function MessageBubble({
         {!isOwn && showSenderName && <span className="sender-name">{senderName}</span>}
 
         {replyPreview && (
-          <div style={{ borderLeft: '3px solid var(--gold)', paddingLeft: 8, marginBottom: 6, opacity: 0.85, fontSize: 12.5 }}>
-            <div style={{ fontWeight: 700 }}>{replyPreview.senderName}</div>
-            <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240 }}>
-              {replyPreview.text}
-            </div>
+          <div className="reply-quote">
+            <div className="reply-quote__name">{replyPreview.senderName}</div>
+            <div className="reply-quote__text">{replyPreview.text}</div>
           </div>
         )}
 

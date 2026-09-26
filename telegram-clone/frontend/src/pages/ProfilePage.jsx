@@ -3,7 +3,7 @@ import Avatar from '../components/common/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 
-export default function ProfilePage() {
+export default function ProfilePage({ onOpenSettings }) {
   const { user, updateProfile } = useAuth();
   const { uploadFile } = useChat();
   const [editing, setEditing] = useState(false);
@@ -74,17 +74,29 @@ export default function ProfilePage() {
             autoFocus
           />
         )}
+
+        <div className="profile-hero__actions">
+          <button onClick={() => fileInputRef.current?.click()}>
+            <span>{uploadingPhoto ? '…' : '📷'}</span> Set Photo
+          </button>
+          <button onClick={editing ? save : startEdit}>
+            <span>✎</span> Edit Info
+          </button>
+          <button onClick={onOpenSettings}>
+            <span>⚙️</span> Settings
+          </button>
+        </div>
       </div>
 
       <div className="settings-scroll">
         <div className="settings-section">
-          {user.phone && <Row icon="📱" label={user.phone} sub="Mobile" />}
-          <Row icon="@" label={`@${user.username}`} sub="Username" />
+          {user.phone && <Row icon="📱" iconColor="green" label={user.phone} sub="Mobile" />}
+          <Row icon="@" iconColor="orange" label={`@${user.username}`} sub="Username" />
           {!editing ? (
-            <Row icon="ℹ️" label={user.bio || 'Add a bio'} sub="Bio" />
+            <Row icon="ℹ️" iconColor="blue" label={user.bio || 'Add a bio'} sub="Bio" />
           ) : (
             <div className="settings-row">
-              <span className="settings-row__icon">ℹ️</span>
+              <span className="settings-row__icon--badge icon-badge--blue">ℹ️</span>
               <div className="settings-row__text" style={{ width: '100%' }}>
                 <div className="settings-row__sub">Bio</div>
                 <input
@@ -110,10 +122,10 @@ export default function ProfilePage() {
   );
 }
 
-function Row({ icon, label, sub }) {
+function Row({ icon, iconColor = 'blue', label, sub }) {
   return (
     <div className="settings-row">
-      <span className="settings-row__icon">{icon}</span>
+      <span className={`settings-row__icon--badge icon-badge--${iconColor}`}>{icon}</span>
       <div className="settings-row__text">
         <div className="settings-row__label">{label}</div>
         {sub && <div className="settings-row__sub">{sub}</div>}

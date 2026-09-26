@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import Avatar from '../components/common/Avatar';
 import ContactsSyncPanel from '../components/sidebar/ContactsSyncPanel';
+import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 
 export default function ContactsPage({ onOpenChat }) {
+  const { user } = useAuth();
   const { listContacts, createDirectChat } = useChat();
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +30,20 @@ export default function ContactsPage({ onOpenChat }) {
     onOpenChat(chat.id);
   };
 
+  const inviteFriends = async () => {
+    const text = `Chat with me on FairyChat! My username is @${user?.username}.`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'FairyChat', text }); } catch { /* user cancelled */ }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Invite message copied — paste it anywhere to share!');
+    } catch {
+      alert(text);
+    }
+  };
+
   return (
     <div className="page-panel">
       <div className="page-panel__topbar">
@@ -38,16 +54,26 @@ export default function ContactsPage({ onOpenChat }) {
         <input placeholder="Search contacts..." value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
-      <div style={{ padding: '0 16px 10px' }}>
+      <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="settings-row clickable" style={{ padding: '10px 12px', background: 'var(--bg-elevated)', borderRadius: 12 }} onClick={inviteFriends}>
+          <span className="settings-row__icon--badge icon-badge--blue">👤➕</span>
+          <div className="settings-row__text">
+            <div className="settings-row__label">Invite Friends</div>
+          </div>
+        </div>
         <button className="btn-primary btn-gold" style={{ width: '100%' }} onClick={() => setShowSync((v) => !v)}>
           {showSync ? '✕ Close' : '📱 Sync From Phone Contacts'}
         </button>
         {showSync && (
-          <div style={{ marginTop: 10, background: 'var(--bg-elevated)', borderRadius: 12, padding: 10 }}>
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, padding: 10 }}>
             <ContactsSyncPanel onStartChat={(chatId) => { setShowSync(false); onOpenChat(chatId); refresh(); }} />
           </div>
         )}
       </div>
+
+      {!loading && filtered.length > 0 && (
+        <div className="contacts-sort-label">Sorted alphabetically</div>
+      )}
 
       <div className="chat-list">
         {loading && <div className="empty-state"><div>Loading...</div></div>}
