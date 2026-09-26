@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: monarch-chat-backend
+    runtime: node
+    plan: free
+    rootDir: telegram-clone/backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.3
+      - key: JWT_SECRET
+        generateValue: true

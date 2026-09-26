@@ -1,0 +1,84 @@
+name: Build Monarch Chat Android APK
+
+# Builds a real, installable debug .apk for the Monarch Chat mobile app using
+# GitHub's free-tier runners (they come with JDK + Android SDK preinstalled,
+# so no extra setup/cost is required to produce the APK).
+#
+# IMPORTANT: BACKEND_URL below must point at your permanently-hosted backend
+# (see telegram-clone/README.md -> "Deploying the backend"). The sandbox demo
+# URL that ships here only works while that temporary session is alive.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - arena/01a0dc23-monarch-development-html-desig
+    paths:
+      - 'telegram-clone/frontend/**'
+      - '.github/workflows/build-android-apk.yml'
+
+env:
+  BACKEND_URL: https://8081-irtsnbj5fcjkbvw2sw6qy.e2b.app
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: telegram-clone/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build web app (points the app at BACKEND_URL)
+        run: VITE_API_BASE_URL=${{ env.BACKEND_URL }} npm run build
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build debug APK
+        working-directory: telegram-clone/frontend/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monarch-chat-debug-apk
+          path: telegram-clone/frontend/android/app/build/outputs/apk/debug/app-debug.apk
+
+      # Also commits the built APK back into the repo (mobile-builds/) so it
+      # can be pulled with plain `git pull` — handy in network environments
+      # where downloading GitHub Actions artifact/blob URLs is restricted.
+      - name: Publish APK into repo (mobile-builds/)
+        working-directory: .
+        run: |
+          mkdir -p mobile-builds
+          cp telegram-clone/frontend/android/app/build/outputs/apk/debug/app-debug.apk mobile-builds/monarch-chat-debug.apk
+          git config user.name "monarch-chat-ci"
+          git config user.email "ci@monarch-chat.local"
+          git add -f mobile-builds/monarch-chat-debug.apk
+          if git diff --cached --quiet; then
+            echo "No APK changes to commit."
+          else
+            git commit -m "chore: publish latest debug APK build [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi

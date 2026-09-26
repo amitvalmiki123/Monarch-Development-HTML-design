@@ -1,0 +1,9 @@
+{
+  "appId": "com.monarch.chat",
+  "appName": "Monarch Chat",
+  "webDir": "dist",
+  "backgroundColor": "#120a26",
+  "android": {
+    "backgroundColor": "#120a26"
+  }
+}
