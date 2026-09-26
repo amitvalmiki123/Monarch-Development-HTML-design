@@ -29,6 +29,7 @@ export default function ChatListItem({ chat, active, onClick, currentUserId }) {
       <Avatar
         name={chat.name}
         color={chat.avatarColor}
+        photoUrl={statusUser?.avatarUrl}
         showStatus={isDirect}
         status={statusUser?.status}
       />

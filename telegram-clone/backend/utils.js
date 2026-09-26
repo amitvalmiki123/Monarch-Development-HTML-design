@@ -43,6 +43,7 @@ function publicUser(u) {
     name: u.name,
     bio: u.bio,
     avatarColor: u.avatar_color,
+    avatarUrl: u.avatar_url || null,
     status: u.status,
     lastSeen: u.last_seen
   };

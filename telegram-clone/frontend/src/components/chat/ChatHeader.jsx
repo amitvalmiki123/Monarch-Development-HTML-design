@@ -21,7 +21,7 @@ export default function ChatHeader({ chat, typingNames, onBack, onShowInfo }) {
   return (
     <div className="chat-header">
       <button className="icon-btn back-btn" onClick={onBack}>←</button>
-      <Avatar name={chat.name} color={chat.avatarColor} size={42} showStatus={isDirect} status={chat.peer?.status} />
+      <Avatar name={chat.name} color={chat.avatarColor} photoUrl={chat.peer?.avatarUrl} size={42} showStatus={isDirect} status={chat.peer?.status} />
       <div className="chat-header__info" onClick={onShowInfo} style={{ cursor: 'pointer' }}>
         <div className="chat-header__name">{ICON_BY_TYPE[chat.type] || ''}{chat.name}</div>
         <div className="chat-header__status" style={{ color: typingNames?.length ? 'var(--gold-light)' : undefined }}>{statusLine}</div>

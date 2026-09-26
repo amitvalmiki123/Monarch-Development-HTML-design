@@ -4,13 +4,13 @@ import Avatar from '../common/Avatar';
 import ContactsSyncPanel from './ContactsSyncPanel';
 import { useChat } from '../../context/ChatContext';
 
-export default function NewChatModal({ onClose, onChatReady }) {
+export default function NewChatModal({ onClose, onChatReady, initialMode = 'direct' }) {
   const { searchUsers, createDirectChat, createGroupChat, createChannelChat } = useChat();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState([]); // array of user objects
-  const [mode, setMode] = useState('direct'); // direct | group | channel
+  const [mode, setMode] = useState(initialMode); // direct | group | channel | contacts
   const [step, setStep] = useState('search'); // search | name-group | name-channel
   const [groupName, setGroupName] = useState('');
   const [channelName, setChannelName] = useState('');
@@ -162,7 +162,7 @@ export default function NewChatModal({ onClose, onChatReady }) {
                 )}
                 {results.map((u) => (
                   <div key={u.id} className={`user-pick-row${selected.find((s) => s.id === u.id) ? ' selected' : ''}`} onClick={() => handleUserClick(u)}>
-                    <Avatar name={u.name} color={u.avatarColor} size={40} />
+                    <Avatar name={u.name} color={u.avatarColor} photoUrl={u.avatarUrl} size={40} />
                     <div>
                       <div className="name">{u.name}</div>
                       <div className="sub">@{u.username}</div>

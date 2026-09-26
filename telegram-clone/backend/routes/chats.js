@@ -32,7 +32,7 @@ function ensureSavedChat(userId) {
 }
 
 function chatSummary(chat, currentUserId) {
-  const members = db.prepare(`SELECT u.id, u.username, u.name, u.avatar_color, u.status, u.last_seen, cm.role
+  const members = db.prepare(`SELECT u.id, u.username, u.name, u.avatar_color, u.avatar_url, u.status, u.last_seen, cm.role
     FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.chat_id = ?`).all(chat.id);
 
   const lastMsg = db.prepare(`SELECT * FROM messages WHERE chat_id = ? ORDER BY seq DESC LIMIT 1`).get(chat.id);
@@ -62,7 +62,7 @@ function chatSummary(chat, currentUserId) {
     avatarColor,
     description: chat.description || '',
     peer: peer ? publicUser(peer) : null,
-    members: members.map(m => ({ id: m.id, username: m.username, name: m.name, avatarColor: m.avatar_color, status: m.status, lastSeen: m.last_seen, role: m.role })),
+    members: members.map(m => ({ id: m.id, username: m.username, name: m.name, avatarColor: m.avatar_color, avatarUrl: m.avatar_url || null, status: m.status, lastSeen: m.last_seen, role: m.role })),
     myRole: myMember ? myMember.role : null,
     canPost,
     subscriberCount: chat.type === 'channel' ? members.length : undefined,

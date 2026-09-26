@@ -83,6 +83,16 @@ CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id, seq);
 CREATE INDEX IF NOT EXISTS idx_members_user ON chat_members(user_id);
 `);
 
+// --- Migration: add users.avatar_url for real profile photos (older DBs
+// created before this feature existed won't have the column; SQLite's
+// ALTER TABLE ADD COLUMN is simple, no table rebuild needed here). ---
+(function migrateUsersAvatarUrl() {
+  const cols = db.prepare("PRAGMA table_info(users)").all();
+  if (!cols.some((c) => c.name === 'avatar_url')) {
+    db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT');
+  }
+})();
+
 // --- Migration: older databases were created before 'channel' and 'saved'
 // chat types (and the chats.description column) existed. CREATE TABLE IF NOT
 // EXISTS above is a no-op on those, so widen the CHECK constraint and add the

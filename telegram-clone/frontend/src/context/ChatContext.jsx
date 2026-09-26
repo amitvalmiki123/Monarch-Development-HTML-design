@@ -181,6 +181,11 @@ export function ChatProvider({ children }) {
     return res.data.matches;
   }, []);
 
+  const listContacts = useCallback(async () => {
+    const res = await http.get('/users/contacts');
+    return res.data.contacts;
+  }, []);
+
   const searchGifs = useCallback(async (q) => {
     const res = await http.get('/gifs/search', { params: { q } });
     return res.data;
@@ -302,7 +307,7 @@ export function ChatProvider({ children }) {
     chats, chatsLoaded, activeChatId, messagesByChat, hasMoreByChat, typingByChat,
     loadChats, openChat, sendMessage, editMessage, deleteMessage,
     startTyping, stopTyping, createDirectChat, createGroupChat, createChannelChat,
-    addChatMember, updateChatInfo, searchUsers, matchContacts, searchGifs, trendingGifs, uploadFile,
+    addChatMember, updateChatInfo, searchUsers, matchContacts, listContacts, searchGifs, trendingGifs, uploadFile,
     loadMoreMessages: loadMessages, setActiveChatId
   };
 

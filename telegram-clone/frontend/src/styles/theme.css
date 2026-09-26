@@ -38,6 +38,48 @@
   --font-main: "Segoe UI", "Noto Sans Devanagari", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* ===== Light mode ===== */
+[data-theme="light"] {
+  --bg-app: #f3effc;
+  --bg-sidebar: #ffffff;
+  --bg-panel: #f8f6fd;
+  --bg-elevated: #efe9fa;
+  --bg-hover: #ece4f9;
+  --bg-active: #e2d5f6;
+  --bg-input: #f1ecfb;
+
+  --accent: #8b5cf6;
+  --accent-strong: #7c3aed;
+  --accent-soft: rgba(139, 92, 246, 0.12);
+
+  --gold: #a9781a;
+  --gold-light: #c4922a;
+  --gold-soft: rgba(169, 120, 26, 0.12);
+
+  --text-primary: #241640;
+  --text-secondary: #5d5080;
+  --text-muted: #8b81a8;
+  --text-on-gold: #fffdf7;
+
+  --bubble-out-from: #8b5cf6;
+  --bubble-out-to: #a685ea;
+  --bubble-in: #ffffff;
+
+  --border-soft: rgba(139, 92, 246, 0.16);
+  --border-strong: rgba(139, 92, 246, 0.32);
+
+  --online: #1f9d63;
+  --danger: #d1435b;
+
+  --shadow-soft: 0 12px 32px rgba(90, 70, 140, 0.14);
+}
+
+[data-theme="light"] body {
+  background: radial-gradient(circle at 10% 0%, #ece1fb 0%, var(--bg-app) 45%, #ffffff 100%);
+}
+
+[data-theme="light"] .bubble.in { border: 1px solid var(--border-soft); }
+
 * { box-sizing: border-box; }
 
 html, body, #root {
@@ -51,6 +93,7 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  transition: background 0.2s ease;
 }
 
 button {

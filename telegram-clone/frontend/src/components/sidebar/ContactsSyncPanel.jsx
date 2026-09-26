@@ -96,7 +96,7 @@ export default function ContactsSyncPanel({ onStartChat }) {
             )}
             {matches.map((u) => (
               <div key={u.id} className="user-pick-row" onClick={() => startChat(u)}>
-                <Avatar name={u.name} color={u.avatarColor} size={40} />
+                <Avatar name={u.name} color={u.avatarColor} photoUrl={u.avatarUrl} size={40} />
                 <div>
                   <div className="name">{u.name}</div>
                   <div className="sub">@{u.username}</div>

@@ -11,9 +11,10 @@ router.get('/me', auth, (req, res) => {
 });
 
 router.put('/me', auth, (req, res) => {
-  const { name, bio, avatarColor } = req.body;
-  db.prepare('UPDATE users SET name = COALESCE(?, name), bio = COALESCE(?, bio), avatar_color = COALESCE(?, avatar_color) WHERE id = ?')
-    .run(name ?? null, bio ?? null, avatarColor ?? null, req.user.id);
+  const { name, bio, avatarColor, avatarUrl } = req.body;
+  db.prepare(`UPDATE users SET name = COALESCE(?, name), bio = COALESCE(?, bio),
+    avatar_color = COALESCE(?, avatar_color), avatar_url = COALESCE(?, avatar_url) WHERE id = ?`)
+    .run(name ?? null, bio ?? null, avatarColor ?? null, avatarUrl ?? null, req.user.id);
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   res.json({ user: publicUser(updated) });
 });
