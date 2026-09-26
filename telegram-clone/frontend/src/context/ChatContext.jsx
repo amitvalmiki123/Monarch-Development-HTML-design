@@ -5,6 +5,16 @@ import { useAuth } from './AuthContext';
 
 const ChatContext = createContext(null);
 
+// "Saved Messages" is always pinned to the very top, everything else sorts
+// by most-recent activity.
+function compareChats(a, b) {
+  if (a.type === 'saved') return -1;
+  if (b.type === 'saved') return 1;
+  const at = a.lastMessage ? a.lastMessage.createdAt : a.createdAt;
+  const bt = b.lastMessage ? b.lastMessage.createdAt : b.createdAt;
+  return bt - at;
+}
+
 export function ChatProvider({ children }) {
   const { user, token } = useAuth();
   const [chats, setChats] = useState([]);
@@ -32,11 +42,7 @@ export function ChatProvider({ children }) {
         next = [...prev];
         next[idx] = { ...next[idx], ...chat };
       }
-      return next.sort((a, b) => {
-        const at = a.lastMessage ? a.lastMessage.createdAt : a.createdAt;
-        const bt = b.lastMessage ? b.lastMessage.createdAt : b.createdAt;
-        return bt - at;
-      });
+      return next.sort(compareChats);
     });
   }, []);
 
@@ -146,6 +152,24 @@ export function ChatProvider({ children }) {
     return res.data.chat;
   }, [upsertChat]);
 
+  const createChannelChat = useCallback(async (name, description, memberIds) => {
+    const res = await http.post('/chats/channel', { name, description, memberIds });
+    upsertChat(res.data.chat);
+    return res.data.chat;
+  }, [upsertChat]);
+
+  const addChatMember = useCallback(async (chatId, userId) => {
+    const res = await http.post(`/chats/${chatId}/members`, { userId });
+    upsertChat(res.data.chat);
+    return res.data.chat;
+  }, [upsertChat]);
+
+  const updateChatInfo = useCallback(async (chatId, patch) => {
+    const res = await http.put(`/chats/${chatId}`, patch);
+    upsertChat(res.data.chat);
+    return res.data.chat;
+  }, [upsertChat]);
+
   const searchUsers = useCallback(async (q) => {
     if (!q.trim()) return [];
     const res = await http.get('/users/search', { params: { q } });
@@ -197,11 +221,7 @@ export function ChatProvider({ children }) {
           chat.unreadCount = (chat.unreadCount || 0) + 1;
         }
         next[idx] = chat;
-        return next.sort((a, b) => {
-          const at = a.lastMessage ? a.lastMessage.createdAt : a.createdAt;
-          const bt = b.lastMessage ? b.lastMessage.createdAt : b.createdAt;
-          return bt - at;
-        });
+        return next.sort(compareChats);
       });
 
       if (activeChatIdRef.current === message.chatId && message.senderId !== user.id) {
@@ -266,7 +286,8 @@ export function ChatProvider({ children }) {
   const value = {
     chats, chatsLoaded, activeChatId, messagesByChat, hasMoreByChat, typingByChat,
     loadChats, openChat, sendMessage, editMessage, deleteMessage,
-    startTyping, stopTyping, createDirectChat, createGroupChat, searchUsers, uploadFile,
+    startTyping, stopTyping, createDirectChat, createGroupChat, createChannelChat,
+    addChatMember, updateChatInfo, searchUsers, uploadFile,
     loadMoreMessages: loadMessages, setActiveChatId
   };
 

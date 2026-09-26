@@ -13,8 +13,26 @@ function isMember(chatId, userId) {
   return !!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, userId);
 }
 
+// Every user gets exactly one 'Saved Messages' chat (a self-chat, like
+// Telegram) that is created lazily the first time their chat list loads.
+function ensureSavedChat(userId) {
+  const existing = db.prepare(`SELECT c.* FROM chats c JOIN chat_members cm ON cm.chat_id = c.id
+    WHERE c.type = 'saved' AND cm.user_id = ?`).get(userId);
+  if (existing) return existing;
+  const chatId = id();
+  const now = Date.now();
+  const tx = db.transaction(() => {
+    db.prepare(`INSERT INTO chats (id, type, name, avatar_color, description, created_by, created_at)
+      VALUES (?, 'saved', 'Saved Messages', '#B08D57', '', ?, ?)`).run(chatId, userId, now);
+    db.prepare('INSERT INTO chat_members (chat_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)').run(chatId, userId, 'owner', now);
+    ensureSeqRow(chatId);
+  });
+  tx();
+  return db.prepare('SELECT * FROM chats WHERE id = ?').get(chatId);
+}
+
 function chatSummary(chat, currentUserId) {
-  const members = db.prepare(`SELECT u.id, u.username, u.name, u.avatar_color, u.status, u.last_seen
+  const members = db.prepare(`SELECT u.id, u.username, u.name, u.avatar_color, u.status, u.last_seen, cm.role
     FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.chat_id = ?`).all(chat.id);
 
   const lastMsg = db.prepare(`SELECT * FROM messages WHERE chat_id = ? ORDER BY seq DESC LIMIT 1`).get(chat.id);
@@ -29,15 +47,25 @@ function chatSummary(chat, currentUserId) {
     peer = members.find(m => m.id !== currentUserId) || members[0];
     title = peer ? (peer.name) : 'Deleted User';
     avatarColor = peer ? peer.avatar_color : avatarColor;
+  } else if (chat.type === 'saved') {
+    title = 'Saved Messages';
   }
+
+  const canPost = chat.type === 'channel'
+    ? !!(myMember && (myMember.role === 'owner' || myMember.role === 'admin'))
+    : true;
 
   return {
     id: chat.id,
     type: chat.type,
     name: title,
     avatarColor,
+    description: chat.description || '',
     peer: peer ? publicUser(peer) : null,
-    members: members.map(m => ({ id: m.id, username: m.username, name: m.name, avatarColor: m.avatar_color, status: m.status, lastSeen: m.last_seen })),
+    members: members.map(m => ({ id: m.id, username: m.username, name: m.name, avatarColor: m.avatar_color, status: m.status, lastSeen: m.last_seen, role: m.role })),
+    myRole: myMember ? myMember.role : null,
+    canPost,
+    subscriberCount: chat.type === 'channel' ? members.length : undefined,
     lastMessage: lastMsg ? {
       id: lastMsg.id,
       seq: lastMsg.seq,
@@ -53,9 +81,12 @@ function chatSummary(chat, currentUserId) {
 }
 
 router.get('/', auth, (req, res) => {
+  ensureSavedChat(req.user.id);
   const chats = db.prepare(`SELECT c.* FROM chats c JOIN chat_members cm ON cm.chat_id = c.id WHERE cm.user_id = ?`).all(req.user.id);
   const summaries = chats.map(c => chatSummary(c, req.user.id));
   summaries.sort((a, b) => {
+    if (a.type === 'saved') return -1;
+    if (b.type === 'saved') return 1;
     const at = a.lastMessage ? a.lastMessage.createdAt : a.createdAt;
     const bt = b.lastMessage ? b.lastMessage.createdAt : b.createdAt;
     return bt - at;
@@ -114,6 +145,29 @@ router.post('/group', auth, (req, res) => {
   res.status(201).json({ chat: chatSummary(chat, req.user.id) });
 });
 
+router.post('/channel', auth, (req, res) => {
+  const { name, description, memberIds } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Channel ka naam dein' });
+  const ids = Array.from(new Set(memberIds || [])).filter((uid) => uid !== req.user.id);
+  const chatId = id();
+  const now = Date.now();
+  const tx = db.transaction(() => {
+    db.prepare(`INSERT INTO chats (id, type, name, avatar_color, description, created_by, created_at)
+      VALUES (?, 'channel', ?, ?, ?, ?, ?)`).run(chatId, name.trim(), pickColor(chatId), (description || '').trim(), req.user.id, now);
+    db.prepare('INSERT INTO chat_members (chat_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)').run(chatId, req.user.id, 'owner', now);
+    for (const uid of ids) {
+      const exists = db.prepare('SELECT 1 FROM users WHERE id = ?').get(uid);
+      if (!exists) continue;
+      db.prepare('INSERT INTO chat_members (chat_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)')
+        .run(chatId, uid, 'subscriber', now);
+    }
+    ensureSeqRow(chatId);
+  });
+  tx();
+  const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(chatId);
+  res.status(201).json({ chat: chatSummary(chat, req.user.id) });
+});
+
 router.get('/:chatId', auth, (req, res) => {
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.chatId);
   if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat nahi mila' });
@@ -123,12 +177,13 @@ router.get('/:chatId', auth, (req, res) => {
 router.put('/:chatId', auth, (req, res) => {
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.chatId);
   if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat nahi mila' });
-  if (chat.type !== 'group') return res.status(400).json({ error: 'Sirf group edit ho sakta hai' });
+  if (chat.type !== 'group' && chat.type !== 'channel') return res.status(400).json({ error: 'Sirf group/channel edit ho sakta hai' });
   const membership = db.prepare('SELECT * FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat.id, req.user.id);
-  if (membership.role !== 'admin') return res.status(403).json({ error: 'Sirf admin edit kar sakta hai' });
-  const { name, avatarColor } = req.body;
-  db.prepare('UPDATE chats SET name = COALESCE(?, name), avatar_color = COALESCE(?, avatar_color) WHERE id = ?')
-    .run(name ?? null, avatarColor ?? null, chat.id);
+  const allowedRoles = chat.type === 'channel' ? ['owner', 'admin'] : ['admin'];
+  if (!allowedRoles.includes(membership.role)) return res.status(403).json({ error: 'Sirf admin edit kar sakta hai' });
+  const { name, avatarColor, description } = req.body;
+  db.prepare('UPDATE chats SET name = COALESCE(?, name), avatar_color = COALESCE(?, avatar_color), description = COALESCE(?, description) WHERE id = ?')
+    .run(name ?? null, avatarColor ?? null, description ?? null, chat.id);
   const updated = db.prepare('SELECT * FROM chats WHERE id = ?').get(chat.id);
   res.json({ chat: chatSummary(updated, req.user.id) });
 });
@@ -136,12 +191,17 @@ router.put('/:chatId', auth, (req, res) => {
 router.post('/:chatId/members', auth, (req, res) => {
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.chatId);
   if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat nahi mila' });
-  if (chat.type !== 'group') return res.status(400).json({ error: 'Sirf group me member add ho sakta hai' });
+  if (chat.type !== 'group' && chat.type !== 'channel') return res.status(400).json({ error: 'Sirf group/channel me member add ho sakta hai' });
+  const membership = db.prepare('SELECT * FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat.id, req.user.id);
+  if (chat.type === 'channel' && !['owner', 'admin'].includes(membership.role)) {
+    return res.status(403).json({ error: 'Sirf channel admin members/subscribers add kar sakte hain' });
+  }
   const { userId } = req.body;
   const target = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!target) return res.status(404).json({ error: 'User nahi mila' });
+  const role = chat.type === 'channel' ? 'subscriber' : 'member';
   db.prepare('INSERT OR IGNORE INTO chat_members (chat_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)')
-    .run(chat.id, userId, 'member', Date.now());
+    .run(chat.id, userId, role, Date.now());
   const updated = db.prepare('SELECT * FROM chats WHERE id = ?').get(chat.id);
   res.json({ chat: chatSummary(updated, req.user.id) });
 });
@@ -150,7 +210,7 @@ router.delete('/:chatId/members/:userId', auth, (req, res) => {
   const chat = db.prepare('SELECT * FROM chats WHERE id = ?').get(req.params.chatId);
   if (!chat || !isMember(chat.id, req.user.id)) return res.status(404).json({ error: 'Chat nahi mila' });
   const membership = db.prepare('SELECT * FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat.id, req.user.id);
-  if (req.params.userId !== req.user.id && membership.role !== 'admin') {
+  if (req.params.userId !== req.user.id && !['admin', 'owner'].includes(membership.role)) {
     return res.status(403).json({ error: 'Sirf admin members remove kar sakta hai' });
   }
   db.prepare('DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?').run(chat.id, req.params.userId);

@@ -122,7 +122,7 @@ export default function ChatWindow({ chat, onBack }) {
         <div ref={bottomRef} />
       </div>
 
-      <MessageInput chatId={chat.id} replyingTo={replyingTo} onCancelReply={() => setReplyingTo(null)} />
+      <MessageInput chatId={chat.id} replyingTo={replyingTo} onCancelReply={() => setReplyingTo(null)} readOnly={chat.canPost === false} />
     </div>
   );
 }

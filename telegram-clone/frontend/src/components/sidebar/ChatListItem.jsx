@@ -3,7 +3,11 @@ import { formatMessageTime } from '../../utils/format';
 
 function lastMessagePreview(chat) {
   const lm = chat.lastMessage;
-  if (!lm) return 'Koi message nahi — Namaste bolke shuruaat karein';
+  if (!lm) {
+    if (chat.type === 'saved') return 'Apne notes, files aur links yahan save karein';
+    if (chat.type === 'channel') return 'Koi post nahi — pehla broadcast bhejein';
+    return 'Koi message nahi — Namaste bolke shuruaat karein';
+  }
   if (lm.deleted) return 'Ye message delete kar diya gaya';
   if (lm.type === 'image') return '📷 Photo';
   if (lm.type === 'video') return '🎬 Video';
@@ -12,9 +16,11 @@ function lastMessagePreview(chat) {
   return lm.content || '';
 }
 
+const ICON_BY_TYPE = { group: '👥 ', channel: '📢 ', saved: '🔖 ' };
+
 export default function ChatListItem({ chat, active, onClick, currentUserId }) {
-  const isGroup = chat.type === 'group';
-  const statusUser = isGroup ? null : chat.peer;
+  const isDirect = chat.type === 'direct';
+  const statusUser = isDirect ? chat.peer : null;
   const lm = chat.lastMessage;
 
   return (
@@ -22,12 +28,12 @@ export default function ChatListItem({ chat, active, onClick, currentUserId }) {
       <Avatar
         name={chat.name}
         color={chat.avatarColor}
-        showStatus={!isGroup}
+        showStatus={isDirect}
         status={statusUser?.status}
       />
       <div className="chat-list-item__body">
         <div className="chat-list-item__top">
-          <span className="chat-list-item__name">{isGroup ? '👥 ' : ''}{chat.name}</span>
+          <span className="chat-list-item__name">{ICON_BY_TYPE[chat.type] || ''}{chat.name}</span>
           {lm && <span className="chat-list-item__time">{formatMessageTime(lm.createdAt)}</span>}
         </div>
         <div className="chat-list-item__bottom">

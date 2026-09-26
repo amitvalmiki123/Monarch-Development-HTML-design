@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
 
-export default function MessageInput({ chatId, replyingTo, onCancelReply }) {
+export default function MessageInput({ chatId, replyingTo, onCancelReply, readOnly }) {
   const { sendMessage, startTyping, stopTyping, uploadFile } = useChat();
   const [text, setText] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -61,6 +61,14 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply }) {
       setUploading(false);
     }
   };
+
+  if (readOnly) {
+    return (
+      <div className="message-input-bar" style={{ justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13, gap: 6 }}>
+        🔒 Is channel me sirf owner/admin hi post kar sakte hain
+      </div>
+    );
+  }
 
   return (
     <div>

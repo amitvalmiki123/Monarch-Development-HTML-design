@@ -4,16 +4,20 @@ import Avatar from '../common/Avatar';
 import { useChat } from '../../context/ChatContext';
 
 export default function NewChatModal({ onClose, onChatReady }) {
-  const { searchUsers, createDirectChat, createGroupChat } = useChat();
+  const { searchUsers, createDirectChat, createGroupChat, createChannelChat } = useChat();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState([]); // array of user objects
-  const [groupMode, setGroupMode] = useState(false);
-  const [step, setStep] = useState('search'); // search | name-group
+  const [mode, setMode] = useState('direct'); // direct | group | channel
+  const [step, setStep] = useState('search'); // search | name-group | name-channel
   const [groupName, setGroupName] = useState('');
+  const [channelName, setChannelName] = useState('');
+  const [channelDesc, setChannelDesc] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  const groupMode = mode !== 'direct';
 
   useEffect(() => {
     let active = true;
@@ -63,26 +67,60 @@ export default function NewChatModal({ onClose, onChatReady }) {
     }
   };
 
+  const handleCreateChannel = async () => {
+    if (!channelName.trim()) { setError('Channel ka naam dein'); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const chat = await createChannelChat(channelName.trim(), channelDesc.trim(), selected.map((u) => u.id));
+      onChatReady(chat.id);
+      onClose();
+    } catch (e) {
+      setError(e.response?.data?.error || 'Channel nahi ban paya');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const titles = {
+    search: mode === 'direct' ? 'Nayi Chat' : mode === 'group' ? 'Naya Group — Members Chunein' : 'Naya Channel — Subscribers Chunein (optional)',
+    'name-group': 'Group Ka Naam Rakhein',
+    'name-channel': 'Channel Ki Details Bharein'
+  };
+
   return (
-    <Modal title={step === 'search' ? (groupMode ? 'Naya Group — Members Chunein' : 'Nayi Chat') : 'Group Ka Naam Rakhein'} onClose={onClose}>
+    <Modal title={titles[step]} onClose={onClose}>
       {step === 'search' && (
         <>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
             <button
               className="btn-primary"
-              style={{ flex: 1, padding: '9px 10px', fontSize: 13, background: groupMode ? 'var(--bg-elevated)' : undefined, color: groupMode ? 'var(--text-secondary)' : undefined, boxShadow: 'none' }}
-              onClick={() => setGroupMode(false)}
+              style={{ flex: 1, padding: '9px 6px', fontSize: 12.5, background: mode === 'direct' ? undefined : 'var(--bg-elevated)', color: mode === 'direct' ? undefined : 'var(--text-secondary)', boxShadow: mode === 'direct' ? undefined : 'none' }}
+              onClick={() => setMode('direct')}
             >
               Direct Message
             </button>
             <button
               className="btn-primary btn-gold"
-              style={{ flex: 1, padding: '9px 10px', fontSize: 13, opacity: groupMode ? 1 : 0.55 }}
-              onClick={() => setGroupMode(true)}
+              style={{ flex: 1, padding: '9px 6px', fontSize: 12.5, opacity: mode === 'group' ? 1 : 0.55 }}
+              onClick={() => setMode('group')}
             >
-              👥 Group Banayein
+              👥 Group
+            </button>
+            <button
+              className="btn-primary btn-gold"
+              style={{ flex: 1, padding: '9px 6px', fontSize: 12.5, opacity: mode === 'channel' ? 1 : 0.55 }}
+              onClick={() => setMode('channel')}
+            >
+              📢 Channel
             </button>
           </div>
+
+          {mode === 'channel' && (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 10, lineHeight: 1.5 }}>
+              Channel me sirf aap (owner) messages post kar sakte hain — jinhe aap subscriber banayenge wo sirf padh sakenge, jaise broadcast.
+            </div>
+          )}
 
           <div className="field-inline">
             <input
@@ -98,7 +136,7 @@ export default function NewChatModal({ onClose, onChatReady }) {
           {groupMode && selected.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
               {selected.map((u) => (
-                <span key={u.id} style={{ background: 'var(--accent-soft)', padding: '4px 10px', borderRadius: 999, fontSize: 12.5 }}>
+                <span key={u.id} style={{ background: 'var(--accent-soft)', padding: '4px 10px', borderRadius: 999, fontSize: 12.5, cursor: 'pointer' }} onClick={() => toggleSelect(u)}>
                   {u.name} ✕
                 </span>
               ))}
@@ -124,9 +162,14 @@ export default function NewChatModal({ onClose, onChatReady }) {
             ))}
           </div>
 
-          {groupMode && (
+          {mode === 'group' && (
             <button className="btn-primary btn-gold" style={{ marginTop: 14 }} disabled={selected.length === 0} onClick={() => setStep('name-group')}>
               Aage Badhein ({selected.length} chune gaye)
+            </button>
+          )}
+          {mode === 'channel' && (
+            <button className="btn-primary btn-gold" style={{ marginTop: 14 }} onClick={() => setStep('name-channel')}>
+              Aage Badhein {selected.length > 0 ? `(${selected.length} subscriber)` : ''}
             </button>
           )}
         </>
@@ -143,6 +186,26 @@ export default function NewChatModal({ onClose, onChatReady }) {
             <button className="btn-primary" style={{ background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={() => setStep('search')}>Peeche</button>
             <button className="btn-primary btn-gold" disabled={busy} onClick={handleCreateGroup}>
               {busy ? 'Ban raha hai...' : 'Group Banayein'}
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === 'name-channel' && (
+        <>
+          <div className="field-inline">
+            <label>Channel ka naam</label>
+            <input autoFocus value={channelName} onChange={(e) => setChannelName(e.target.value)} placeholder="e.g. Monarch Announcements" />
+          </div>
+          <div className="field-inline">
+            <label>Description (optional)</label>
+            <input value={channelDesc} onChange={(e) => setChannelDesc(e.target.value)} placeholder="Ye channel kis baare me hai..." />
+          </div>
+          {error && <div className="auth-error">{error}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-primary" style={{ background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={() => setStep('search')}>Peeche</button>
+            <button className="btn-primary btn-gold" disabled={busy} onClick={handleCreateChannel}>
+              {busy ? 'Ban raha hai...' : 'Channel Banayein'}
             </button>
           </div>
         </>

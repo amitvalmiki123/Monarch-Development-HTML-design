@@ -12,8 +12,21 @@ function isMember(chatId, userId) {
   return !!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, userId);
 }
 
+// Channels are broadcast-style: only the owner/admins can post, everyone else
+// is a read-only subscriber. Direct chats, groups and the Saved Messages
+// chat have no posting restriction beyond being a member.
+function canPost(chatId, userId) {
+  const chat = db.prepare('SELECT type FROM chats WHERE id = ?').get(chatId);
+  if (!chat) return false;
+  const member = db.prepare('SELECT role FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, userId);
+  if (!member) return false;
+  if (chat.type === 'channel') return member.role === 'owner' || member.role === 'admin';
+  return true;
+}
+
 function createMessage({ chatId, senderId, type = 'text', content = null, fileUrl = null, fileName = null, fileSize = null, replyToId = null }) {
   if (!isMember(chatId, senderId)) throw new Error('NOT_A_MEMBER');
+  if (!canPost(chatId, senderId)) throw new Error('READ_ONLY_CHANNEL');
   const messageId = id();
   const seq = nextSeq(chatId);
   const now = Date.now();
@@ -66,4 +79,4 @@ function chatMemberIds(chatId) {
   return db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(chatId).map(r => r.user_id);
 }
 
-module.exports = { createMessage, getMessage, editMessage, deleteMessage, isMember, chatMemberIds };
+module.exports = { createMessage, getMessage, editMessage, deleteMessage, isMember, canPost, chatMemberIds };

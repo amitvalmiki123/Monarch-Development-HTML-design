@@ -30,9 +30,10 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS chats (
   id TEXT PRIMARY KEY,
-  type TEXT NOT NULL CHECK(type IN ('direct','group')),
+  type TEXT NOT NULL CHECK(type IN ('direct','group','channel','saved')),
   name TEXT,
   avatar_color TEXT DEFAULT '#B08D57',
+  description TEXT DEFAULT '',
   created_by TEXT,
   created_at INTEGER NOT NULL
 );
@@ -81,6 +82,38 @@ CREATE TABLE IF NOT EXISTS contacts (
 CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id, seq);
 CREATE INDEX IF NOT EXISTS idx_members_user ON chat_members(user_id);
 `);
+
+// --- Migration: older databases were created before 'channel' and 'saved'
+// chat types (and the chats.description column) existed. CREATE TABLE IF NOT
+// EXISTS above is a no-op on those, so widen the CHECK constraint and add the
+// missing column by rebuilding the table in place (SQLite can't ALTER a CHECK
+// constraint directly).
+(function migrateChatsTable() {
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='chats'").get();
+  if (!row || !row.sql || row.sql.includes("'channel'")) return;
+  db.exec('PRAGMA foreign_keys = OFF;');
+  db.exec('BEGIN');
+  try {
+    db.exec('ALTER TABLE chats RENAME TO chats_old_migration;');
+    db.exec(`CREATE TABLE chats (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL CHECK(type IN ('direct','group','channel','saved')),
+      name TEXT,
+      avatar_color TEXT DEFAULT '#B08D57',
+      description TEXT DEFAULT '',
+      created_by TEXT,
+      created_at INTEGER NOT NULL
+    );`);
+    db.exec(`INSERT INTO chats (id, type, name, avatar_color, created_by, created_at)
+      SELECT id, type, name, avatar_color, created_by, created_at FROM chats_old_migration;`);
+    db.exec('DROP TABLE chats_old_migration;');
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  db.exec('PRAGMA foreign_keys = ON;');
+})();
 
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like
 // better-sqlite3 did, so provide a tiny drop-in replacement with the same

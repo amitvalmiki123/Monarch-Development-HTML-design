@@ -38,6 +38,10 @@ function setupSocket(io) {
           if (ack) ack({ error: 'Aap is chat ke member nahi hain' });
           return;
         }
+        if (!messageService.canPost(chatId, userId)) {
+          if (ack) ack({ error: 'Is channel me sirf owner/admin hi post kar sakte hain' });
+          return;
+        }
         const message = messageService.createMessage({
           chatId, senderId: userId, type: type || 'text', content, fileUrl, fileName, fileSize, replyToId
         });
