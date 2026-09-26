@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import Sidebar from '../components/sidebar/Sidebar';
 import ChatWindow from '../components/chat/ChatWindow';
 import BottomNav from '../components/nav/BottomNav';
+import ConnectionBanner from '../components/common/ConnectionBanner';
 import ContactsPage from './ContactsPage';
 import SettingsPage from './SettingsPage';
 import ProfilePage from './ProfilePage';
@@ -30,7 +31,9 @@ export default function ChatApp() {
 
   return (
     <div className={`app-root${chatOpenOnMobile ? ' chat-open' : ''}`}>
+      <ConnectionBanner />
       <div className="app-content">
+
         {tab === 'chats' && (
           <div className={`app-shell${activeChatId ? ' chat-open' : ''}`}>
             <Sidebar activeChatId={activeChatId} onSelectChat={handleSelect} />

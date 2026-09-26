@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const addingAccount = params.get('addAccount') === '1';
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +20,7 @@ export default function Login() {
       await login(identifier.trim(), password);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || (!err.response ? 'No internet connection — please check your network and try again' : 'Login failed'));
     } finally {
       setLoading(false);
     }
@@ -34,8 +36,8 @@ export default function Login() {
             <span>Your own private messenger</span>
           </div>
         </div>
-        <h2>Welcome back</h2>
-        <p className="subtitle">Log in to your account</p>
+        <h2>{addingAccount ? 'Add another account' : 'Welcome back'}</h2>
+        <p className="subtitle">{addingAccount ? `Signed in as ${user?.name} — log in with a different account` : 'Log in to your account'}</p>
 
         {error && <div className="auth-error">{error}</div>}
 
@@ -53,8 +55,13 @@ export default function Login() {
 
         <div className="auth-switch">
           Don't have an account?
-          <Link to="/register"><button type="button">Register</button></Link>
+          <Link to={addingAccount ? '/register?addAccount=1' : '/register'}><button type="button">Register</button></Link>
         </div>
+        {addingAccount && (
+          <div className="auth-switch">
+            <button type="button" onClick={() => navigate('/', { replace: true })}>← Cancel, go back</button>
+          </div>
+        )}
       </div>
     </div>
   );

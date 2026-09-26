@@ -69,16 +69,19 @@ function EditableRow({ icon, iconColor, label, value, placeholder, type = 'text'
 }
 
 export default function SettingsPage({ onOpenSaved }) {
-  const { logout, user, updateProfile } = useAuth();
+  const { logout, user, updateProfile, accounts, switchAccount, forgetAccount, deleteAccount } = useAuth();
   const { theme, toggleTheme, wallpaper, setWallpaper } = useTheme();
   const { chats } = useChat();
   const navigate = useNavigate();
   const [hiddenCategories, setHiddenCategories] = useState(() => {
     try { return JSON.parse(localStorage.getItem('monarch_hidden_emoji_categories') || '[]'); } catch { return []; }
   });
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   const savedChat = chats.find((c) => c.type === 'saved');
   const quickReactions = user?.quickReactions?.length ? user.quickReactions : DEFAULT_QUICK_REACTIONS;
+  const otherAccounts = accounts.filter((a) => a.user.id !== user?.id);
 
   const toggleCategory = (catId) => {
     setHiddenCategories((prev) => {
@@ -102,10 +105,22 @@ export default function SettingsPage({ onOpenSaved }) {
     updateProfile({ quickReactions: next });
   };
 
-  const handleAddAnotherAccount = () => {
-    if (confirm("Add another account? You'll be logged out of this one first, then can sign in or register with a different account.")) {
-      logout();
+  const handleRemoveSavedAccount = (e, userId, name) => {
+    e.stopPropagation();
+    if (confirm(`Remove "${name}" from this device's account switcher? You can always log back in with its password.`)) {
+      forgetAccount(userId);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      await deleteAccount();
       navigate('/login', { replace: true });
+    } catch (err) {
+      alert('Could not delete account: ' + (err.response?.data?.error || err.message));
+      setDeleting(false);
     }
   };
 
@@ -131,8 +146,30 @@ export default function SettingsPage({ onOpenSaved }) {
           <EditableRow icon="👤" iconColor="blue" label="Profile Name" value={user?.name} placeholder="Add your name" onSave={(v) => v && updateProfile({ name: v })} />
           <EditableRow icon="ℹ️" iconColor="green" label="Bio" value={user?.bio} placeholder="Add a bio" onSave={(v) => updateProfile({ bio: v })} />
           <EditableRow icon="🎂" iconColor="pink" label="Birthday" value={user?.birthday} placeholder="Add Birthday" type="date" onSave={(v) => updateProfile({ birthday: v })} />
-          <Row icon="➕" iconColor="blue" label="Add Another Account" onClick={handleAddAnotherAccount} />
-          <Row icon="🚪" iconColor="red" label="Log Out" onClick={logout} danger />
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-section__title">Accounts</div>
+          <div className="account-switch-row account-switch-row--active">
+            <Avatar name={user?.name} color={user?.avatarColor} photoUrl={user?.avatarUrl} size={38} />
+            <div className="settings-row__text">
+              <div className="settings-row__label">{user?.name}</div>
+              <div className="settings-row__sub">@{user?.username} · this device</div>
+            </div>
+            <span className="account-switch-row__check">✓</span>
+          </div>
+          {otherAccounts.map((a) => (
+            <div key={a.user.id} className="account-switch-row clickable" onClick={() => switchAccount(a.user.id)}>
+              <Avatar name={a.user.name} color={a.user.avatarColor} photoUrl={a.user.avatarUrl} size={38} />
+              <div className="settings-row__text">
+                <div className="settings-row__label">{a.user.name}</div>
+                <div className="settings-row__sub">@{a.user.username} · tap to switch</div>
+              </div>
+              <button className="account-switch-row__remove" onClick={(e) => handleRemoveSavedAccount(e, a.user.id, a.user.name)}>✕</button>
+            </div>
+          ))}
+          <Row icon="➕" iconColor="blue" label="Add Another Account" sub="Sign in or register with a different account" onClick={() => navigate('/login?addAccount=1')} />
+          <Row icon="🚪" iconColor="red" label="Log Out" onClick={() => logout()} danger />
         </div>
 
         <div className="settings-section">
@@ -166,7 +203,7 @@ export default function SettingsPage({ onOpenSaved }) {
             right={<Switch checked={theme === 'dark'} onChange={toggleTheme} />}
           />
           <Row icon="🔖" iconColor="blue" label="Saved Messages" sub="Send notes and files to yourself" onClick={() => savedChat && onOpenSaved(savedChat.id)} />
-          <Row icon="🔔" iconColor="orange" label="Notifications" sub="Always on (this version)" />
+          <Row icon="🔔" iconColor="orange" label="Notifications" sub="On — you'll get an alert while the app is open or running in the background" />
         </div>
 
         <div className="settings-section">
@@ -213,6 +250,49 @@ export default function SettingsPage({ onOpenSaved }) {
         <div className="settings-section">
           <div className="settings-section__title">About</div>
           <Row icon="👑" iconColor="gold" label="FairyChat" sub="v1.0 — your own private messaging platform" />
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-section__title">Danger Zone</div>
+          {!deleting ? (
+            <Row
+              icon="🗑️"
+              iconColor="red"
+              label="Delete Account"
+              sub="Permanently deletes your account. This cannot be undone."
+              onClick={() => setDeleting(true)}
+              danger
+            />
+          ) : (
+            <div className="danger-confirm-box">
+              <div style={{ fontWeight: 700, color: 'var(--danger)', marginBottom: 4 }}>Delete your account permanently?</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 10 }}>
+                Your profile, phone number and username will be erased. Your past messages will stay
+                visible to others but show as sent by "Deleted Account". Type <b>DELETE</b> to confirm.
+              </div>
+              <input
+                className="profile-inline-input"
+                style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE"
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-primary" style={{ flex: 1, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={() => { setDeleting(false); setDeleteConfirmText(''); }}>
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  style={{ flex: 1, background: 'var(--danger)', boxShadow: 'none' }}
+                  disabled={deleteConfirmText.trim().toUpperCase() !== 'DELETE'}
+                  onClick={handleDeleteAccount}
+                >
+                  Delete Forever
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

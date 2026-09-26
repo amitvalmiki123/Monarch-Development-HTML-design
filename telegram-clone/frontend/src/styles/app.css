@@ -9,6 +9,19 @@
   min-height: 0;
 }
 
+/* Shown whenever the server/socket is unreachable — the app stays fully
+   open and usable from cached data, this is just an informational strip. */
+.connection-banner {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  background: linear-gradient(90deg, #b9832a, #8a5f18);
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
 .app-shell {
   height: 100%;
   display: grid;
@@ -55,10 +68,13 @@
 
 .bottom-nav__icon {
   position: relative;
-  font-size: 21px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
   transition: transform 0.15s ease;
 }
+.bottom-nav__icon svg { display: block; }
 
 .bottom-nav__badge {
   position: absolute;
@@ -205,6 +221,36 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Telegram-style account switcher rows in Settings -> Accounts. */
+.account-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+}
+.account-switch-row.clickable { cursor: pointer; }
+.account-switch-row.clickable:hover { background: var(--bg-hover); }
+.account-switch-row--active { background: var(--bg-hover); }
+.account-switch-row__check { color: var(--gold-light); font-size: 16px; font-weight: 700; }
+.account-switch-row__remove {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.account-switch-row__remove:hover { background: var(--danger); color: #fff; }
+
+.danger-confirm-box {
+  margin: 4px 16px 0;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--danger);
+  border-radius: 12px;
 }
 
 .contacts-sort-label {

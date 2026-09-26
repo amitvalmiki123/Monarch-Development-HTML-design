@@ -10,6 +10,7 @@ const userRoutes = require('./routes/users');
 const chatRoutes = require('./routes/chats');
 const uploadRoutes = require('./routes/upload');
 const gifRoutes = require('./routes/gifs');
+const pushRoutes = require('./routes/push');
 const setupSocket = require('./socket/index');
 
 const app = express();
@@ -33,10 +34,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/gifs', gifRoutes);
+app.use('/api/push', pushRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: 'Server me kuch gadbad ho gayi' });
+  res.status(500).json({ error: 'Something went wrong on the server' });
 });
 
 setupSocket(io);

@@ -1,6 +1,18 @@
 const { verifyToken } = require('../utils');
 const db = require('../db');
 const messageService = require('../services/messageService');
+const { sendPushToUser } = require('../routes/push');
+
+function messagePreviewText(message) {
+  if (message.deleted) return 'This message was deleted';
+  if (message.type === 'image') return 'Photo';
+  if (message.type === 'gif') return 'GIF';
+  if (message.type === 'sticker') return 'Sticker';
+  if (message.type === 'video') return 'Video';
+  if (message.type === 'audio') return 'Audio message';
+  if (message.type === 'file') return 'File';
+  return message.content || 'New message';
+}
 
 const onlineUsers = new Map(); // userId -> Set(socketId)
 
@@ -47,9 +59,22 @@ function setupSocket(io) {
         });
         io.to(`chat:${chatId}`).emit('message:new', { ...message, tempId });
         if (ack) ack({ message: { ...message, tempId } });
+
+        // Fire-and-forget push notification to every other member — this is
+        // a genuine no-op until a real Firebase project is configured (see
+        // routes/push.js), so it's always safe to call.
+        const sender = db.prepare('SELECT name FROM users WHERE id = ?').get(userId);
+        const chat = db.prepare('SELECT name, type FROM chats WHERE id = ?').get(chatId);
+        const otherMemberIds = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ?')
+          .all(chatId, userId).map((r) => r.user_id);
+        const title = chat && (chat.type === 'group' || chat.type === 'channel')
+          ? `${sender?.name || 'Someone'} • ${chat.name}`
+          : (sender?.name || 'New message');
+        const body = messagePreviewText(message);
+        otherMemberIds.forEach((memberId) => sendPushToUser(memberId, { title, body, chatId }));
       } catch (e) {
         console.error('message:send error', e);
-        if (ack) ack({ error: 'Message bhejne me error aaya' });
+        if (ack) ack({ error: 'Something went wrong sending the message' });
       }
     });
 

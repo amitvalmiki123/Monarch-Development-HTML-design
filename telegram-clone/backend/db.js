@@ -147,6 +147,35 @@ CREATE INDEX IF NOT EXISTS idx_members_user ON chat_members(user_id);
   db.exec('PRAGMA foreign_keys = ON;');
 })();
 
+// --- Migration: soft-delete flag for "Delete Account". Deleting an account
+// never removes rows (that would break every chat/message it ever
+// participated in for other users) — it just scrubs the personal fields and
+// renames the user to "Deleted Account", exactly like Telegram. Since every
+// chat-member / sender lookup joins the users table live, this alone makes
+// old messages show "Deleted Account" everywhere automatically.
+(function migrateUsersDeletedFlag() {
+  const cols = db.prepare("PRAGMA table_info(users)").all();
+  if (!cols.some((c) => c.name === 'deleted')) {
+    db.exec('ALTER TABLE users ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0');
+  }
+})();
+
+// --- Push notification device tokens (Firebase Cloud Messaging), one row
+// per device a user has registered. Only ever populated/used once a real
+// Firebase project is configured server-side (see routes/push.js) — an
+// empty table here is a completely normal, expected state otherwise.
+db.exec(`
+CREATE TABLE IF NOT EXISTS push_tokens (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  token TEXT UNIQUE NOT NULL,
+  platform TEXT NOT NULL DEFAULT 'android',
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
+`);
+
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like
 // better-sqlite3 did, so provide a tiny drop-in replacement with the same
 // call shape: `db.transaction(fn)` returns a function that runs fn inside a

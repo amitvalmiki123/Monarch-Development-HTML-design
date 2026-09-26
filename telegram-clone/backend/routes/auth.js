@@ -12,10 +12,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Name, username and password are required' });
     }
     if (username.length < 3 || !/^[a-zA-Z0-9_]+$/.test(username)) {
-      return res.status(400).json({ error: 'Username kam se kam 3 characters ka ho, sirf letters/numbers/underscore' });
+      return res.status(400).json({ error: 'Username must be at least 3 characters, letters/numbers/underscore only' });
     }
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Password kam se kam 6 characters ka hona chahiye' });
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username.toLowerCase());
     if (existing) return res.status(409).json({ error: 'This username is already taken' });
@@ -37,7 +37,7 @@ router.post('/register', async (req, res) => {
     res.json({ token, user: publicUser(user) });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Registration me kuch gadbad ho gayi' });
+    res.status(500).json({ error: 'Something went wrong during registration' });
   }
 });
 
@@ -46,15 +46,16 @@ router.post('/login', async (req, res) => {
     const { identifier, password } = req.body;
     if (!identifier || !password) return res.status(400).json({ error: 'Enter your username/phone and password' });
     const user = db.prepare('SELECT * FROM users WHERE username = ? OR phone = ?').get(identifier.toLowerCase(), identifier);
-    if (!user) return res.status(401).json({ error: 'Galat username/phone ya password' });
+    if (!user) return res.status(401).json({ error: 'Incorrect username/phone or password' });
+    if (user.deleted) return res.status(403).json({ error: 'This account has been deleted' });
     const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Galat username/phone ya password' });
+    if (!ok) return res.status(401).json({ error: 'Incorrect username/phone or password' });
     db.prepare('UPDATE users SET status = ?, last_seen = ? WHERE id = ?').run('online', Date.now(), user.id);
     const token = signToken(user);
     res.json({ token, user: publicUser(user) });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Login me kuch gadbad ho gayi' });
+    res.status(500).json({ error: 'Something went wrong during login' });
   }
 });
 

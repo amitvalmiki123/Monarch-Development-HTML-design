@@ -47,7 +47,8 @@ function publicUser(u) {
     birthday: u.birthday || null,
     quickReactions: (() => { try { return JSON.parse(u.quick_reactions || '[]'); } catch { return []; } })(),
     status: u.status,
-    lastSeen: u.last_seen
+    lastSeen: u.last_seen,
+    deleted: !!u.deleted
   };
 }
 

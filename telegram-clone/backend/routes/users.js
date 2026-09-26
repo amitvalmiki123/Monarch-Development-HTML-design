@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const db = require('../db');
 const auth = require('../middleware/auth');
 const { publicUser, id, normalizePhone } = require('../utils');
@@ -24,10 +25,36 @@ router.put('/me', auth, (req, res) => {
   res.json({ user: publicUser(updated) });
 });
 
+// Permanent account deletion. This never deletes rows out from under other
+// users' chat history — it scrubs every personal field and renames the
+// account to "Deleted Account" (exactly like Telegram), scrambles the
+// password so nobody can ever log back into it, and drops any saved push
+// tokens. All of that user's old messages remain, but the sender now shows
+// as "Deleted Account" everywhere (chat lists, bubbles, member lists),
+// because those all resolve the display name live from this users row.
+router.delete('/me', auth, async (req, res) => {
+  const scrambledHash = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10);
+  db.prepare(`UPDATE users SET
+      name = 'Deleted Account',
+      username = ?,
+      phone = NULL,
+      bio = '',
+      avatar_url = NULL,
+      avatar_color = '#6b7385',
+      birthday = NULL,
+      password_hash = ?,
+      status = 'offline',
+      deleted = 1
+    WHERE id = ?`)
+    .run(`deleted_${req.user.id}`, scrambledHash, req.user.id);
+  db.prepare('DELETE FROM push_tokens WHERE user_id = ?').run(req.user.id);
+  res.json({ ok: true });
+});
+
 router.get('/search', auth, (req, res) => {
   const q = (req.query.q || '').trim().toLowerCase();
   if (!q) return res.json({ users: [] });
-  const rows = db.prepare(`SELECT * FROM users WHERE (LOWER(username) LIKE ? OR LOWER(name) LIKE ? OR phone LIKE ?) AND id != ? LIMIT 20`)
+  const rows = db.prepare(`SELECT * FROM users WHERE (LOWER(username) LIKE ? OR LOWER(name) LIKE ? OR phone LIKE ?) AND id != ? AND deleted = 0 LIMIT 20`)
     .all(`%${q}%`, `%${q}%`, `%${q}%`, req.user.id);
   res.json({ users: rows.map(publicUser) });
 });
@@ -51,7 +78,7 @@ router.post('/contacts/match', auth, (req, res) => {
   const wanted = new Set(phones.map(normalizePhone).filter(Boolean));
   if (wanted.size === 0) return res.json({ matches: [] });
 
-  const candidates = db.prepare('SELECT * FROM users WHERE phone IS NOT NULL AND id != ?').all(req.user.id);
+  const candidates = db.prepare('SELECT * FROM users WHERE phone IS NOT NULL AND id != ? AND deleted = 0').all(req.user.id);
   const matches = candidates.filter((u) => wanted.has(normalizePhone(u.phone)));
 
   const now = Date.now();

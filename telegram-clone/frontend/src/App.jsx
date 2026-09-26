@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -21,10 +21,16 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Login/Register are also reachable while already signed in, when adding a
+// second account (Settings -> "Add Another Account" links here with
+// ?addAccount=1) — the currently-active session is left untouched until the
+// new login/register actually succeeds.
 function PublicOnlyRoute({ children }) {
   const { user, loading } = useAuth();
+  const [params] = useSearchParams();
+  const addingAccount = params.get('addAccount') === '1';
   if (loading) return <Splash />;
-  if (user) return <Navigate to="/" replace />;
+  if (user && !addingAccount) return <Navigate to="/" replace />;
   return children;
 }
 

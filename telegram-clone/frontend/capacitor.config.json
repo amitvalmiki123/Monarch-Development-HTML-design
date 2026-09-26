@@ -5,5 +5,15 @@
   "backgroundColor": "#120a26",
   "android": {
     "backgroundColor": "#120a26"
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "native",
+      "resizeOnFullScreen": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_notify",
+      "iconColor": "#d9b64c"
+    }
   }
 }

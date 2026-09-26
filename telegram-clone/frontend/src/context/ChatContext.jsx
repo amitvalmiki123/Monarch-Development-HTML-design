@@ -2,6 +2,18 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import http from '../api/http';
 import { getSocket } from '../api/socket';
 import { useAuth } from './AuthContext';
+import { initNotifications, notifyNewMessage, registerPushIfConfigured } from '../utils/notifications';
+
+function messagePreviewText(message) {
+  if (message.deleted) return 'This message was deleted';
+  if (message.type === 'image') return '📷 Photo';
+  if (message.type === 'gif') return '🎞️ GIF';
+  if (message.type === 'sticker') return '🧩 Sticker';
+  if (message.type === 'video') return '🎬 Video';
+  if (message.type === 'audio') return '🎙️ Audio message';
+  if (message.type === 'file') return '📎 File';
+  return message.content || 'New message';
+}
 
 const ChatContext = createContext(null);
 
@@ -25,6 +37,14 @@ export function ChatProvider({ children }) {
   const [typingByChat, setTypingByChat] = useState({});
   const activeChatIdRef = useRef(null);
   activeChatIdRef.current = activeChatId;
+  const chatsRef = useRef([]);
+  chatsRef.current = chats;
+
+  useEffect(() => {
+    if (!token) return;
+    initNotifications();
+    registerPushIfConfigured(http);
+  }, [token]);
 
   const loadChats = useCallback(async () => {
     const res = await http.get('/chats');
@@ -266,6 +286,18 @@ export function ChatProvider({ children }) {
 
       if (activeChatIdRef.current === message.chatId && message.senderId !== user.id) {
         markRead(message.chatId, message.seq);
+      }
+
+      const isOpenAndVisible = activeChatIdRef.current === message.chatId && document.visibilityState === 'visible';
+      if (message.senderId !== user.id && !isOpenAndVisible) {
+        const chat = chatsRef.current.find((c) => c.id === message.chatId);
+        if (chat) {
+          const senderName = chat.members?.find((m) => m.id === message.senderId)?.name;
+          const title = chat.type === 'group' || chat.type === 'channel'
+            ? `${senderName ? senderName + ' • ' : ''}${chat.name}`
+            : chat.name;
+          notifyNewMessage({ title, body: messagePreviewText(message), chatId: message.chatId });
+        }
       }
     };
 

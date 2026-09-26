@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const addingAccount = params.get('addAccount') === '1';
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
@@ -20,7 +22,7 @@ export default function Register() {
       await register({ name: name.trim(), username: username.trim().toLowerCase(), phone: phone.trim() || undefined, password });
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      setError(err.response?.data?.error || (!err.response ? 'No internet connection — please check your network and try again' : 'Registration failed'));
     } finally {
       setLoading(false);
     }
@@ -36,8 +38,8 @@ export default function Register() {
             <span>Your own private messenger</span>
           </div>
         </div>
-        <h2>Create a new account</h2>
-        <p className="subtitle">Get started in a few seconds</p>
+        <h2>{addingAccount ? 'Add another account' : 'Create a new account'}</h2>
+        <p className="subtitle">{addingAccount ? `Signed in as ${user?.name} — create a new account` : 'Get started in a few seconds'}</p>
 
         {error && <div className="auth-error">{error}</div>}
 
@@ -63,8 +65,13 @@ export default function Register() {
 
         <div className="auth-switch">
           Already have an account?
-          <Link to="/login"><button type="button">Log in</button></Link>
+          <Link to={addingAccount ? '/login?addAccount=1' : '/login'}><button type="button">Log in</button></Link>
         </div>
+        {addingAccount && (
+          <div className="auth-switch">
+            <button type="button" onClick={() => navigate('/', { replace: true })}>← Cancel, go back</button>
+          </div>
+        )}
       </div>
     </div>
   );
