@@ -61,7 +61,7 @@ export default function SettingsPage({ onOpenSaved }) {
 
         <div className="settings-section">
           <div className="settings-section__title">About</div>
-          <Row icon="👑" label="Monarch Chat" sub="v1.0 — apna khud ka messaging platform" />
+          <Row icon="👑" label="FairyChat" sub="v1.0 — apna khud ka messaging platform" />
         </div>
       </div>
     </div>

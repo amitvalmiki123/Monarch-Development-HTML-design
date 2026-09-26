@@ -1,6 +1,6 @@
 {
   "appId": "com.monarch.chat",
-  "appName": "Monarch Chat",
+  "appName": "FairyChat",
   "webDir": "dist",
   "backgroundColor": "#120a26",
   "android": {

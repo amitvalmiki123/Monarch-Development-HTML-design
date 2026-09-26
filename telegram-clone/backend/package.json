@@ -1,7 +1,7 @@
 {
   "name": "monarch-chat-backend",
   "version": "1.0.0",
-  "description": "Custom real-time messaging backend (Telegram-like) for Monarch Chat",
+  "description": "Custom real-time messaging backend (Telegram-like) for FairyChat",
   "main": "server.js",
   "type": "commonjs",
   "engines": {

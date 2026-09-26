@@ -209,7 +209,7 @@ export default function NewChatModal({ onClose, onChatReady, initialMode = 'dire
         <>
           <div className="field-inline">
             <label>Channel ka naam</label>
-            <input autoFocus value={channelName} onChange={(e) => setChannelName(e.target.value)} placeholder="e.g. Monarch Announcements" />
+            <input autoFocus value={channelName} onChange={(e) => setChannelName(e.target.value)} placeholder="e.g. FairyChat Announcements" />
           </div>
           <div className="field-inline">
             <label>Description (optional)</label>

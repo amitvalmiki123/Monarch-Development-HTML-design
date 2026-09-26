@@ -21,8 +21,8 @@ export default function Sidebar({ activeChatId, onSelectChat }) {
     <div className="sidebar">
       <div className="sidebar__topbar">
         <div className="brand">
-          <div className="brand__crest">M</div>
-          <h1>Monarch Chat</h1>
+          <img className="brand__crest" src="/icons/brand-crest.png" alt="FairyChat" />
+          <h1>FairyChat</h1>
         </div>
         <TopMenu
           onNewDirect={() => setNewChatMode('direct')}

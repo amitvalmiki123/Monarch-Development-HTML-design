@@ -1,9 +1,9 @@
-# Monarch Chat
+# FairyChat
 
 Ek Telegram-jaisa **real-time messaging app**, lekin:
 
 - **Backend poori tarah aapke control me** — Node.js + Express + Socket.IO + SQLite, koi third-party messaging service use nahi hoti.
-- **Unique visual design** — Deep Purple + Gold ("Monarch") color palette, Telegram ke blue/white look se bilkul alag.
+- **Unique visual design** — apna khud ka color palette aur branding, Telegram ke blue/white look se bilkul alag.
 - **Same core functionality** jo real messaging apps me hoti hai (niche list dekhein).
 - **Installable PWA** — mobile/desktop par "Add to Home Screen" karke app jaisa experience milta hai, offline shell caching ke saath.
 
@@ -27,7 +27,7 @@ Ek Telegram-jaisa **real-time messaging app**, lekin:
 - **GIF picker** in the composer (🎞️ button) — needs a free `GIF_API_KEY`,
   see [GIFs setup](#-optional-enabling-gifs) below
 - **Contact sync** (mobile app only) — reads the phone's contact list and
-  shows which contacts already use Monarch Chat, so you can start chatting
+  shows which contacts already use FairyChat, so you can start chatting
   in one tap without typing a username
 - Message edit & delete (for sender)
 - Reply-to-message (quoted preview)

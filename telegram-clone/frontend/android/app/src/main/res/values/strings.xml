@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Monarch Chat</string>
-    <string name="title_activity_main">Monarch Chat</string>
+    <string name="app_name">FairyChat</string>
+    <string name="title_activity_main">FairyChat</string>
     <string name="package_name">com.monarch.chat</string>
     <string name="custom_url_scheme">com.monarch.chat</string>
 </resources>

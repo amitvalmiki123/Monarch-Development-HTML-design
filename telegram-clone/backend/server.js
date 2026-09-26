@@ -26,7 +26,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.get('/api/health', (req, res) => res.json({ ok: true, name: 'Monarch Chat API' }));
+app.get('/api/health', (req, res) => res.json({ ok: true, name: 'FairyChat API' }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -43,5 +43,5 @@ setupSocket(io);
 
 const PORT = process.env.PORT || 8081;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Monarch Chat backend chal raha hai on port ${PORT}`);
+  console.log(`FairyChat backend chal raha hai on port ${PORT}`);
 });

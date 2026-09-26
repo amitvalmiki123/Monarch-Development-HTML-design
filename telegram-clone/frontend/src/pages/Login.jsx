@@ -30,7 +30,7 @@ export default function Login() {
         <div className="auth-brand">
           <div className="auth-brand__crest">M</div>
           <div>
-            <h1>Monarch Chat</h1>
+            <h1>FairyChat</h1>
             <span>Apka apna private messenger</span>
           </div>
         </div>

@@ -1,6 +1,6 @@
-name: Build Monarch Chat Android APK
+name: Build FairyChat Android APK
 
-# Builds a real, installable debug .apk for the Monarch Chat mobile app using
+# Builds a real, installable debug .apk for the FairyChat mobile app using
 # GitHub's free-tier runners (they come with JDK + Android SDK preinstalled,
 # so no extra setup/cost is required to produce the APK).
 #
@@ -62,7 +62,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: monarch-chat-debug-apk
+          name: fairychat-debug-apk
           path: telegram-clone/frontend/android/app/build/outputs/apk/debug/app-debug.apk
 
       # Also commits the built APK back into the repo (mobile-builds/) so it
@@ -72,10 +72,10 @@ jobs:
         working-directory: .
         run: |
           mkdir -p mobile-builds
-          cp telegram-clone/frontend/android/app/build/outputs/apk/debug/app-debug.apk mobile-builds/monarch-chat-debug.apk
-          git config user.name "monarch-chat-ci"
-          git config user.email "ci@monarch-chat.local"
-          git add -f mobile-builds/monarch-chat-debug.apk
+          cp telegram-clone/frontend/android/app/build/outputs/apk/debug/app-debug.apk mobile-builds/fairychat-debug.apk
+          git config user.name "fairychat-ci"
+          git config user.email "ci@fairychat.local"
+          git add -f mobile-builds/fairychat-debug.apk
           if git diff --cached --quiet; then
             echo "No APK changes to commit."
           else
