@@ -13,6 +13,6 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: GIF_PROVIDER
-        value: giphy
+        value: klipy
       - key: GIF_API_KEY
         sync: false
