@@ -103,6 +103,16 @@ function NotificationTroubleshoot() {
     }
   };
 
+  const recheck = async () => {
+    setBusy(true);
+    try {
+      await initNotifications();
+      await registerPushIfConfigured(http);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const testServer = async () => {
     setBusy(true);
     try {
@@ -139,10 +149,23 @@ function NotificationTroubleshoot() {
         <button className="btn-primary" style={{ flex: '1 1 auto', background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12.5, padding: '8px 10px' }} disabled={busy} onClick={testLocal}>
           Send local test
         </button>
-        <button className="btn-primary btn-gold" style={{ flex: '1 1 auto', fontSize: 12.5, padding: '8px 10px' }} disabled={busy || !pushStatus.serverEnabled} onClick={testServer}>
+        {/* Only truly block this once the server has explicitly said push
+            isn't configured — while it's still "checking…" (serverEnabled
+            === null) the button stays clickable, otherwise a slow or
+            failed status check makes it look permanently broken with zero
+            feedback, which is exactly what was happening before. */}
+        <button className="btn-primary btn-gold" style={{ flex: '1 1 auto', fontSize: 12.5, padding: '8px 10px' }} disabled={busy || pushStatus.serverEnabled === false} onClick={testServer}>
           Send real push test
         </button>
       </div>
+      <button
+        className="btn-primary"
+        style={{ width: '100%', marginTop: 8, background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12.5, padding: '8px 10px' }}
+        disabled={busy}
+        onClick={recheck}
+      >
+        🔄 Re-check status
+      </button>
     </div>
   );
 }

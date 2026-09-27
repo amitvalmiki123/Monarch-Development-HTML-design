@@ -24,6 +24,25 @@ function serialized(fn) {
   return run;
 }
 
+// A handful of real-device Capacitor plugin calls (permission dialogs,
+// register()) are known to sometimes never call back at all — no result,
+// no error, nothing (see ionic-team/capacitor-plugins issues on
+// PushNotifications.register()). Without this, one such hang would freeze
+// `permissionQueue` forever, which in turn freezes *every* later call
+// through `serialized()` — including the Settings > Troubleshoot screen and
+// the "Send real push test" button — with the UI stuck on "checking…" /
+// "not yet" forever and no way to recover short of... nothing, there was no
+// way to recover. Racing every native call against a timeout guarantees
+// this function always settles, so the queue (and the UI) can never wedge.
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
+}
+
+
 // --- User-facing preferences (Settings > Notifications) --------------------
 const PREFS_KEY = 'fairychat_notif_prefs';
 const DEFAULT_PREFS = { messages: true, groups: true, sound: true };
@@ -94,11 +113,13 @@ async function initNotificationsImpl() {
   try {
     if (Capacitor.isNativePlatform()) {
       const LocalNotifications = await getLocalNotifications();
-      let perm = await LocalNotifications.checkPermissions();
-      if (perm.display !== 'granted') perm = await LocalNotifications.requestPermissions();
+      let perm = await withTimeout(LocalNotifications.checkPermissions(), 8000, 'checkPermissions() did not respond in 8s');
+      if (perm.display !== 'granted') {
+        perm = await withTimeout(LocalNotifications.requestPermissions(), 15000, 'requestPermissions() did not respond in 15s — the permission dialog may not have appeared');
+      }
       pushStatus.localPermission = perm.display;
       if (!channelsReady) {
-        await LocalNotifications.createChannel({
+        await withTimeout(LocalNotifications.createChannel({
           id: 'messages',
           name: 'Messages',
           description: 'New chat messages',
@@ -106,15 +127,15 @@ async function initNotificationsImpl() {
           visibility: 1,
           sound: 'default',
           vibration: true
-        }).catch(() => {});
-        await LocalNotifications.createChannel({
+        }), 5000, 'createChannel timed out').catch(() => {});
+        await withTimeout(LocalNotifications.createChannel({
           id: 'messages_silent',
           name: 'Messages (silent)',
           description: 'New chat messages without sound',
           importance: 4,
           visibility: 1,
           vibration: false
-        }).catch(() => {});
+        }), 5000, 'createChannel timed out').catch(() => {});
         channelsReady = true;
       }
     } else if ('Notification' in window) {
@@ -200,15 +221,26 @@ export async function registerPushIfConfigured(http) {
 async function registerPushIfConfiguredImpl(http) {
   try {
     if (!Capacitor.isNativePlatform()) return;
-    const { data } = await http.get('/push/config');
+    let data;
+    try {
+      const res = await withTimeout(http.get('/push/config'), 20000, 'Could not reach the server to check push config (timed out)');
+      data = res.data;
+    } catch (e) {
+      pushStatus.serverEnabled = false;
+      pushStatus.serverError = e.message;
+      emitStatus();
+      return;
+    }
     pushStatus.serverEnabled = !!data?.enabled;
     pushStatus.serverError = data?.error || null;
     emitStatus();
     if (!data?.enabled) return;
 
     const PushNotifications = await getPushNotifications();
-    let perm = await PushNotifications.checkPermissions();
-    if (perm.receive !== 'granted') perm = await PushNotifications.requestPermissions();
+    let perm = await withTimeout(PushNotifications.checkPermissions(), 8000, 'checkPermissions() did not respond in 8s');
+    if (perm.receive !== 'granted') {
+      perm = await withTimeout(PushNotifications.requestPermissions(), 15000, 'requestPermissions() did not respond in 15s — the permission dialog may not have appeared');
+    }
     if (perm.receive !== 'granted') {
       pushStatus.lastError = 'Notification permission was not granted';
       emitStatus();
@@ -254,13 +286,15 @@ async function registerPushIfConfiguredImpl(http) {
 
     pushStatus.registering = true;
     emitStatus();
-    await PushNotifications.register();
 
-    // register() only asks the OS to start the process — the actual
-    // token/error arrives later via the listeners above. If neither fires
-    // within 12s, something is silently stuck (commonly: device has no
-    // Google Play Services, or it's out of date) — surface that instead of
-    // leaving the diagnostics screen stuck on "not yet" forever.
+    // register() only *asks the OS* to start the process — the actual
+    // token/error arrives later via the listeners above, not from this
+    // call's own promise. Arm the watchdog BEFORE calling register(), not
+    // after: on some devices register() itself never resolves at all (a
+    // known Capacitor/Play-Services bug), and if the watchdog were armed
+    // only after a completed await, that bug would skip the watchdog
+    // entirely and hang this whole function (and the shared queue behind
+    // it) forever instead of surfacing an error after 12s.
     if (registrationWatchdog) clearTimeout(registrationWatchdog);
     registrationWatchdog = setTimeout(() => {
       if (!pushStatus.tokenRegistered) {
@@ -269,6 +303,14 @@ async function registerPushIfConfiguredImpl(http) {
         emitStatus();
       }
     }, 12000);
+
+    // register() is expected to resolve almost instantly; if it doesn't,
+    // don't let it block the shared init queue — the watchdog above already
+    // covers surfacing "stuck" to the user.
+    await withTimeout(PushNotifications.register(), 10000, 'register() call did not return in 10s').catch((e) => {
+      pushStatus.lastError = e.message;
+      emitStatus();
+    });
   } catch (e) {
     pushStatus.registering = false;
     pushStatus.lastError = e.message;

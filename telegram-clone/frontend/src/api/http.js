@@ -6,7 +6,13 @@ import axios from 'axios';
 const apiBase = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : '/api';
 
 const http = axios.create({
-  baseURL: apiBase
+  baseURL: apiBase,
+  // Render's free tier can cold-start slowly, but nothing should hang
+  // forever: an un-timed-out request here used to make the notification
+  // Troubleshoot screen (Server push configured: "checking...") and the
+  // "Send real push test" button (silently disabled while that never
+  // resolves) get permanently stuck with zero feedback.
+  timeout: 20000
 });
 
 http.interceptors.request.use((config) => {
