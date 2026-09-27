@@ -6,6 +6,78 @@ let notifIdCounter = 1;
 let pushListenersAttached = false;
 let registrationWatchdog = null;
 
+// --- Per-chat notification grouping (WhatsApp/Telegram-style) --------------
+// Previously every incoming message got its own ever-incrementing
+// notification `id`, so sending e.g. 4 messages in a row popped up 4
+// separate notification banners instead of one updating banner like every
+// other chat app does. Fix: derive a STABLE id from the chat id (so
+// scheduling again with the same id replaces/updates the existing tray
+// entry instead of stacking a new one) and buffer the recent message bodies
+// per chat so the notification can show "N new messages" plus an inbox-style
+// list of the last few, exactly like WhatsApp/Telegram.
+const chatNotifBuffers = new Map(); // chatId -> { bodies: string[], title: string }
+
+function stableIdFromString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0; // 32-bit signed overflow, intentional
+  }
+  // Keep well inside the signed 32-bit range Android notification ids need,
+  // and offset it away from the small counter values sendLocalTestNotification
+  // / notifyNewMessage's non-grouped callers use, so they never collide.
+  return 100000 + (Math.abs(hash) % 1000000000);
+}
+
+// Call when the user actually opens a chat — clears the buffered message
+// count/preview for it and cancels any notification currently showing for
+// it, so re-opening the tray after reading the chat doesn't show a stale
+// "3 new messages" banner for messages already seen in-app.
+export async function clearMessageNotifications(chatId) {
+  if (!chatNotifBuffers.has(chatId)) return;
+  chatNotifBuffers.delete(chatId);
+  try {
+    if (Capacitor.isNativePlatform()) {
+      await ensureLocalNotifications();
+      const LocalNotifications = localNotifPlugin;
+      await LocalNotifications.cancel({ notifications: [{ id: stableIdFromString(`chat:${chatId}`) }] });
+    }
+  } catch {
+    // best-effort — not finding/cancelling an already-gone notification is fine
+  }
+}
+
+// Schedules (or updates) the single grouped notification for one chat.
+// Every call for the same chatId replaces the previous banner rather than
+// stacking a new one, and the body/inbox list reflects everything buffered
+// since the chat was last opened.
+async function scheduleGroupedNotification({ chatId, title, body, channelId, smallIcon }) {
+  const entry = chatNotifBuffers.get(chatId) || { bodies: [], title };
+  entry.title = title; // keep the latest sender/chat name
+  entry.bodies.push(body);
+  if (entry.bodies.length > 5) entry.bodies = entry.bodies.slice(-5);
+  chatNotifBuffers.set(chatId, entry);
+
+  const count = entry.bodies.length;
+  const displayBody = count === 1 ? entry.bodies[0] : `${count} new messages`;
+
+  await ensureLocalNotifications();
+  const LocalNotifications = localNotifPlugin;
+  await LocalNotifications.schedule({
+    notifications: [{
+      id: stableIdFromString(`chat:${chatId}`),
+      title,
+      body: displayBody,
+      // inboxList/summaryText only kick in visually once there's more than
+      // one line to show — harmless to always pass them.
+      inboxList: entry.bodies,
+      summaryText: count > 1 ? title : undefined,
+      channelId,
+      smallIcon,
+      extra: { chatId }
+    }]
+  });
+}
+
 // Android can only have ONE permission-request dialog in flight at a time.
 // initNotifications() and registerPushIfConfigured() both request the same
 // underlying POST_NOTIFICATIONS permission (via two different Capacitor
@@ -243,17 +315,12 @@ export async function notifyNewMessage({ title, body, chatId, isGroup = false })
   if (isGroup && !prefs.groups) return;
   try {
     if (Capacitor.isNativePlatform()) {
-      await ensureLocalNotifications();
-      const LocalNotifications = localNotifPlugin;
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: notifIdCounter++,
-          title,
-          body,
-          channelId: prefs.sound ? 'messages_v2' : 'messages_silent_v2',
-          smallIcon: 'ic_stat_notify',
-          extra: { chatId }
-        }]
+      await scheduleGroupedNotification({
+        chatId,
+        title,
+        body,
+        channelId: prefs.sound ? 'messages_v2' : 'messages_silent_v2',
+        smallIcon: 'ic_stat_notify'
       });
     } else if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState === 'hidden') {
       new Notification(title, { body, tag: `chat-${chatId}`, silent: !prefs.sound });
@@ -374,16 +441,13 @@ async function registerPushIfConfiguredImpl(http) {
       PushNotifications.addListener('pushNotificationReceived', async (notification) => {
         const prefs = getNotifPrefs();
         if (!prefs.messages) return;
-        await ensureLocalNotifications();
-        const LocalNotifications = localNotifPlugin;
-        LocalNotifications.schedule({
-          notifications: [{
-            id: notifIdCounter++,
-            title: notification.title || 'FairyChat',
-            body: notification.body || 'New message',
-            channelId: prefs.sound ? 'messages_v2' : 'messages_silent_v2',
-            smallIcon: 'ic_stat_notify'
-          }]
+        const chatId = notification.data?.chatId || notification.data?.chat_id || `push-${notification.title || 'unknown'}`;
+        scheduleGroupedNotification({
+          chatId,
+          title: notification.title || 'FairyChat',
+          body: notification.body || 'New message',
+          channelId: prefs.sound ? 'messages_v2' : 'messages_silent_v2',
+          smallIcon: 'ic_stat_notify'
         }).catch(() => {});
       });
     }

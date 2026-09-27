@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import http from '../api/http';
 import { getSocket } from '../api/socket';
 import { useAuth } from './AuthContext';
-import { initNotifications, notifyNewMessage, registerPushIfConfigured } from '../utils/notifications';
+import { initNotifications, notifyNewMessage, registerPushIfConfigured, clearMessageNotifications } from '../utils/notifications';
 
 function messagePreviewText(message) {
   if (message.deleted) return 'This message was deleted';
@@ -101,6 +101,7 @@ export function ChatProvider({ children }) {
 
   const openChat = useCallback(async (chatId) => {
     setActiveChatId(chatId);
+    clearMessageNotifications(chatId).catch(() => {});
     const socket = getSocket();
     if (socket) socket.emit('chat:join', { chatId });
     if (!messagesByChat[chatId]) {
