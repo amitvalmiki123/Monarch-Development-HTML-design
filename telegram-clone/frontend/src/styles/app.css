@@ -593,6 +593,15 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* Without this, a CSS Grid item's default min-height is `auto`, which
+     lets it grow to fit ALL its content (every message ever loaded)
+     instead of staying clipped to the grid track's 100% height — this is
+     what let .messages-scroll below balloon past the visible screen as
+     messages piled up, pushing the input bar off-screen and shifting the
+     header, and made the internal scroller stop working since the WHOLE
+     panel (not just the message list) was the thing overflowing. */
+  min-height: 0;
+  overflow: hidden;
   background: var(--bg-app);
   background-image:
     radial-gradient(circle at 20% 10%, rgba(139, 92, 246, 0.06), transparent 40%),
@@ -610,6 +619,7 @@
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   position: relative;
   z-index: 5;
+  flex-shrink: 0;
 }
 .chat-header__info { flex: 1; min-width: 0; }
 .chat-header__name { font-weight: 700; font-size: 15.5px; }
@@ -621,7 +631,24 @@
 
 .messages-scroll {
   flex: 1;
+  /* THE actual fix for "input bar disappears / header shifts as messages
+     pile up": a flex child's default min-height is `auto`, meaning
+     `flex: 1` was only a *maximum* here — the element was still free to
+     grow to fit every message it contains, past its flex-allocated share
+     of the column, instead of stopping at the available space and
+     scrolling its own overflow. That growth pushed .message-input-bar
+     (the next flex sibling in .chat-panel) further down the page — past
+     the visible viewport / behind the keyboard — and, because the parent
+     had no overflow clipping either, could shift the whole panel (header
+     included) instead of scrolling internally. min-height: 0 makes this
+     element actually respect `flex: 1` and scroll its own content instead
+     of expanding forever.
+     Historical note for whoever reads this next: this is the single most
+     common flexbox layout bug there is — "flex: 1 does nothing, my child
+     still overflows" is *always* this, on every browser, every time. */
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 18px 6% 10px;
   display: flex;
   flex-direction: column;
@@ -654,12 +681,23 @@
   display: flex;
   margin-bottom: 2px;
   max-width: 100%;
+  /* Same flexbox default-min-size issue as .messages-scroll, on the
+     opposite axis: a flex item's min-width defaults to `auto`, which
+     means it refuses to shrink below the size of any non-shrinkable
+     content inside it (like a wide GIF with a fixed pixel max-width) even
+     though the parent asked it to stay within max-width. That let a wide
+     sticker/GIF force the whole row wider than the screen, turning the
+     entire message list horizontally scrollable. min-width: 0 lets the
+     row (and the bubble inside it) actually respect their max-width and
+     let the image scale down to fit instead. */
+  min-width: 0;
 }
 .bubble-row.out { justify-content: flex-end; }
 .bubble-row.in { justify-content: flex-start; }
 
 .bubble {
   max-width: min(560px, 78%);
+  min-width: 0;
   padding: 9px 13px;
   border-radius: var(--radius-md);
   position: relative;
@@ -706,8 +744,18 @@
 .bubble.deleted { font-style: italic; opacity: 0.6; }
 
 .bubble img.msg-image {
-  max-width: 320px;
+  /* Was a flat 320px, wider than the available bubble width on narrow
+     phone screens (bubble max-width is 78% of the chat column, which on a
+     ~360px-wide phone is under 300px) — combined with the missing
+     min-width: 0 above, that forced the whole row wider than the screen.
+     max-width: 100% makes it scale down to whatever the bubble actually
+     has room for, capped by the bubble's own max-width, while still never
+     exceeding 320px on wider screens (tablets/desktop) where there's
+     plenty of room. */
+  max-width: min(320px, 100%);
   max-height: 360px;
+  width: auto;
+  height: auto;
   border-radius: 12px;
   display: block;
   margin-bottom: 4px;
@@ -748,6 +796,9 @@
   background: var(--bg-panel);
   width: 100%;
   box-sizing: border-box;
+  /* Always keep its own natural height — never let it get squeezed by a
+     growing sibling (see .messages-scroll's min-height: 0 fix above). */
+  flex-shrink: 0;
 }
 
 .message-input-bar textarea {
@@ -1235,6 +1286,7 @@
 .sticker-bubble__emoji { font-size: 72px; line-height: 1; }
 .sticker-bubble__img {
   width: 148px;
+  max-width: 100%;
   height: 148px;
   object-fit: contain;
   display: block;
