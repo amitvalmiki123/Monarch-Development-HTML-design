@@ -36,6 +36,23 @@ export default function ChatWindow({ chat, onBack }) {
   const [editDraft, setEditDraft] = useState('');
   const [forwardIds, setForwardIds] = useState(null); // array of message ids, or null
 
+  // Any number of messages can be pinned at once (Telegram-style). The
+  // banner under the header shows one at a time and cycles through them —
+  // `pinnedIndex` is which one is currently shown.
+  const pinnedMessages = chat.pinnedMessages || [];
+  const [pinnedIndex, setPinnedIndex] = useState(Math.max(0, pinnedMessages.length - 1));
+  const pinnedCount = useRef(pinnedMessages.length);
+  useEffect(() => {
+    // Whenever a new message gets pinned (the list grows), jump the banner
+    // to show that newest pin, same as Telegram.
+    if (pinnedMessages.length > pinnedCount.current || pinnedIndex >= pinnedMessages.length) {
+      setPinnedIndex(Math.max(0, pinnedMessages.length - 1));
+    }
+    pinnedCount.current = pinnedMessages.length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedMessages.length]);
+  const currentPinned = pinnedMessages[pinnedIndex] || null;
+
   useEffect(() => {
     if (prevChatId.current !== chat.id) {
       prevChatId.current = chat.id;
@@ -43,6 +60,7 @@ export default function ChatWindow({ chat, onBack }) {
       setSelectedIds(new Set());
       setActionMessage(null);
       setEditingId(null);
+      setPinnedIndex(Math.max(0, (chat.pinnedMessages || []).length - 1));
     }
     bottomRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [chat.id]);
@@ -154,13 +172,20 @@ export default function ChatWindow({ chat, onBack }) {
         <ChatHeader chat={chat} typingNames={typingNames} onBack={onBack} onShowInfo={() => {}} />
       )}
 
-      {chat.pinnedMessage && !selectMode && (
+      {currentPinned && !selectMode && (
         <PinnedBanner
-          message={chat.pinnedMessage}
-          onUnpin={() => unpinMessage(chat.id).catch(() => {})}
+          message={currentPinned}
+          index={pinnedIndex}
+          count={pinnedMessages.length}
+          onUnpin={() => unpinMessage(currentPinned.id).catch(() => {})}
           onJump={() => {
-            const el = document.getElementById(`msg-${chat.pinnedMessage.id}`);
+            const el = document.getElementById(`msg-${currentPinned.id}`);
             el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Cycle to the next-older pinned message so tapping again walks
+            // through all of them one at a time, same as Telegram.
+            if (pinnedMessages.length > 1) {
+              setPinnedIndex((i) => (i - 1 + pinnedMessages.length) % pinnedMessages.length);
+            }
           }}
         />
       )}
@@ -191,7 +216,7 @@ export default function ChatWindow({ chat, onBack }) {
                 showSenderName={showSenderName}
                 currentUserId={user.id}
                 onReact={handleReact}
-                isPinned={chat.pinnedMessage?.id === m.id}
+                isPinned={pinnedMessages.some((pm) => pm.id === m.id)}
                 isEditing={editingId === m.id}
                 editDraft={editingId === m.id ? editDraft : undefined}
                 onEditDraftChange={setEditDraft}
@@ -243,7 +268,8 @@ export default function ChatWindow({ chat, onBack }) {
         <MessageActionSheet
           message={actionMessage}
           isOwn={actionMessage.senderId === user.id}
-          isPinned={chat.pinnedMessage?.id === actionMessage.id}
+          isPinned={pinnedMessages.some((pm) => pm.id === actionMessage.id)}
+          currentUserId={user.id}
           quickReactions={user.quickReactions}
           canEdit={actionMessage.senderId === user.id && actionMessage.type === 'text'}
           onClose={() => setActionMessage(null)}
@@ -252,7 +278,7 @@ export default function ChatWindow({ chat, onBack }) {
           onCopy={() => actionMessage.content && navigator.clipboard?.writeText(actionMessage.content).catch(() => {})}
           onForward={() => setForwardIds([actionMessage.id])}
           onPin={() => pinMessage(actionMessage.id).catch(() => alert('Could not pin message'))}
-          onUnpin={() => unpinMessage(chat.id).catch(() => alert('Could not unpin message'))}
+          onUnpin={() => unpinMessage(actionMessage.id).catch(() => alert('Could not unpin message'))}
           onEdit={() => { setEditingId(actionMessage.id); setEditDraft(actionMessage.content || ''); }}
           onDelete={() => handleDelete(actionMessage.id)}
           onSelect={() => setSelectedIds(new Set([actionMessage.id]))}

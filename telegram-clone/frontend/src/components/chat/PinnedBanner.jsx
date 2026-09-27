@@ -10,15 +10,18 @@ function pinnedPreviewText(message) {
   return message.content || 'Media message';
 }
 
-export default function PinnedBanner({ message, onJump, onUnpin }) {
+export default function PinnedBanner({ message, index, count, onJump, onUnpin }) {
   return (
     <div className="pinned-banner" onClick={onJump}>
       <span className="pinned-banner__icon">📌</span>
       <div className="pinned-banner__body">
-        <div className="pinned-banner__label">Pinned Message</div>
+        <div className="pinned-banner__label">
+          Pinned Message{count > 1 ? ` #${index + 1}/${count}` : ''}
+        </div>
         <div className="pinned-banner__text">{pinnedPreviewText(message)}</div>
       </div>
       <button className="pinned-banner__close" onClick={(e) => { e.stopPropagation(); onUnpin(); }} title="Unpin" aria-label="Unpin">✕</button>
     </div>
   );
 }
+

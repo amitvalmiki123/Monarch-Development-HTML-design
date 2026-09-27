@@ -1094,6 +1094,7 @@
   transition: transform 0.12s, background 0.12s;
 }
 .action-sheet__reaction:hover { background: var(--bg-hover); transform: scale(1.18); }
+.action-sheet__reaction--active { background: var(--gold-soft); box-shadow: 0 0 0 2px var(--gold) inset; }
 .action-sheet__list {
   display: flex;
   flex-direction: column;

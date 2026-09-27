@@ -183,24 +183,26 @@ export function ChatProvider({ children }) {
     });
   }, []);
 
+  // Any number of messages in a chat can be pinned at once (Telegram-style),
+  // so `chat.pinnedMessages` is always an array. The actual state update
+  // always comes through the 'chat:pinned' broadcast below (the server
+  // sends it to every member of the chat, including whoever just
+  // pinned/unpinned, so there's exactly one code path for it) — these
+  // just report success/failure back to whoever called them.
   const pinMessage = useCallback((messageId) => {
     const socket = getSocket();
     return new Promise((resolve, reject) => {
       socket.emit('message:pin', { messageId }, (res) => {
-        if (res?.error) { reject(res.error); return; }
-        setChats((prev) => prev.map((c) => (c.id === res.message.chatId ? { ...c, pinnedMessage: res.message } : c)));
-        resolve(res.message);
+        if (res?.error) reject(res.error); else resolve(res.pinnedMessages);
       });
     });
   }, []);
 
-  const unpinMessage = useCallback((chatId) => {
+  const unpinMessage = useCallback((messageId) => {
     const socket = getSocket();
     return new Promise((resolve, reject) => {
-      socket.emit('message:unpin', { chatId }, (res) => {
-        if (res?.error) { reject(res.error); return; }
-        setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, pinnedMessage: null } : c)));
-        resolve();
+      socket.emit('message:unpin', { messageId }, (res) => {
+        if (res?.error) reject(res.error); else resolve(res.pinnedMessages);
       });
     });
   }, []);
@@ -412,8 +414,8 @@ export function ChatProvider({ children }) {
       })));
     };
 
-    const handlePinned = ({ chatId, message }) => {
-      setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, pinnedMessage: message } : c)));
+    const handlePinned = ({ chatId, pinnedMessages }) => {
+      setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, pinnedMessages: pinnedMessages || [] } : c)));
     };
 
     socket.on('message:new', handleNewMessage);

@@ -3,6 +3,18 @@ import { formatMessageTime, formatFileSize } from '../../utils/format';
 import { resolveMediaUrl } from '../../utils/resolveUrl';
 import { useMessageGestures } from '../../hooks/useMessageGestures';
 
+// Any interactive element nested inside a bubble (media, reaction pills, the
+// edit textarea/buttons) needs to stop the tap/long-press/swipe recognizer
+// from ever arming in the first place — stopping propagation on `onClick`
+// alone is NOT enough, because the gesture recognizer listens for the raw
+// onMouseDown/onTouchStart events, which fire (and start their own timers)
+// well before any `click` event exists. Spread this onto anything that
+// should behave like a normal, independent control.
+const stopGesture = {
+  onMouseDown: (e) => e.stopPropagation(),
+  onTouchStart: (e) => e.stopPropagation()
+};
+
 function Ticks({ read, pending, failed }) {
   if (failed) return <span title="Failed to send" style={{ color: 'var(--danger)' }}>⚠</span>;
   if (pending) return <span title="Sending...">🕓</span>;
@@ -12,19 +24,19 @@ function Ticks({ read, pending, failed }) {
 function FilePreview({ message }) {
   const fileUrl = resolveMediaUrl(message.fileUrl);
   if (message.type === 'image') {
-    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'photo'} onClick={(e) => { e.stopPropagation(); window.open(fileUrl, '_blank'); }} />;
+    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'photo'} {...stopGesture} onClick={(e) => { e.stopPropagation(); window.open(fileUrl, '_blank'); }} />;
   }
   if (message.type === 'gif') {
-    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'GIF'} loading="lazy" onClick={(e) => e.stopPropagation()} />;
+    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'GIF'} loading="lazy" {...stopGesture} onClick={(e) => e.stopPropagation()} />;
   }
   if (message.type === 'video') {
-    return <video src={fileUrl} controls style={{ maxWidth: '100%', width: 280, borderRadius: 12, marginBottom: 4 }} onClick={(e) => e.stopPropagation()} />;
+    return <video src={fileUrl} controls style={{ maxWidth: '100%', width: 280, borderRadius: 12, marginBottom: 4 }} {...stopGesture} onClick={(e) => e.stopPropagation()} />;
   }
   if (message.type === 'audio') {
-    return <audio src={fileUrl} controls style={{ marginBottom: 4 }} onClick={(e) => e.stopPropagation()} />;
+    return <audio src={fileUrl} controls style={{ marginBottom: 4 }} {...stopGesture} onClick={(e) => e.stopPropagation()} />;
   }
   return (
-    <a href={fileUrl} target="_blank" rel="noreferrer" className="file-chip" onClick={(e) => e.stopPropagation()}>
+    <a href={fileUrl} target="_blank" rel="noreferrer" className="file-chip" {...stopGesture} onClick={(e) => e.stopPropagation()}>
       <span className="file-icon">📎</span>
       <span>
         <div style={{ fontWeight: 600, fontSize: 13.5 }}>{message.fileName || 'File'}</div>
@@ -38,7 +50,7 @@ function ReactionPills({ reactions, currentUserId, onToggle }) {
   const entries = Object.entries(reactions || {}).filter(([, users]) => users?.length > 0);
   if (entries.length === 0) return null;
   return (
-    <div className="reaction-pills">
+    <div className="reaction-pills" {...stopGesture}>
       {entries.map(([emoji, users]) => (
         <button
           key={emoji}
@@ -65,11 +77,16 @@ export default function MessageBubble({
   const setDraft = onEditDraftChange || setLocalDraft;
 
   const { swipeX, handlers } = useMessageGestures({
-    disabled: message.deleted,
+    // Fully disable the tap/long-press/swipe recognizer while this bubble
+    // is in its inline edit box — otherwise a tap meant to place the text
+    // cursor (or hit Save/Cancel) could instead be swallowed as "open the
+    // action sheet on this message" before it ever reaches the textarea.
+    disabled: message.deleted || isEditing,
     onTap: () => {
       if (selectionMode) onToggleSelect?.(message.id);
       else onOpenActions?.(message);
     },
+    onDoubleTap: () => onReact?.(message.id, '❤️'),
     onLongPress: () => onLongPress?.(message),
     onSwipeReply: () => onSwipeReply?.(message)
   });
@@ -137,7 +154,7 @@ export default function MessageBubble({
         {message.fileUrl && <FilePreview message={message} />}
 
         {isEditing ? (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div {...stopGesture} onClick={(e) => e.stopPropagation()}>
             <textarea
               autoFocus
               value={draft}
@@ -146,8 +163,8 @@ export default function MessageBubble({
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(); } if (e.key === 'Escape') onCancelEdit(); }}
             />
             <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-              <button onClick={submitEdit} style={{ fontSize: 11, background: 'none', border: 'none', color: 'var(--gold-light)' }}>Save</button>
-              <button onClick={onCancelEdit} style={{ fontSize: 11, background: 'none', border: 'none', color: 'var(--text-secondary)' }}>Cancel</button>
+              <button {...stopGesture} onClick={(e) => { e.stopPropagation(); submitEdit(); }} style={{ fontSize: 11, background: 'none', border: 'none', color: 'var(--gold-light)' }}>Save</button>
+              <button {...stopGesture} onClick={(e) => { e.stopPropagation(); onCancelEdit(); }} style={{ fontSize: 11, background: 'none', border: 'none', color: 'var(--text-secondary)' }}>Cancel</button>
             </div>
           </div>
         ) : (

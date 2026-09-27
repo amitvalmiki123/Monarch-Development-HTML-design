@@ -70,7 +70,7 @@ function chatSummary(chat, currentUserId) {
     pinned: !!(myMember && myMember.pinned_at),
     pinnedAt: myMember ? myMember.pinned_at : null,
     muted: !!(myMember && myMember.muted),
-    pinnedMessage: messageService.getPinnedMessage(chat.id),
+    pinnedMessages: messageService.getPinnedMessages(chat.id),
     subscriberCount: chat.type === 'channel' ? members.length : undefined,
     lastMessage: lastMsg ? {
       id: lastMsg.id,

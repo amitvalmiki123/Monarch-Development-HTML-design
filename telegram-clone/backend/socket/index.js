@@ -139,26 +139,27 @@ function setupSocket(io) {
       }
     });
 
-    // Pins a message as the single banner shown under that chat's header —
-    // pinning a new one silently replaces whatever was pinned before, same
-    // as unpremium Telegram/WhatsApp behaviour.
+    // Pins a message to that chat's pinned banner. Any number of messages
+    // can be pinned at once (Telegram-style) — pinning a new one ADDS to
+    // the list rather than replacing whatever was pinned before.
     socket.on('message:pin', (payload, ack) => {
       try {
         const { messageId } = payload;
-        const { chatId, message } = messageService.pinMessage(messageId, userId);
-        io.to(`chat:${chatId}`).emit('chat:pinned', { chatId, message });
-        if (ack) ack({ message });
+        const { chatId, pinnedMessages } = messageService.pinMessage(messageId, userId);
+        io.to(`chat:${chatId}`).emit('chat:pinned', { chatId, pinnedMessages });
+        if (ack) ack({ pinnedMessages });
       } catch (e) {
         if (ack) ack({ error: 'Could not pin message' });
       }
     });
 
+    // Unpins one specific message (not every pinned message in the chat).
     socket.on('message:unpin', (payload, ack) => {
       try {
-        const { chatId } = payload;
-        messageService.unpinMessage(chatId, userId);
-        io.to(`chat:${chatId}`).emit('chat:pinned', { chatId, message: null });
-        if (ack) ack({});
+        const { messageId } = payload;
+        const { chatId, pinnedMessages } = messageService.unpinMessage(messageId, userId);
+        io.to(`chat:${chatId}`).emit('chat:pinned', { chatId, pinnedMessages });
+        if (ack) ack({ pinnedMessages });
       } catch (e) {
         if (ack) ack({ error: 'Could not unpin message' });
       }

@@ -247,6 +247,21 @@ CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
   }
 })();
 
+// --- Migration: MULTIPLE pinned messages per chat (superseding the single
+// chats.pinned_message_id column above, which is left in place but no
+// longer read/written — matches Telegram, where any number of messages in
+// a chat can be pinned at once and the banner under the header cycles
+// through them one at a time). A message is "pinned" simply by having a
+// non-null pinned_at timestamp; the order messages were pinned in is the
+// order they're cycled through.
+(function migrateMessagesPinnedAt() {
+  const cols = db.prepare("PRAGMA table_info(messages)").all();
+  if (!cols.some((c) => c.name === 'pinned_at')) {
+    db.exec('ALTER TABLE messages ADD COLUMN pinned_at INTEGER');
+  }
+})();
+
+
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like
 // better-sqlite3 did, so provide a tiny drop-in replacement with the same
 // call shape: `db.transaction(fn)` returns a function that runs fn inside a

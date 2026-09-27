@@ -128,7 +128,9 @@ function forwardMessage(messageId, userId, targetChatId) {
   });
 }
 
-// Pins/unpins a message as the single banner shown under a chat's header.
+// Pins a message to the chat's pinned banner. Unlike the old single-pin
+// design, any number of messages in a chat can be pinned at once (matches
+// Telegram) — pinning a new one ADDS to the list instead of replacing it.
 // Any member can pin/unpin in a direct chat or group (matches this app's
 // existing "anyone can mute/clear" permission model — there's no separate
 // admin-only gate anywhere else yet); channels restrict posting already via
@@ -137,23 +139,29 @@ function pinMessage(messageId, userId) {
   const m = db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
   if (!m || m.deleted) throw new Error('NOT_FOUND');
   if (!isMember(m.chat_id, userId)) throw new Error('FORBIDDEN');
-  db.prepare('UPDATE chats SET pinned_message_id = ? WHERE id = ?').run(messageId, m.chat_id);
-  return { chatId: m.chat_id, message: getMessage(messageId) };
+  db.prepare('UPDATE messages SET pinned_at = ? WHERE id = ?').run(Date.now(), messageId);
+  return { chatId: m.chat_id, pinnedMessages: getPinnedMessages(m.chat_id) };
 }
 
-function unpinMessage(chatId, userId) {
-  if (!isMember(chatId, userId)) throw new Error('FORBIDDEN');
-  db.prepare('UPDATE chats SET pinned_message_id = NULL WHERE id = ?').run(chatId);
-  return { chatId };
+// Unpins one specific message (not "all pins for the chat" — with multiple
+// messages pinnable at once, the unpin banner's X button only removes the
+// one currently being shown).
+function unpinMessage(messageId, userId) {
+  const m = db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+  if (!m) throw new Error('NOT_FOUND');
+  if (!isMember(m.chat_id, userId)) throw new Error('FORBIDDEN');
+  db.prepare('UPDATE messages SET pinned_at = NULL WHERE id = ?').run(messageId);
+  return { chatId: m.chat_id, pinnedMessages: getPinnedMessages(m.chat_id) };
 }
 
-function getPinnedMessage(chatId) {
-  const chat = db.prepare('SELECT pinned_message_id FROM chats WHERE id = ?').get(chatId);
-  if (!chat || !chat.pinned_message_id) return null;
-  return getMessage(chat.pinned_message_id);
+// All currently-pinned messages in a chat, oldest-pinned first (the order
+// the pinned banner cycles through them in), for the chat-list payload.
+function getPinnedMessages(chatId) {
+  const rows = db.prepare('SELECT id FROM messages WHERE chat_id = ? AND pinned_at IS NOT NULL AND deleted = 0 ORDER BY pinned_at ASC').all(chatId);
+  return rows.map((r) => getMessage(r.id));
 }
 
 module.exports = {
   createMessage, getMessage, editMessage, deleteMessage, toggleReaction, isMember, canPost, chatMemberIds,
-  forwardMessage, pinMessage, unpinMessage, getPinnedMessage
+  forwardMessage, pinMessage, unpinMessage, getPinnedMessages
 };

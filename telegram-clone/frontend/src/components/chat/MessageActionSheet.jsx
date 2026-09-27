@@ -10,10 +10,18 @@ import { pushBackHandler, popBackHandler } from '../../utils/backStack';
 // tapped bubble (which is hard to get right close to the edges of the
 // screen), and is a completely standard, familiar mobile pattern.
 export default function MessageActionSheet({
-  message, isOwn, isPinned, quickReactions, canEdit,
+  message, isOwn, isPinned, quickReactions, canEdit, currentUserId,
   onClose, onReact, onReply, onCopy, onForward, onPin, onUnpin, onEdit, onDelete, onSelect
 }) {
   const hasText = message.type === 'text' && !!message.content;
+
+  // Whichever emoji `currentUserId` already reacted with (if any) so it can
+  // be highlighted — tapping that SAME emoji again removes the reaction
+  // (the backend already toggles it off; this just makes it visible/obvious
+  // which one is currently "yours" so tapping it again to undo it is clear).
+  const activeEmoji = Object.entries(message.reactions || {}).find(
+    ([, users]) => Array.isArray(users) && users.includes(currentUserId)
+  )?.[0];
 
   // Let the Android back button close the sheet instead of minimizing the app.
   useEffect(() => {
@@ -28,7 +36,14 @@ export default function MessageActionSheet({
       <div className="action-sheet">
         <div className="action-sheet__reactions">
           {(quickReactions?.length ? quickReactions : DEFAULT_QUICK_REACTIONS).map((emoji) => (
-            <button key={emoji} className="action-sheet__reaction" onClick={run(() => onReact(emoji))}>{emoji}</button>
+            <button
+              key={emoji}
+              className={`action-sheet__reaction${emoji === activeEmoji ? ' action-sheet__reaction--active' : ''}`}
+              onClick={run(() => onReact(emoji))}
+              title={emoji === activeEmoji ? 'Tap again to remove' : undefined}
+            >
+              {emoji}
+            </button>
           ))}
         </div>
         <div className="action-sheet__list">
