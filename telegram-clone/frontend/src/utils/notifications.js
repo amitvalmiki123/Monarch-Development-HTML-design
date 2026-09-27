@@ -75,7 +75,8 @@ export const pushStatus = {
   serverError: null,
   tokenRegistered: false,
   registering: false,
-  lastError: null
+  lastError: null,
+  log: [] // plain-English, timestamped trace of every step — see logStep()
 };
 
 const statusListeners = new Set();
@@ -89,13 +90,43 @@ function emitStatus() {
   });
 }
 
+// Every step of the init/registration flow calls this. It's the one thing
+// that lets a real failure on a real device be diagnosed from a single
+// screenshot/paste of Settings > Troubleshoot instead of needing adb/logcat
+// access — several past "fixes" here were guesses because nothing recorded
+// *which exact line* a device got stuck or errored on.
+function logStep(msg) {
+  const line = `${new Date().toISOString().slice(11, 23)}  ${msg}`;
+  pushStatus.log = [...pushStatus.log.slice(-59), line];
+  emitStatus();
+}
+logStep(`Module loaded. isNativePlatform=${pushStatus.isNative}, userAgent=${typeof navigator !== 'undefined' ? navigator.userAgent : 'n/a'}`);
+
+// Catches an otherwise totally invisible failure mode: some unrelated JS
+// error/rejection elsewhere in the app silently breaks things and the
+// Troubleshoot screen just looks "stuck" with no clue why. This surfaces it
+// in the same log instead of it only ever showing up in a browser devtools
+// console nobody on a real phone can see.
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => logStep(`window error: ${e.message} (${e.filename}:${e.lineno})`));
+  window.addEventListener('unhandledrejection', (e) => logStep(`unhandled promise rejection: ${e.reason?.message || e.reason}`));
+}
+
 async function getLocalNotifications() {
-  if (!localNotifModule) localNotifModule = await import('@capacitor/local-notifications');
+  if (!localNotifModule) {
+    logStep('Importing @capacitor/local-notifications…');
+    localNotifModule = await import('@capacitor/local-notifications');
+    logStep('Imported @capacitor/local-notifications OK');
+  }
   return localNotifModule.LocalNotifications;
 }
 
 async function getPushNotifications() {
-  if (!pushNotifModule) pushNotifModule = await import('@capacitor/push-notifications');
+  if (!pushNotifModule) {
+    logStep('Importing @capacitor/push-notifications…');
+    pushNotifModule = await import('@capacitor/push-notifications');
+    logStep('Imported @capacitor/push-notifications OK');
+  }
   return pushNotifModule.PushNotifications;
 }
 
@@ -110,15 +141,21 @@ export async function initNotifications() {
 }
 
 async function initNotificationsImpl() {
+  logStep('initNotifications: start');
   try {
     if (Capacitor.isNativePlatform()) {
       const LocalNotifications = await getLocalNotifications();
+      logStep('Calling LocalNotifications.checkPermissions()…');
       let perm = await withTimeout(LocalNotifications.checkPermissions(), 8000, 'checkPermissions() did not respond in 8s');
+      logStep(`checkPermissions() -> display=${perm.display}`);
       if (perm.display !== 'granted') {
+        logStep('Calling LocalNotifications.requestPermissions()…');
         perm = await withTimeout(LocalNotifications.requestPermissions(), 15000, 'requestPermissions() did not respond in 15s — the permission dialog may not have appeared');
+        logStep(`requestPermissions() -> display=${perm.display}`);
       }
       pushStatus.localPermission = perm.display;
       if (!channelsReady) {
+        logStep('Creating notification channels…');
         await withTimeout(LocalNotifications.createChannel({
           id: 'messages',
           name: 'Messages',
@@ -127,7 +164,7 @@ async function initNotificationsImpl() {
           visibility: 1,
           sound: 'default',
           vibration: true
-        }), 5000, 'createChannel timed out').catch(() => {});
+        }), 5000, 'createChannel timed out').catch((e) => logStep(`createChannel(messages) failed: ${e.message}`));
         await withTimeout(LocalNotifications.createChannel({
           id: 'messages_silent',
           name: 'Messages (silent)',
@@ -135,8 +172,9 @@ async function initNotificationsImpl() {
           importance: 4,
           visibility: 1,
           vibration: false
-        }), 5000, 'createChannel timed out').catch(() => {});
+        }), 5000, 'createChannel timed out').catch((e) => logStep(`createChannel(messages_silent) failed: ${e.message}`));
         channelsReady = true;
+        logStep('Notification channels ready');
       }
     } else if ('Notification' in window) {
       if (!webPermissionAsked && Notification.permission === 'default') {
@@ -145,11 +183,14 @@ async function initNotificationsImpl() {
       }
       pushStatus.localPermission = Notification.permission === 'granted' ? 'granted' : Notification.permission;
     }
+    logStep('initNotifications: done');
   } catch (e) {
+    logStep(`initNotifications: ERROR — ${e.message}`);
     pushStatus.lastError = e.message;
   }
   emitStatus();
 }
+
 
 // Fires an immediate local notification for a newly-arrived message. Safe to
 // call unconditionally; every branch is best-effort and swallows errors.
@@ -184,12 +225,14 @@ export async function notifyNewMessage({ title, body, chatId, isGroup = false })
 // ignoring the on/off preference — isolates whether permission + the Android
 // notification channel/icon setup works at all, from the troubleshoot panel.
 export async function sendLocalTestNotification() {
+  logStep('sendLocalTestNotification: start');
   await initNotifications();
   const prefs = getNotifPrefs();
   try {
     if (Capacitor.isNativePlatform()) {
       const LocalNotifications = await getLocalNotifications();
-      await LocalNotifications.schedule({
+      logStep('Scheduling local test notification…');
+      await withTimeout(LocalNotifications.schedule({
         notifications: [{
           id: notifIdCounter++,
           title: 'FairyChat',
@@ -197,11 +240,13 @@ export async function sendLocalTestNotification() {
           channelId: prefs.sound ? 'messages' : 'messages_silent',
           smallIcon: 'ic_stat_notify'
         }]
-      });
+      }), 8000, 'schedule() did not respond in 8s');
+      logStep('schedule() returned OK — check the notification tray now');
     } else if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('FairyChat', { body: 'Local test notification — if you see this, local alerts work!' });
     }
   } catch (e) {
+    logStep(`sendLocalTestNotification: ERROR — ${e.message}`);
     pushStatus.lastError = e.message;
     emitStatus();
     throw e;
@@ -219,13 +264,17 @@ export async function registerPushIfConfigured(http) {
 }
 
 async function registerPushIfConfiguredImpl(http) {
+  logStep('registerPushIfConfigured: start');
   try {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform()) { logStep('Not a native platform — skipping push registration entirely'); return; }
     let data;
     try {
+      logStep('GET /push/config…');
       const res = await withTimeout(http.get('/push/config'), 20000, 'Could not reach the server to check push config (timed out)');
       data = res.data;
+      logStep(`/push/config -> ${JSON.stringify(data)}`);
     } catch (e) {
+      logStep(`/push/config FAILED: ${e.message}`);
       pushStatus.serverEnabled = false;
       pushStatus.serverError = e.message;
       emitStatus();
@@ -234,14 +283,19 @@ async function registerPushIfConfiguredImpl(http) {
     pushStatus.serverEnabled = !!data?.enabled;
     pushStatus.serverError = data?.error || null;
     emitStatus();
-    if (!data?.enabled) return;
+    if (!data?.enabled) { logStep('Server reports push not configured — stopping here'); return; }
 
     const PushNotifications = await getPushNotifications();
+    logStep('Calling PushNotifications.checkPermissions()…');
     let perm = await withTimeout(PushNotifications.checkPermissions(), 8000, 'checkPermissions() did not respond in 8s');
+    logStep(`checkPermissions() -> receive=${perm.receive}`);
     if (perm.receive !== 'granted') {
+      logStep('Calling PushNotifications.requestPermissions()…');
       perm = await withTimeout(PushNotifications.requestPermissions(), 15000, 'requestPermissions() did not respond in 15s — the permission dialog may not have appeared');
+      logStep(`requestPermissions() -> receive=${perm.receive}`);
     }
     if (perm.receive !== 'granted') {
+      logStep('Permission not granted — stopping here');
       pushStatus.lastError = 'Notification permission was not granted';
       emitStatus();
       return;
@@ -249,16 +303,20 @@ async function registerPushIfConfiguredImpl(http) {
 
     if (!pushListenersAttached) {
       pushListenersAttached = true;
+      logStep('Attaching registration/registrationError/pushNotificationReceived listeners');
       PushNotifications.addListener('registration', (token) => {
+        logStep(`'registration' event fired — token starts with ${String(token.value).slice(0, 12)}…`);
         pushStatus.tokenRegistered = true;
         pushStatus.registering = false;
         pushStatus.lastError = null;
         if (registrationWatchdog) { clearTimeout(registrationWatchdog); registrationWatchdog = null; }
         emitStatus();
         http.post('/push/register-token', { token: token.value, platform: 'android' })
-          .catch((e) => { pushStatus.lastError = `Token registered on device but saving to server failed: ${e.message}`; emitStatus(); });
+          .then(() => logStep('Token saved to server OK'))
+          .catch((e) => { logStep(`Saving token to server FAILED: ${e.message}`); pushStatus.lastError = `Token registered on device but saving to server failed: ${e.message}`; emitStatus(); });
       });
       PushNotifications.addListener('registrationError', (err) => {
+        logStep(`'registrationError' event fired: ${err?.error || JSON.stringify(err)}`);
         pushStatus.registering = false;
         pushStatus.lastError = `Registration error: ${err?.error || JSON.stringify(err)}`;
         if (registrationWatchdog) { clearTimeout(registrationWatchdog); registrationWatchdog = null; }
@@ -298,6 +356,7 @@ async function registerPushIfConfiguredImpl(http) {
     if (registrationWatchdog) clearTimeout(registrationWatchdog);
     registrationWatchdog = setTimeout(() => {
       if (!pushStatus.tokenRegistered) {
+        logStep('Watchdog: no registration/registrationError event within 12s');
         pushStatus.registering = false;
         pushStatus.lastError = 'No response after 12s. This usually means Google Play Services is missing, disabled, or out of date on this device.';
         emitStatus();
@@ -307,11 +366,14 @@ async function registerPushIfConfiguredImpl(http) {
     // register() is expected to resolve almost instantly; if it doesn't,
     // don't let it block the shared init queue — the watchdog above already
     // covers surfacing "stuck" to the user.
-    await withTimeout(PushNotifications.register(), 10000, 'register() call did not return in 10s').catch((e) => {
-      pushStatus.lastError = e.message;
-      emitStatus();
-    });
+    logStep('Calling PushNotifications.register()…');
+    await withTimeout(PushNotifications.register(), 10000, 'register() call did not return in 10s').then(
+      () => logStep('register() call returned OK (still waiting for registration/registrationError event)'),
+      (e) => { logStep(`register() call itself failed/timed out: ${e.message}`); pushStatus.lastError = e.message; emitStatus(); }
+    );
+    logStep('registerPushIfConfigured: function body finished (listeners may still fire later)');
   } catch (e) {
+    logStep(`registerPushIfConfigured: ERROR — ${e.message}`);
     pushStatus.registering = false;
     pushStatus.lastError = e.message;
     emitStatus();
@@ -321,6 +383,13 @@ async function registerPushIfConfiguredImpl(http) {
 // Asks the backend to send a real push to every device this account has
 // registered — the full end-to-end test, straight from Settings.
 export async function sendServerTestPush(http) {
-  const { data } = await http.post('/push/test');
-  return data;
+  logStep('sendServerTestPush: POST /push/test…');
+  try {
+    const { data } = await http.post('/push/test');
+    logStep(`/push/test -> ${JSON.stringify(data)}`);
+    return data;
+  } catch (e) {
+    logStep(`/push/test FAILED: ${e.response?.data?.error || e.message}`);
+    throw e;
+  }
 }

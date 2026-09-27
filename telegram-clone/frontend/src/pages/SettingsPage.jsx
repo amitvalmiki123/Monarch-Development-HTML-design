@@ -166,6 +166,41 @@ function NotificationTroubleshoot() {
       >
         🔄 Re-check status
       </button>
+
+      {/* Step-by-step trace of exactly what happened and when — copy this
+          and send it over if something above still looks wrong. This is
+          the single most useful thing for diagnosing a real-device issue
+          without needing adb/logcat access. */}
+      <details style={{ marginTop: 10 }}>
+        <summary style={{ fontSize: 12.5, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          Detailed log ({pushStatus.log.length} lines)
+        </summary>
+        <div
+          style={{
+            marginTop: 6, maxHeight: 220, overflowY: 'auto', background: 'var(--bg-input)',
+            border: '1px solid var(--border-soft)', borderRadius: 8, padding: 8,
+            fontFamily: 'monospace', fontSize: 10.5, lineHeight: 1.6, color: 'var(--text-secondary)',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word'
+          }}
+        >
+          {pushStatus.log.length ? pushStatus.log.join('\n') : '(no log lines yet)'}
+        </div>
+        <button
+          className="btn-primary"
+          style={{ width: '100%', marginTop: 6, background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12.5, padding: '8px 10px' }}
+          onClick={async () => {
+            const text = pushStatus.log.join('\n');
+            try {
+              await navigator.clipboard.writeText(text);
+              setLastResult({ ok: true, text: 'Log copied — paste it in chat.' });
+            } catch {
+              setLastResult({ ok: false, text: 'Could not copy automatically — long-press the log above to copy manually.' });
+            }
+          }}
+        >
+          📋 Copy debug log
+        </button>
+      </details>
     </div>
   );
 }
