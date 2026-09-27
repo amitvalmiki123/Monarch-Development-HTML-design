@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const auth = require('../middleware/auth');
 const { id, pickColor, publicUser } = require('../utils');
+const messageService = require('../services/messageService');
 
 const router = express.Router();
 
@@ -69,6 +70,7 @@ function chatSummary(chat, currentUserId) {
     pinned: !!(myMember && myMember.pinned_at),
     pinnedAt: myMember ? myMember.pinned_at : null,
     muted: !!(myMember && myMember.muted),
+    pinnedMessage: messageService.getPinnedMessage(chat.id),
     subscriberCount: chat.type === 'channel' ? members.length : undefined,
     lastMessage: lastMsg ? {
       id: lastMsg.id,

@@ -544,6 +544,7 @@
   padding: 12px 16px;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;
 }
 .selection-bar__close {
   width: 34px;
@@ -1047,24 +1048,169 @@
   margin: 0 auto 16px;
 }
 
-.msg-actions {
-  position: absolute;
-  top: -14px;
-  display: none;
+/* ===== Message action sheet (tap on a message) =====
+   Replaces the old ".msg-actions" hover row above, which had no real
+   anchor on touch devices and rendered jammed at the very top of the
+   screen. This is a fixed bottom sheet instead: no anchor math needed. */
+.action-sheet-overlay {
+  align-items: flex-end;
+  padding: 0;
+  z-index: 80;
+}
+.action-sheet {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg-sidebar));
+  border: 1px solid var(--border-soft);
+  border-bottom: none;
+  border-radius: 18px 18px 0 0;
+  padding: 14px 10px calc(14px + env(safe-area-inset-bottom, 0px));
+  box-shadow: var(--shadow-soft);
+  max-height: 78vh;
+  overflow-y: auto;
+  animation: sheet-rise 0.16s ease-out;
+}
+@keyframes sheet-rise {
+  from { transform: translateY(16px); opacity: 0.4; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.action-sheet__reactions {
+  display: flex;
+  justify-content: space-between;
   gap: 4px;
+  padding: 4px 6px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 8px;
+}
+.action-sheet__reaction {
+  background: none;
+  border: none;
+  font-size: 25px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+.action-sheet__reaction:hover { background: var(--bg-hover); transform: scale(1.18); }
+.action-sheet__list {
+  display: flex;
+  flex-direction: column;
+}
+.action-sheet__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+.action-sheet__item:hover { background: var(--bg-hover); }
+.action-sheet__item--danger { color: var(--danger); }
+.action-sheet__icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
+
+/* ===== Message multi-select (long-press a message) ===== */
+.msg-select-check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  font-size: 12px;
+  color: var(--text-on-gold);
+  background: var(--bg-elevated);
+  transition: background 0.12s, border-color 0.12s;
+}
+.msg-select-check.checked {
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  border-color: var(--gold);
+}
+.bubble-row.row-selected { background: var(--gold-soft); border-radius: 12px; }
+
+/* ===== Swipe-to-reply hint icon ===== */
+.swipe-reply-hint {
+  position: absolute;
+  left: 6px;
+  font-size: 18px;
+  color: var(--gold-light);
+  align-self: center;
+  pointer-events: none;
+}
+.bubble-row { position: relative; }
+
+/* ===== Pinned message tag (inside a pinned bubble) ===== */
+.pinned-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold-light);
+  margin-bottom: 3px;
+  opacity: 0.9;
+}
+
+/* ===== Pinned message banner (top of chat, below header) ===== */
+.pinned-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-soft);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.pinned-banner__icon { font-size: 15px; flex-shrink: 0; }
+.pinned-banner__body { flex: 1; min-width: 0; }
+.pinned-banner__label { font-size: 11px; font-weight: 700; color: var(--gold-light); }
+.pinned-banner__text {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pinned-banner__close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  flex-shrink: 0;
+  padding: 4px;
+}
+.pinned-banner__close:hover { color: var(--danger); }
+
+/* ===== In-chat message selection bottom bar (Reply / Forward) ===== */
+.selection-bottom-bar {
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-soft);
+  flex-shrink: 0;
+}
+.selection-bottom-bar__btn {
+  flex: 1;
   background: var(--bg-elevated);
   border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  padding: 3px;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 11px 0;
+  border-radius: 10px;
+  cursor: pointer;
 }
-.bubble-row.out .msg-actions { right: 8px; }
-.bubble-row.in .msg-actions { left: 8px; }
-.bubble-row:hover .msg-actions { display: flex; }
-.msg-actions button {
-  background: none; border: none; color: var(--text-secondary);
-  font-size: 12px; padding: 4px 6px; border-radius: 5px;
-}
-.msg-actions button:hover { color: var(--gold-light); background: rgba(255,255,255,0.06); }
+.selection-bottom-bar__btn:hover { border-color: var(--gold); color: var(--gold-light); }
+.selection-bottom-bar__btn:disabled { opacity: 0.4; pointer-events: none; }
 
 .connection-banner {
   background: var(--danger);

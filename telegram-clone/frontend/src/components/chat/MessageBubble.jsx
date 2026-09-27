@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { formatMessageTime, formatFileSize } from '../../utils/format';
 import { resolveMediaUrl } from '../../utils/resolveUrl';
-import { DEFAULT_QUICK_REACTIONS } from '../../data/emojiData';
+import { useMessageGestures } from '../../hooks/useMessageGestures';
 
 function Ticks({ read, pending, failed }) {
   if (failed) return <span title="Failed to send" style={{ color: 'var(--danger)' }}>⚠</span>;
@@ -12,19 +12,19 @@ function Ticks({ read, pending, failed }) {
 function FilePreview({ message }) {
   const fileUrl = resolveMediaUrl(message.fileUrl);
   if (message.type === 'image') {
-    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'photo'} onClick={() => window.open(fileUrl, '_blank')} />;
+    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'photo'} onClick={(e) => { e.stopPropagation(); window.open(fileUrl, '_blank'); }} />;
   }
   if (message.type === 'gif') {
-    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'GIF'} loading="lazy" />;
+    return <img className="msg-image" src={fileUrl} alt={message.fileName || 'GIF'} loading="lazy" onClick={(e) => e.stopPropagation()} />;
   }
   if (message.type === 'video') {
-    return <video src={fileUrl} controls style={{ maxWidth: 320, borderRadius: 12, marginBottom: 4 }} />;
+    return <video src={fileUrl} controls style={{ maxWidth: '100%', width: 280, borderRadius: 12, marginBottom: 4 }} onClick={(e) => e.stopPropagation()} />;
   }
   if (message.type === 'audio') {
-    return <audio src={fileUrl} controls style={{ marginBottom: 4 }} />;
+    return <audio src={fileUrl} controls style={{ marginBottom: 4 }} onClick={(e) => e.stopPropagation()} />;
   }
   return (
-    <a href={fileUrl} target="_blank" rel="noreferrer" className="file-chip">
+    <a href={fileUrl} target="_blank" rel="noreferrer" className="file-chip" onClick={(e) => e.stopPropagation()}>
       <span className="file-icon">📎</span>
       <span>
         <div style={{ fontWeight: 600, fontSize: 13.5 }}>{message.fileName || 'File'}</div>
@@ -43,7 +43,7 @@ function ReactionPills({ reactions, currentUserId, onToggle }) {
         <button
           key={emoji}
           className={`reaction-pill${users.includes(currentUserId) ? ' mine' : ''}`}
-          onClick={() => onToggle(emoji)}
+          onClick={(e) => { e.stopPropagation(); onToggle(emoji); }}
         >
           {emoji} <span>{users.length}</span>
         </button>
@@ -53,22 +53,33 @@ function ReactionPills({ reactions, currentUserId, onToggle }) {
 }
 
 export default function MessageBubble({
-  message, isOwn, senderName, showSenderName, onReply, onEdit, onDelete, replyPreview,
-  currentUserId, quickReactions, onReact
+  message, isOwn, senderName, showSenderName, replyPreview,
+  currentUserId, onReact,
+  isEditing, editDraft, onEditDraftChange, onSubmitEdit, onCancelEdit,
+  isPinned,
+  selectionMode, selected, onToggleSelect,
+  onOpenActions, onLongPress, onSwipeReply
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(message.content || '');
-  const [showReactBar, setShowReactBar] = useState(false);
-  const reactBarRef = useRef(null);
+  const [localDraft, setLocalDraft] = useState(message.content || '');
+  const draft = editDraft ?? localDraft;
+  const setDraft = onEditDraftChange || setLocalDraft;
 
-  useEffect(() => {
-    if (!showReactBar) return;
-    const onClickOutside = (e) => {
-      if (reactBarRef.current && !reactBarRef.current.contains(e.target)) setShowReactBar(false);
-    };
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [showReactBar]);
+  const { swipeX, handlers } = useMessageGestures({
+    disabled: message.deleted,
+    onTap: () => {
+      if (selectionMode) onToggleSelect?.(message.id);
+      else onOpenActions?.(message);
+    },
+    onLongPress: () => onLongPress?.(message),
+    onSwipeReply: () => onSwipeReply?.(message)
+  });
+
+  const toggleReaction = (emoji) => onReact?.(message.id, emoji);
+
+  const submitEdit = () => {
+    if (draft.trim() && draft !== message.content) onSubmitEdit(message.id, draft.trim());
+    else onCancelEdit();
+  };
 
   if (message.deleted) {
     return (
@@ -78,15 +89,8 @@ export default function MessageBubble({
     );
   }
 
-  const submitEdit = () => {
-    if (draft.trim() && draft !== message.content) onEdit(message.id, draft.trim());
-    setEditing(false);
-  };
-
-  const toggleReaction = (emoji) => {
-    onReact?.(message.id, emoji);
-    setShowReactBar(false);
-  };
+  const swipeStyle = swipeX > 0 ? { transform: `translateX(${swipeX}px)` } : undefined;
+  const replyHintStyle = { opacity: Math.min(1, swipeX / 40) };
 
   // Stickers render with no bubble background, same as Telegram: a real
   // animated sticker image (fileUrl, from the Stickers tab) when present,
@@ -95,8 +99,10 @@ export default function MessageBubble({
   if (message.type === 'sticker') {
     const stickerImg = message.fileUrl ? resolveMediaUrl(message.fileUrl) : null;
     return (
-      <div className={`bubble-row ${isOwn ? 'out' : 'in'}`}>
-        <div className="sticker-bubble">
+      <div className={`bubble-row ${isOwn ? 'out' : 'in'}${selected ? ' row-selected' : ''}`}>
+        {selectionMode && <span className={`msg-select-check${selected ? ' checked' : ''}`}>{selected ? '✓' : ''}</span>}
+        <span className="swipe-reply-hint" style={replyHintStyle}>↩</span>
+        <div className="sticker-bubble" style={swipeStyle} {...handlers}>
           {stickerImg ? (
             <img className="sticker-bubble__img" src={stickerImg} alt={message.fileName || 'Sticker'} loading="lazy" />
           ) : (
@@ -108,30 +114,18 @@ export default function MessageBubble({
           </div>
           <ReactionPills reactions={message.reactions} currentUserId={currentUserId} onToggle={toggleReaction} />
         </div>
-        {!editing && (
-          <div className="msg-actions">
-            <div className="react-popup-wrap" ref={reactBarRef}>
-              <button onClick={() => setShowReactBar((v) => !v)}>😊 React</button>
-              {showReactBar && (
-                <div className="quick-react-bar">
-                  {(quickReactions?.length ? quickReactions : DEFAULT_QUICK_REACTIONS).map((e) => (
-                    <button key={e} onClick={() => toggleReaction(e)}>{e}</button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button onClick={() => onReply(message)}>↩ Reply</button>
-            {isOwn && <button onClick={() => onDelete(message.id)}>🗑 Delete</button>}
-          </div>
-        )}
       </div>
     );
   }
 
   return (
-    <div className={`bubble-row ${isOwn ? 'out' : 'in'}`}>
-      <div className={`bubble ${isOwn ? 'out' : 'in'}`} style={{ opacity: message.pending ? 0.7 : 1 }}>
+    <div className={`bubble-row ${isOwn ? 'out' : 'in'}${selected ? ' row-selected' : ''}`}>
+      {selectionMode && <span className={`msg-select-check${selected ? ' checked' : ''}`}>{selected ? '✓' : ''}</span>}
+      <span className="swipe-reply-hint" style={replyHintStyle}>↩</span>
+      <div className={`bubble ${isOwn ? 'out' : 'in'}`} style={{ opacity: message.pending ? 0.7 : 1, ...swipeStyle }} {...handlers}>
         {!isOwn && showSenderName && <span className="sender-name">{senderName}</span>}
+
+        {isPinned && <div className="pinned-tag">📌 Pinned</div>}
 
         {replyPreview && (
           <div className="reply-quote">
@@ -142,18 +136,18 @@ export default function MessageBubble({
 
         {message.fileUrl && <FilePreview message={message} />}
 
-        {editing ? (
-          <div>
+        {isEditing ? (
+          <div onClick={(e) => e.stopPropagation()}>
             <textarea
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               style={{ width: '100%', minWidth: 200, background: 'rgba(0,0,0,0.2)', border: 'none', borderRadius: 8, color: '#fff', padding: 6, fontSize: 14 }}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(); } if (e.key === 'Escape') setEditing(false); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(); } if (e.key === 'Escape') onCancelEdit(); }}
             />
             <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
               <button onClick={submitEdit} style={{ fontSize: 11, background: 'none', border: 'none', color: 'var(--gold-light)' }}>Save</button>
-              <button onClick={() => setEditing(false)} style={{ fontSize: 11, background: 'none', border: 'none', color: 'var(--text-secondary)' }}>Cancel</button>
+              <button onClick={onCancelEdit} style={{ fontSize: 11, background: 'none', border: 'none', color: 'var(--text-secondary)' }}>Cancel</button>
             </div>
           </div>
         ) : (
@@ -168,24 +162,6 @@ export default function MessageBubble({
 
         <ReactionPills reactions={message.reactions} currentUserId={currentUserId} onToggle={toggleReaction} />
       </div>
-
-      {!editing && (
-        <div className="msg-actions">
-          <div className="react-popup-wrap" ref={reactBarRef}>
-            <button onClick={() => setShowReactBar((v) => !v)}>😊 React</button>
-            {showReactBar && (
-              <div className="quick-react-bar">
-                {(quickReactions?.length ? quickReactions : DEFAULT_QUICK_REACTIONS).map((e) => (
-                  <button key={e} onClick={() => toggleReaction(e)}>{e}</button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button onClick={() => onReply(message)}>↩ Reply</button>
-          {isOwn && message.type === 'text' && <button onClick={() => setEditing(true)}>✎ Edit</button>}
-          {isOwn && <button onClick={() => onDelete(message.id)}>🗑 Delete</button>}
-        </div>
-      )}
     </div>
   );
 }

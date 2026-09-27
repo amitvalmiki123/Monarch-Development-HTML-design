@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import Sidebar from '../components/sidebar/Sidebar';
 import ChatWindow from '../components/chat/ChatWindow';
 import BottomNav from '../components/nav/BottomNav';
@@ -7,6 +9,7 @@ import ContactsPage from './ContactsPage';
 import SettingsPage from './SettingsPage';
 import ProfilePage from './ProfilePage';
 import { useChat } from '../context/ChatContext';
+import { consumeBack } from '../utils/backStack';
 
 export default function ChatApp() {
   const { chats, openChat } = useChat();
@@ -26,6 +29,30 @@ export default function ChatApp() {
     setTab(nextTab);
     if (nextTab !== 'chats') setActiveChatId(null);
   };
+
+  // Android hardware/gesture back button: go back one screen inside the
+  // app (any open popup/sheet first, then out of a chat to the chat list,
+  // then out of Settings/Contacts/Profile to the chat list) and only exit
+  // the app once we're already sitting at that root chat-list screen.
+  // Without this listener Capacitor's default is to always minimize/exit
+  // the app on every back press, which is the bug being fixed here.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    let listenerHandle;
+    CapacitorApp.addListener('backButton', () => {
+      if (consumeBack()) return;
+      if (tab === 'chats' && activeChatId) {
+        setActiveChatId(null);
+        return;
+      }
+      if (tab !== 'chats') {
+        setTab('chats');
+        return;
+      }
+      CapacitorApp.exitApp();
+    }).then((handle) => { listenerHandle = handle; });
+    return () => { listenerHandle?.remove(); };
+  }, [tab, activeChatId]);
 
   const chatOpenOnMobile = tab === 'chats' && !!activeChatId;
 

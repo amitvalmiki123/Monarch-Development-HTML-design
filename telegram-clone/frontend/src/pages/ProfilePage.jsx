@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import Avatar from '../components/common/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
+import { CameraGlyphIcon, PencilGlyphIcon, AtIcon, InfoIcon, PhoneIcon } from '../components/common/SettingsIcons';
+import { SettingsIcon } from '../components/nav/NavIcons';
 
 export default function ProfilePage({ onOpenSettings }) {
   const { user, updateProfile } = useAuth();
@@ -56,7 +58,7 @@ export default function ProfilePage({ onOpenSettings }) {
       <div className="profile-hero">
         <div className="profile-hero__avatar" onClick={() => fileInputRef.current?.click()}>
           <Avatar name={user.name} color={user.avatarColor} photoUrl={user.avatarUrl} size={104} />
-          <div className="profile-hero__camera">{uploadingPhoto ? '…' : '📷'}</div>
+          <div className="profile-hero__camera">{uploadingPhoto ? '…' : <CameraGlyphIcon />}</div>
         </div>
         <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handlePhotoPick} />
 
@@ -77,26 +79,26 @@ export default function ProfilePage({ onOpenSettings }) {
 
         <div className="profile-hero__actions">
           <button onClick={() => fileInputRef.current?.click()}>
-            <span>{uploadingPhoto ? '…' : '📷'}</span> Set Photo
+            <span>{uploadingPhoto ? '…' : <CameraGlyphIcon />}</span> Set Photo
           </button>
           <button onClick={editing ? save : startEdit}>
-            <span>✎</span> Edit Info
+            <span><PencilGlyphIcon /></span> Edit Info
           </button>
           <button onClick={onOpenSettings}>
-            <span>⚙️</span> Settings
+            <span><SettingsIcon active /></span> Settings
           </button>
         </div>
       </div>
 
       <div className="settings-scroll">
         <div className="settings-section">
-          {user.phone && <Row icon="📱" iconColor="green" label={user.phone} sub="Mobile" />}
-          <Row icon="@" iconColor="orange" label={`@${user.username}`} sub="Username" />
+          {user.phone && <Row icon={<PhoneIcon />} iconColor="green" label={user.phone} sub="Mobile" />}
+          <Row icon={<AtIcon />} iconColor="orange" label={`@${user.username}`} sub="Username" />
           {!editing ? (
-            <Row icon="ℹ️" iconColor="blue" label={user.bio || 'Add a bio'} sub="Bio" />
+            <Row icon={<InfoIcon />} iconColor="blue" label={user.bio || 'Add a bio'} sub="Bio" />
           ) : (
             <div className="settings-row">
-              <span className="settings-row__icon--badge icon-badge--blue">ℹ️</span>
+              <span className="settings-row__icon--badge icon-badge--blue"><InfoIcon /></span>
               <div className="settings-row__text" style={{ width: '100%' }}>
                 <div className="settings-row__sub">Bio</div>
                 <input

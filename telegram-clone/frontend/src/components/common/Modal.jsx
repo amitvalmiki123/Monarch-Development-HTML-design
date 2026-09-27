@@ -1,4 +1,14 @@
+import { useEffect } from 'react';
+import { pushBackHandler, popBackHandler } from '../../utils/backStack';
+
 export default function Modal({ title, onClose, children, width }) {
+  // Let the Android hardware/gesture back button close this modal instead
+  // of minimizing the whole app or navigating the screen behind it.
+  useEffect(() => {
+    pushBackHandler(onClose);
+    return () => popBackHandler(onClose);
+  }, [onClose]);
+
   return (
     <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-box" style={width ? { maxWidth: width } : undefined}>

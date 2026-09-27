@@ -5,6 +5,11 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme, WALLPAPERS } from '../context/ThemeContext';
 import { useChat } from '../context/ChatContext';
 import { EMOJI_CATEGORIES, REACTION_CHOICES, DEFAULT_QUICK_REACTIONS } from '../data/emojiData';
+import {
+  UserGlyphIcon, AtIcon, InfoIcon, CakeIcon, AddPersonIcon, LogoutIcon,
+  MoonIcon, SunIcon, BookmarkIcon, ImageIcon, BellIcon, GroupIcon,
+  SpeakerIcon, WrenchIcon, PuzzleIcon, TrashIcon, CrownIcon
+} from '../components/common/SettingsIcons';
 import http from '../api/http';
 import { pushStatus, subscribeStatus, initNotifications, registerPushIfConfigured, sendLocalTestNotification, sendServerTestPush, getNotifPrefs, setNotifPrefs } from '../utils/notifications';
 
@@ -38,28 +43,28 @@ function NotificationSettings() {
   return (
     <>
       <Row
-        icon="🔔"
+        icon={<BellIcon />}
         iconColor="orange"
         label="Message notifications"
         sub="Alerts for new messages"
         right={<Switch checked={prefs.messages} onChange={() => update({ messages: !prefs.messages })} />}
       />
       <Row
-        icon="👥"
+        icon={<GroupIcon />}
         iconColor="green"
         label="Group notifications"
         sub="Alerts for group and channel messages"
         right={<Switch checked={prefs.groups} onChange={() => update({ groups: !prefs.groups })} />}
       />
       <Row
-        icon="🔊"
+        icon={<SpeakerIcon />}
         iconColor="purple"
         label="Sound"
         sub="Play a sound with notifications"
         right={<Switch checked={prefs.sound} onChange={() => update({ sound: !prefs.sound })} />}
       />
       <Row
-        icon="🛠️"
+        icon={<WrenchIcon />}
         iconColor="gray"
         label="Troubleshoot notifications"
         sub="Not getting notifications? Tap to check what's wrong"
@@ -321,9 +326,9 @@ export default function SettingsPage({ onOpenSaved }) {
 
         <div className="settings-section">
           <div className="settings-section__title">Account</div>
-          <EditableRow icon="👤" iconColor="blue" label="Profile Name" value={user?.name} placeholder="Add your name" onSave={(v) => v && updateProfile({ name: v })} />
-          <EditableRow icon="ℹ️" iconColor="green" label="Bio" value={user?.bio} placeholder="Add a bio" onSave={(v) => updateProfile({ bio: v })} />
-          <EditableRow icon="🎂" iconColor="pink" label="Birthday" value={user?.birthday} placeholder="Add Birthday" type="date" onSave={(v) => updateProfile({ birthday: v })} />
+          <EditableRow icon={<UserGlyphIcon />} iconColor="blue" label="Profile Name" value={user?.name} placeholder="Add your name" onSave={(v) => v && updateProfile({ name: v })} />
+          <EditableRow icon={<InfoIcon />} iconColor="green" label="Bio" value={user?.bio} placeholder="Add a bio" onSave={(v) => updateProfile({ bio: v })} />
+          <EditableRow icon={<CakeIcon />} iconColor="pink" label="Birthday" value={user?.birthday} placeholder="Add Birthday" type="date" onSave={(v) => updateProfile({ birthday: v })} />
         </div>
 
         <div className="settings-section">
@@ -346,15 +351,15 @@ export default function SettingsPage({ onOpenSaved }) {
               <button className="account-switch-row__remove" onClick={(e) => handleRemoveSavedAccount(e, a.user.id, a.user.name)}>✕</button>
             </div>
           ))}
-          <Row icon="➕" iconColor="blue" label="Add Another Account" sub="Sign in or register with a different account" onClick={() => navigate('/login?addAccount=1')} />
-          <Row icon="🚪" iconColor="red" label="Log Out" onClick={() => logout()} danger />
+          <Row icon={<AddPersonIcon />} iconColor="blue" label="Add Another Account" sub="Sign in or register with a different account" onClick={() => navigate('/login?addAccount=1')} />
+          <Row icon={<LogoutIcon />} iconColor="red" label="Log Out" onClick={() => logout()} danger />
         </div>
 
         <div className="settings-section">
           <div className="settings-section__title">Chat Settings</div>
           <div className="settings-row" style={{ display: 'block' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
-              <span className="settings-row__icon--badge icon-badge--orange">🖼️</span>
+              <span className="settings-row__icon--badge icon-badge--orange"><ImageIcon /></span>
               <div className="settings-row__text">
                 <div className="settings-row__label">Chat Wallpaper</div>
                 <div className="settings-row__sub">Choose a background for your chats</div>
@@ -374,20 +379,20 @@ export default function SettingsPage({ onOpenSaved }) {
             </div>
           </div>
           <Row
-            icon={theme === 'dark' ? '🌙' : '☀️'}
+            icon={theme === 'dark' ? <MoonIcon /> : <SunIcon />}
             iconColor="orange"
             label="Night Mode"
             sub={theme === 'dark' ? 'On' : 'Off'}
             right={<Switch checked={theme === 'dark'} onChange={toggleTheme} />}
           />
-          <Row icon="🔖" iconColor="blue" label="Saved Messages" sub="Send notes and files to yourself" onClick={() => savedChat && onOpenSaved(savedChat.id)} />
+          <Row icon={<BookmarkIcon />} iconColor="blue" label="Saved Messages" sub="Send notes and files to yourself" onClick={() => savedChat && onOpenSaved(savedChat.id)} />
           <NotificationSettings />
         </div>
 
         <div className="settings-section">
           <div className="settings-section__title">Stickers &amp; Emoji</div>
           <Row
-            icon="🧩"
+            icon={<PuzzleIcon />}
             iconColor="purple"
             label="Stickers"
             sub="Real, animated Telegram-style stickers — search or browse trending in the Stickers tab"
@@ -427,14 +432,14 @@ export default function SettingsPage({ onOpenSaved }) {
 
         <div className="settings-section">
           <div className="settings-section__title">About</div>
-          <Row icon="👑" iconColor="gold" label="FairyChat" sub="v1.0 — your own private messaging platform" />
+          <Row icon={<CrownIcon />} iconColor="gold" label="FairyChat" sub="v1.0 — your own private messaging platform" />
         </div>
 
         <div className="settings-section">
           <div className="settings-section__title">Danger Zone</div>
           {!deleting ? (
             <Row
-              icon="🗑️"
+              icon={<TrashIcon />}
               iconColor="red"
               label="Delete Account"
               sub="Permanently deletes your account. This cannot be undone."

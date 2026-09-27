@@ -109,4 +109,51 @@ function chatMemberIds(chatId) {
   return db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(chatId).map(r => r.user_id);
 }
 
-module.exports = { createMessage, getMessage, editMessage, deleteMessage, toggleReaction, isMember, canPost, chatMemberIds };
+// Copies an existing message's content into another chat as a brand new
+// message authored by `userId` — a deliberately simple v1 "Forward" (no
+// "Forwarded from X" attribution label yet, same restrictions as sending
+// normally: must be a member of the target chat and allowed to post there).
+function forwardMessage(messageId, userId, targetChatId) {
+  const m = db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+  if (!m || m.deleted) throw new Error('NOT_FOUND');
+  if (!isMember(m.chat_id, userId)) throw new Error('FORBIDDEN');
+  return createMessage({
+    chatId: targetChatId,
+    senderId: userId,
+    type: m.type,
+    content: m.content,
+    fileUrl: m.file_url,
+    fileName: m.file_name,
+    fileSize: m.file_size
+  });
+}
+
+// Pins/unpins a message as the single banner shown under a chat's header.
+// Any member can pin/unpin in a direct chat or group (matches this app's
+// existing "anyone can mute/clear" permission model — there's no separate
+// admin-only gate anywhere else yet); channels restrict posting already via
+// canPost, so only an owner/admin could have authored the message anyway.
+function pinMessage(messageId, userId) {
+  const m = db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+  if (!m || m.deleted) throw new Error('NOT_FOUND');
+  if (!isMember(m.chat_id, userId)) throw new Error('FORBIDDEN');
+  db.prepare('UPDATE chats SET pinned_message_id = ? WHERE id = ?').run(messageId, m.chat_id);
+  return { chatId: m.chat_id, message: getMessage(messageId) };
+}
+
+function unpinMessage(chatId, userId) {
+  if (!isMember(chatId, userId)) throw new Error('FORBIDDEN');
+  db.prepare('UPDATE chats SET pinned_message_id = NULL WHERE id = ?').run(chatId);
+  return { chatId };
+}
+
+function getPinnedMessage(chatId) {
+  const chat = db.prepare('SELECT pinned_message_id FROM chats WHERE id = ?').get(chatId);
+  if (!chat || !chat.pinned_message_id) return null;
+  return getMessage(chat.pinned_message_id);
+}
+
+module.exports = {
+  createMessage, getMessage, editMessage, deleteMessage, toggleReaction, isMember, canPost, chatMemberIds,
+  forwardMessage, pinMessage, unpinMessage, getPinnedMessage
+};

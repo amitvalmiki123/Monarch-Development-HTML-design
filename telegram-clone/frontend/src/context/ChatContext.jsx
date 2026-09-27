@@ -174,6 +174,37 @@ export function ChatProvider({ children }) {
     });
   }, []);
 
+  const forwardMessage = useCallback((messageId, chatIds) => {
+    const socket = getSocket();
+    return new Promise((resolve, reject) => {
+      socket.emit('message:forward', { messageId, chatIds }, (res) => {
+        if (res?.error) reject(res.error); else resolve(res.messages);
+      });
+    });
+  }, []);
+
+  const pinMessage = useCallback((messageId) => {
+    const socket = getSocket();
+    return new Promise((resolve, reject) => {
+      socket.emit('message:pin', { messageId }, (res) => {
+        if (res?.error) { reject(res.error); return; }
+        setChats((prev) => prev.map((c) => (c.id === res.message.chatId ? { ...c, pinnedMessage: res.message } : c)));
+        resolve(res.message);
+      });
+    });
+  }, []);
+
+  const unpinMessage = useCallback((chatId) => {
+    const socket = getSocket();
+    return new Promise((resolve, reject) => {
+      socket.emit('message:unpin', { chatId }, (res) => {
+        if (res?.error) { reject(res.error); return; }
+        setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, pinnedMessage: null } : c)));
+        resolve();
+      });
+    });
+  }, []);
+
   const startTyping = useCallback((chatId) => {
     const socket = getSocket();
     if (socket) socket.emit('typing:start', { chatId });
@@ -381,11 +412,16 @@ export function ChatProvider({ children }) {
       })));
     };
 
+    const handlePinned = ({ chatId, message }) => {
+      setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, pinnedMessage: message } : c)));
+    };
+
     socket.on('message:new', handleNewMessage);
     socket.on('message:updated', handleUpdatedMessage);
     socket.on('message:read', handleRead);
     socket.on('typing:update', handleTyping);
     socket.on('presence:update', handlePresence);
+    socket.on('chat:pinned', handlePinned);
 
     return () => {
       socket.off('message:new', handleNewMessage);
@@ -393,6 +429,7 @@ export function ChatProvider({ children }) {
       socket.off('message:read', handleRead);
       socket.off('typing:update', handleTyping);
       socket.off('presence:update', handlePresence);
+      socket.off('chat:pinned', handlePinned);
     };
   }, [token, user, markRead]);
 
@@ -413,6 +450,7 @@ export function ChatProvider({ children }) {
   const value = {
     chats, chatsLoaded, activeChatId, messagesByChat, hasMoreByChat, typingByChat,
     loadChats, openChat, sendMessage, editMessage, deleteMessage, reactToMessage,
+    forwardMessage, pinMessage, unpinMessage,
     startTyping, stopTyping, createDirectChat, createGroupChat, createChannelChat,
     addChatMember, updateChatInfo, searchUsers, matchContacts, listContacts, searchGifs, trendingGifs,
     searchStickers, trendingStickers, uploadFile,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import { ChatBubbleGlyphIcon, UsersGlyphIcon, MegaphoneGlyphIcon, MoonIcon, SunIcon } from '../common/SettingsIcons';
 
 export default function TopMenu({ onNewDirect, onNewGroup, onNewChannel }) {
   const { theme, toggleTheme } = useTheme();
@@ -26,11 +27,11 @@ export default function TopMenu({ onNewDirect, onNewGroup, onNewChannel }) {
       <button className="icon-btn" onClick={() => setOpen((v) => !v)} title="Menu">⋮</button>
       {open && (
         <div className="top-menu">
-          {item(onNewDirect, '💬', 'New Chat')}
-          {item(onNewGroup, '👥', 'New Group')}
-          {item(onNewChannel, '📢', 'New Channel')}
+          {item(onNewDirect, <ChatBubbleGlyphIcon />, 'New Chat')}
+          {item(onNewGroup, <UsersGlyphIcon />, 'New Group')}
+          {item(onNewChannel, <MegaphoneGlyphIcon />, 'New Channel')}
           <div className="top-menu__divider" />
-          {item(toggleTheme, theme === 'dark' ? '☀️' : '🌙', theme === 'dark' ? 'Light Mode' : 'Dark Mode')}
+          {item(toggleTheme, theme === 'dark' ? <SunIcon /> : <MoonIcon />, theme === 'dark' ? 'Light Mode' : 'Dark Mode')}
         </div>
       )}
     </div>

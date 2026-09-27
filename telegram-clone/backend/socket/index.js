@@ -111,6 +111,59 @@ function setupSocket(io) {
       }
     });
 
+    // Forwards one message into one or more OTHER chats the user is a
+    // member of — each target gets its own brand new message (with its own
+    // id/seq/timestamp), broadcast exactly like a normal send so every
+    // member (and push notifications) work identically to any other
+    // message.
+    socket.on('message:forward', (payload, ack) => {
+      try {
+        const { messageId, chatIds } = payload;
+        const targets = Array.isArray(chatIds) ? chatIds : [chatIds];
+        const sender = db.prepare('SELECT name FROM users WHERE id = ?').get(userId);
+        const results = targets.map((targetChatId) => {
+          const message = messageService.forwardMessage(messageId, userId, targetChatId);
+          io.to(`chat:${targetChatId}`).emit('message:new', message);
+          const chat = db.prepare('SELECT name, type FROM chats WHERE id = ?').get(targetChatId);
+          const otherMemberIds = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ? AND user_id != ? AND muted = 0')
+            .all(targetChatId, userId).map((r) => r.user_id);
+          const title = chat && (chat.type === 'group' || chat.type === 'channel')
+            ? `${sender?.name || 'Someone'} • ${chat.name}`
+            : (sender?.name || 'New message');
+          otherMemberIds.forEach((memberId) => sendPushToUser(memberId, { title, body: messagePreviewText(message), chatId: targetChatId }));
+          return message;
+        });
+        if (ack) ack({ messages: results });
+      } catch (e) {
+        if (ack) ack({ error: 'Could not forward message' });
+      }
+    });
+
+    // Pins a message as the single banner shown under that chat's header —
+    // pinning a new one silently replaces whatever was pinned before, same
+    // as unpremium Telegram/WhatsApp behaviour.
+    socket.on('message:pin', (payload, ack) => {
+      try {
+        const { messageId } = payload;
+        const { chatId, message } = messageService.pinMessage(messageId, userId);
+        io.to(`chat:${chatId}`).emit('chat:pinned', { chatId, message });
+        if (ack) ack({ message });
+      } catch (e) {
+        if (ack) ack({ error: 'Could not pin message' });
+      }
+    });
+
+    socket.on('message:unpin', (payload, ack) => {
+      try {
+        const { chatId } = payload;
+        messageService.unpinMessage(chatId, userId);
+        io.to(`chat:${chatId}`).emit('chat:pinned', { chatId, message: null });
+        if (ack) ack({});
+      } catch (e) {
+        if (ack) ack({ error: 'Could not unpin message' });
+      }
+    });
+
     socket.on('message:read', (payload) => {
       const { chatId, seq } = payload;
       if (!messageService.isMember(chatId, userId)) return;

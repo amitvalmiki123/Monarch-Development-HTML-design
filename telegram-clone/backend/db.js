@@ -235,6 +235,18 @@ CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
   }
 })();
 
+// --- Migration: one pinned MESSAGE per chat (shown as a banner under the
+// chat header, tap to jump to it) — distinct from chat_members.pinned_at
+// above, which pins an entire CHAT to the top of the chat list. Kept as a
+// single column on chats (not a separate table) since only one message can
+// be pinned at a time in this app, same as most non-premium chat apps.
+(function migrateChatsPinnedMessage() {
+  const cols = db.prepare("PRAGMA table_info(chats)").all();
+  if (!cols.some((c) => c.name === 'pinned_message_id')) {
+    db.exec('ALTER TABLE chats ADD COLUMN pinned_message_id TEXT');
+  }
+})();
+
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like
 // better-sqlite3 did, so provide a tiny drop-in replacement with the same
 // call shape: `db.transaction(fn)` returns a function that runs fn inside a
