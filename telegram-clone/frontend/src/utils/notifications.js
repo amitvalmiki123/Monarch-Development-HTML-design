@@ -1,7 +1,5 @@
 import { Capacitor } from '@capacitor/core';
 
-let localNotifModule = null;
-let pushNotifModule = null;
 let channelsReady = false;
 let webPermissionAsked = false;
 let notifIdCounter = 1;
@@ -112,22 +110,48 @@ if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (e) => logStep(`unhandled promise rejection: ${e.reason?.message || e.reason}`));
 }
 
-async function getLocalNotifications() {
-  if (!localNotifModule) {
+// IMPORTANT: never let a Promise resolve *with the raw plugin object itself*
+// as its value (e.g. `async function f() { return LocalNotifications; }`,
+// or `Promise.resolve(LocalNotifications)`). Capacitor's plugin object is a
+// Proxy that bridges *every* property access to a native call — including
+// "then". When a Promise resolves to a value, the JS engine checks whether
+// that value looks like a thenable (has a `.then` function) and, if so,
+// calls `.then()` on it to adopt its state. Doing that on a Capacitor plugin
+// proxy makes it try to bridge a native call literally named "then", which
+// obviously doesn't exist, producing the exact
+// `"LocalNotifications.then()" is not implemented on android` crash — this
+// was happening on *every single device*, on the very first plugin call,
+// which is why local + push notifications have never actually worked here.
+// The fix: keep the plugin reference in a plain module-scope variable that's
+// read directly (never returned through a Promise/async-function boundary),
+// and only ever await the *result of calling a real method* on it (which is
+// a genuine native-bridged Promise, safe to await normally).
+let localNotifPlugin = null;
+let localNotifImportPromise = null;
+function ensureLocalNotifications() {
+  if (localNotifPlugin) return Promise.resolve();
+  if (!localNotifImportPromise) {
     logStep('Importing @capacitor/local-notifications…');
-    localNotifModule = await import('@capacitor/local-notifications');
-    logStep('Imported @capacitor/local-notifications OK');
+    localNotifImportPromise = import('@capacitor/local-notifications').then((mod) => {
+      localNotifPlugin = mod.LocalNotifications;
+      logStep('Imported @capacitor/local-notifications OK');
+    });
   }
-  return localNotifModule.LocalNotifications;
+  return localNotifImportPromise;
 }
 
-async function getPushNotifications() {
-  if (!pushNotifModule) {
+let pushNotifPlugin = null;
+let pushNotifImportPromise = null;
+function ensurePushNotifications() {
+  if (pushNotifPlugin) return Promise.resolve();
+  if (!pushNotifImportPromise) {
     logStep('Importing @capacitor/push-notifications…');
-    pushNotifModule = await import('@capacitor/push-notifications');
-    logStep('Imported @capacitor/push-notifications OK');
+    pushNotifImportPromise = import('@capacitor/push-notifications').then((mod) => {
+      pushNotifPlugin = mod.PushNotifications;
+      logStep('Imported @capacitor/push-notifications OK');
+    });
   }
-  return pushNotifModule.PushNotifications;
+  return pushNotifImportPromise;
 }
 
 // Sets up whatever's needed so `notifyNewMessage` can fire immediately:
@@ -144,7 +168,8 @@ async function initNotificationsImpl() {
   logStep('initNotifications: start');
   try {
     if (Capacitor.isNativePlatform()) {
-      const LocalNotifications = await getLocalNotifications();
+      await ensureLocalNotifications();
+      const LocalNotifications = localNotifPlugin;
       logStep('Calling LocalNotifications.checkPermissions()…');
       let perm = await withTimeout(LocalNotifications.checkPermissions(), 8000, 'checkPermissions() did not respond in 8s');
       logStep(`checkPermissions() -> display=${perm.display}`);
@@ -201,7 +226,8 @@ export async function notifyNewMessage({ title, body, chatId, isGroup = false })
   if (isGroup && !prefs.groups) return;
   try {
     if (Capacitor.isNativePlatform()) {
-      const LocalNotifications = await getLocalNotifications();
+      await ensureLocalNotifications();
+      const LocalNotifications = localNotifPlugin;
       await LocalNotifications.schedule({
         notifications: [{
           id: notifIdCounter++,
@@ -230,7 +256,8 @@ export async function sendLocalTestNotification() {
   const prefs = getNotifPrefs();
   try {
     if (Capacitor.isNativePlatform()) {
-      const LocalNotifications = await getLocalNotifications();
+      await ensureLocalNotifications();
+      const LocalNotifications = localNotifPlugin;
       logStep('Scheduling local test notification…');
       await withTimeout(LocalNotifications.schedule({
         notifications: [{
@@ -285,7 +312,8 @@ async function registerPushIfConfiguredImpl(http) {
     emitStatus();
     if (!data?.enabled) { logStep('Server reports push not configured — stopping here'); return; }
 
-    const PushNotifications = await getPushNotifications();
+    await ensurePushNotifications();
+    const PushNotifications = pushNotifPlugin;
     logStep('Calling PushNotifications.checkPermissions()…');
     let perm = await withTimeout(PushNotifications.checkPermissions(), 8000, 'checkPermissions() did not respond in 8s');
     logStep(`checkPermissions() -> receive=${perm.receive}`);
@@ -329,7 +357,8 @@ async function registerPushIfConfiguredImpl(http) {
       PushNotifications.addListener('pushNotificationReceived', async (notification) => {
         const prefs = getNotifPrefs();
         if (!prefs.messages) return;
-        const LocalNotifications = await getLocalNotifications();
+        await ensureLocalNotifications();
+        const LocalNotifications = localNotifPlugin;
         LocalNotifications.schedule({
           notifications: [{
             id: notifIdCounter++,
