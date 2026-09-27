@@ -261,6 +261,47 @@ CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
   }
 })();
 
+// --- Profile picture gallery: every photo a user has ever set as their
+// avatar is kept here (not overwritten), newest first, so the profile
+// screen's "pull down to browse all your profile photos" view (Telegram-
+// style) has something to swipe through. users.avatar_url always mirrors
+// the newest row here — every other place in the app that just wants "the"
+// current avatar keeps working unchanged.
+db.exec(`
+CREATE TABLE IF NOT EXISTS user_avatars (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_user_avatars_user ON user_avatars(user_id, created_at);
+`);
+
+// --- Profile "Posts" (the grid shown on the profile screen's Posts /
+// Archived Posts tabs). Posting one also lights up a 24h "story ring"
+// around the user's avatar (computed live from created_at, no separate
+// stories table needed) — same simplified model as this app's other
+// features: one piece of content serves both the permanent profile grid
+// and the temporary story indicator, rather than maintaining two parallel
+// systems.
+db.exec(`
+CREATE TABLE IF NOT EXISTS posts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'photo' CHECK(type IN ('photo','video')),
+  file_url TEXT NOT NULL,
+  file_name TEXT,
+  file_size INTEGER,
+  caption TEXT DEFAULT '',
+  archived INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id, created_at);
+`);
+
+
 
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like
 // better-sqlite3 did, so provide a tiny drop-in replacement with the same

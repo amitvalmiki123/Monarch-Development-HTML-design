@@ -61,4 +61,13 @@
     <!-- Android 13+ requires this to be declared (and granted at runtime)
          before any notification — local or push — can be shown. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Profile "Add a post" camera capture (photo/video) uses the device
+         camera and mic straight from the WebView via getUserMedia/
+         MediaRecorder — these need to be declared for the system to grant
+         them at runtime. android:required="false" on the camera feature so
+         the app still installs on a device/emulator with no camera. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 </manifest>

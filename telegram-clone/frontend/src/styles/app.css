@@ -173,6 +173,16 @@
 .settings-row__text { flex: 1; min-width: 0; }
 .settings-row__label { font-size: 14.5px; color: var(--text-primary); }
 .settings-row__sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; line-height: 1.4; }
+.settings-row__copied {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gold-light);
+  flex-shrink: 0;
+}
+.settings-row__copied svg { width: 14px; height: 14px; }
 
 /* Colored rounded-square icon badge, Telegram Settings-style (each row gets
    its own accent color instead of a bare glyph). */
@@ -294,11 +304,114 @@
   align-items: center;
   padding: 10px 16px 22px;
   background: linear-gradient(160deg, var(--bubble-out-from), var(--bg-panel) 75%);
+  position: relative;
+  touch-action: pan-y;
+}
+.profile-hero.is-dragging { transition: none; }
+
+.profile-hero__pull-hint {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  transition: opacity 0.15s;
 }
 
 .profile-hero__avatar {
   position: relative;
   cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.15s;
+}
+
+/* The colored ring around the avatar that shows "this person has an active
+   story right now" — same idea as Instagram/Telegram/WhatsApp status
+   rings, styled with this app's own gold/purple palette. */
+.profile-hero__avatar.has-story-ring .avatar {
+  box-shadow: 0 0 0 3px var(--bg-panel), 0 0 0 6px var(--gold);
+}
+.avatar-story-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(from 180deg, var(--gold), var(--gold-light), var(--bubble-out-from), var(--gold));
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.avatar-story-ring .avatar { box-shadow: 0 0 0 2px var(--bg-panel); }
+
+/* --- Expanded (pulled-down) full-bleed profile photo view --- */
+.profile-hero--expanded {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 62vh;
+  padding: 0;
+  z-index: 40;
+  background: #000;
+  overflow: hidden;
+  animation: profileHeroExpand 0.22s ease;
+}
+@keyframes profileHeroExpand {
+  from { height: 30vh; opacity: 0.4; }
+  to { height: 62vh; opacity: 1; }
+}
+.profile-hero__segments {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 3;
+}
+.profile-hero__segment {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+}
+.profile-hero__segment.is-active, .profile-hero__segment.is-past { background: #fff; }
+.profile-hero__collapse {
+  position: absolute;
+  top: 16px;
+  right: 12px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile-hero__photo-stage {
+  position: absolute;
+  inset: 0;
+}
+.profile-hero__photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-hero__scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 40px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(20, 10, 30, 0) 0%, rgba(15, 8, 25, 0.55) 40%, rgba(10, 5, 18, 0.82) 100%);
+  backdrop-filter: blur(3px);
+}
+.profile-hero--expanded .profile-hero__actions button {
+  background: rgba(20, 14, 34, 0.45);
+  backdrop-filter: blur(6px);
 }
 
 .profile-hero__camera {
@@ -1472,3 +1585,300 @@
   padding: 8px 0;
 }
 .reaction-manage-btn.active { border-color: var(--gold); background: var(--gold-soft); }
+
+/* ===== Posts / Archived Posts section on the Profile page ===== */
+.posts-section { padding: 6px 0 24px; }
+.posts-section__tabs {
+  display: flex;
+  gap: 8px;
+  padding: 4px 16px 16px;
+  justify-content: center;
+}
+.posts-section__tab {
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.posts-section__tab.is-active { background: var(--gold); color: var(--text-on-gold, #1c1300); }
+
+.posts-section__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 30px 24px 10px;
+  color: var(--text-muted);
+}
+.posts-section__empty-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.posts-section__empty-sub { font-size: 13px; margin-bottom: 18px; max-width: 280px; }
+
+.posts-section__add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gold);
+  color: var(--text-on-gold, #1c1300);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 11px 22px;
+  border-radius: 999px;
+}
+.posts-section__add-btn--inline { margin: 14px auto 0; }
+
+.posts-section__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 0 2px;
+}
+.posts-section__thumb {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.posts-section__thumb img, .posts-section__thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.posts-section__thumb-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  color: #fff;
+  font-size: 12px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* ===== Full-screen story viewer ===== */
+.story-viewer {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+}
+.story-viewer__bars {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 3;
+}
+.story-viewer__bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.3); overflow: hidden; }
+.story-viewer__bar-fill { height: 100%; background: #fff; transition: width 0.05s linear; }
+
+.story-viewer__header {
+  position: absolute;
+  top: 18px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 3;
+}
+.story-viewer__header-text { flex: 1; min-width: 0; }
+.story-viewer__header-name { color: #fff; font-weight: 700; font-size: 14px; }
+.story-viewer__header-time { color: rgba(255, 255, 255, 0.7); font-size: 11.5px; }
+.story-viewer__close { color: #fff; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+
+.story-viewer__stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.story-viewer__media { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.story-viewer__caption {
+  position: absolute;
+  bottom: 70px;
+  left: 16px;
+  right: 16px;
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.story-viewer__manage-bar {
+  position: absolute;
+  bottom: 18px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  gap: 10px;
+  z-index: 4;
+}
+.story-viewer__manage-bar button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.story-viewer__manage-bar button svg { width: 16px; height: 16px; }
+
+/* ===== In-app camera capture (Add a post) ===== */
+.camera-capture {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 210;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+.camera-capture__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 6px;
+}
+.camera-capture__topbar-right { display: flex; gap: 18px; }
+.camera-capture__icon-btn { color: #fff; display: flex; }
+
+.camera-capture__stage {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+.camera-capture__video { width: 100%; height: 100%; object-fit: cover; }
+.camera-capture__video.is-mirrored { transform: scaleX(-1); }
+.camera-capture__error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 30px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13.5px;
+}
+.camera-capture__error-hint { margin-top: 8px; font-size: 12px; color: rgba(255, 255, 255, 0.5); }
+
+.camera-capture__grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  pointer-events: none;
+}
+.camera-capture__grid span { border: 1px solid rgba(255, 255, 255, 0.25); }
+
+.camera-capture__rec-badge {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: #ff4d4f;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.camera-capture__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 34px;
+}
+.camera-capture__shutter { display: flex; align-items: center; justify-content: center; }
+.camera-capture__shutter:disabled { opacity: 0.4; }
+.camera-capture__gallery-btn, .camera-capture__flip-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-capture__modes {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  padding-bottom: 16px;
+}
+.camera-capture__mode { color: rgba(255, 255, 255, 0.55); font-size: 14px; font-weight: 600; padding: 6px 14px; border-radius: 999px; }
+.camera-capture__mode.is-active { color: #000; background: #fff; }
+
+.camera-capture__live-note {
+  text-align: center;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 0 24px 14px;
+}
+
+.camera-capture__preview-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.camera-capture__preview-media { max-width: 100%; max-height: 100%; object-fit: contain; }
+.camera-capture__preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: rgba(0, 0, 0, 0.6);
+}
+.camera-capture__retake {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.camera-capture__caption {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 999px;
+  padding: 9px 14px;
+  color: #fff;
+  font-size: 13px;
+  min-width: 0;
+}
+.camera-capture__caption::placeholder { color: rgba(255, 255, 255, 0.5); }
+.camera-capture__post-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gold);
+  color: var(--text-on-gold, #1c1300);
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.camera-capture__post-btn:disabled { opacity: 0.6; }

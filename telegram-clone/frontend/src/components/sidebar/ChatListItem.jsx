@@ -1,5 +1,8 @@
 import { useRef } from 'react';
 import Avatar from '../common/Avatar';
+import AvatarWithStory from '../common/AvatarWithStory';
+import StoryViewer from '../profile/StoryViewer';
+import useContactStory from '../../hooks/useContactStory';
 import { formatMessageTime } from '../../utils/format';
 
 function lastMessagePreview(chat) {
@@ -29,6 +32,7 @@ export default function ChatListItem({ chat, active, onClick, onLongPress, selec
 
   const timerRef = useRef(null);
   const firedRef = useRef(false);
+  const { viewer, openStory, closeStory } = useContactStory();
 
   const start = () => {
     firedRef.current = false;
@@ -68,13 +72,12 @@ export default function ChatListItem({ chat, active, onClick, onLongPress, selec
       {selectionMode && (
         <span className={`chat-list-item__checkbox${selected ? ' checked' : ''}`}>{selected ? '✓' : ''}</span>
       )}
-      <Avatar
-        name={chat.name}
-        color={chat.avatarColor}
-        photoUrl={statusUser?.avatarUrl}
-        showStatus={isDirect && !selectionMode}
-        status={statusUser?.status}
-      />
+      {statusUser ? (
+        <AvatarWithStory user={statusUser} showStatus={isDirect && !selectionMode} onOpenStory={selectionMode ? undefined : openStory} />
+      ) : (
+        <Avatar name={chat.name} color={chat.avatarColor} />
+      )}
+      {viewer && <StoryViewer user={viewer.user} stories={viewer.stories} onClose={closeStory} />}
       <div className="chat-list-item__body">
         <div className="chat-list-item__top">
           <span className="chat-list-item__name">

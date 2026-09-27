@@ -126,6 +126,32 @@ export function AuthProvider({ children }) {
     return res.data.user;
   }, []);
 
+  // Sets a new profile photo — ADDS it to the photo history server-side
+  // (see routes/users.js) rather than overwriting it, so the "pull down to
+  // browse all your profile photos" gallery has something in it.
+  const setAvatar = useCallback(async (url) => {
+    const res = await http.post('/users/me/avatar', { url });
+    setUser(res.data.user);
+    localStorage.setItem('monarch_user', JSON.stringify(res.data.user));
+    setAccounts((prev) => {
+      const next = prev.map((a) => (a.user.id === res.data.user.id ? { ...a, user: res.data.user } : a));
+      writeAccounts(next);
+      return next;
+    });
+    return res.data.user;
+  }, []);
+
+  // Re-fetches the current user (with the Profile screen's extras —
+  // avatarHistory / hasActiveStory / storyPosts) without a full reload —
+  // used after posting/archiving/deleting a post so the story ring and
+  // posts grid stay in sync.
+  const refreshUser = useCallback(async () => {
+    const res = await http.get('/users/me');
+    setUser(res.data.user);
+    localStorage.setItem('monarch_user', JSON.stringify(res.data.user));
+    return res.data.user;
+  }, []);
+
   // Removes only the *local* saved session for an account (used when the
   // account switcher's "remove" action is used) — does not touch the server.
   const forgetAccount = useCallback((userId) => {
@@ -177,7 +203,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, token, loading, offline, accounts,
-      login, register, logout, updateProfile, deleteAccount,
+      login, register, logout, updateProfile, setAvatar, refreshUser, deleteAccount,
       switchAccount, forgetAccount
     }}>
       {children}

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../common/Avatar';
+import AvatarWithStory from '../common/AvatarWithStory';
+import StoryViewer from '../profile/StoryViewer';
+import useContactStory from '../../hooks/useContactStory';
 import { formatLastSeen } from '../../utils/format';
 import { useChat } from '../../context/ChatContext';
 
@@ -76,6 +79,7 @@ function ChatOptionsMenu({ chat, onBack }) {
 
 export default function ChatHeader({ chat, typingNames, onBack, onShowInfo }) {
   const isDirect = chat.type === 'direct';
+  const { viewer, openStory, closeStory } = useContactStory();
   let statusLine;
   if (typingNames && typingNames.length > 0) {
     statusLine = `${typingNames.join(', ')} typing...`;
@@ -92,7 +96,12 @@ export default function ChatHeader({ chat, typingNames, onBack, onShowInfo }) {
   return (
     <div className="chat-header">
       <button className="icon-btn back-btn" onClick={onBack}>←</button>
-      <Avatar name={chat.name} color={chat.avatarColor} photoUrl={chat.peer?.avatarUrl} size={42} showStatus={isDirect} status={chat.peer?.status} />
+      {isDirect && chat.peer ? (
+        <AvatarWithStory user={chat.peer} size={42} showStatus onOpenStory={openStory} />
+      ) : (
+        <Avatar name={chat.name} color={chat.avatarColor} size={42} />
+      )}
+      {viewer && <StoryViewer user={viewer.user} stories={viewer.stories} onClose={closeStory} />}
       <div className="chat-header__info" onClick={onShowInfo} style={{ cursor: 'pointer' }}>
         <div className="chat-header__name">{ICON_BY_TYPE[chat.type] || ''}{chat.name}{chat.muted ? ' 🔕' : ''}</div>
         <div className="chat-header__status" style={{ color: typingNames?.length ? 'var(--gold-light)' : undefined }}>{statusLine}</div>

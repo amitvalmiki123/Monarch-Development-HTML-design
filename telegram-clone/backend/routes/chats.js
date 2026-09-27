@@ -3,6 +3,7 @@ const db = require('../db');
 const auth = require('../middleware/auth');
 const { id, pickColor, publicUser } = require('../utils');
 const messageService = require('../services/messageService');
+const profileService = require('../services/profileService');
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ function chatSummary(chat, currentUserId) {
     name: title,
     avatarColor,
     description: chat.description || '',
-    peer: peer ? publicUser(peer) : null,
+    peer: peer ? { ...publicUser(peer), hasActiveStory: profileService.hasActiveStory(peer.id) } : null,
     members: members.map(m => ({ id: m.id, username: m.username, name: m.name, avatarColor: m.avatar_color, avatarUrl: m.avatar_url || null, status: m.status, lastSeen: m.last_seen, role: m.role })),
     myRole: myMember ? myMember.role : null,
     canPost,

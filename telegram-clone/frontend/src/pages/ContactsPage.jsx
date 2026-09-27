@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import Avatar from '../components/common/Avatar';
+import AvatarWithStory from '../components/common/AvatarWithStory';
+import StoryViewer from '../components/profile/StoryViewer';
+import useContactStory from '../hooks/useContactStory';
 import ContactsSyncPanel from '../components/sidebar/ContactsSyncPanel';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
@@ -11,6 +13,7 @@ export default function ContactsPage({ onOpenChat }) {
   const [loading, setLoading] = useState(true);
   const [showSync, setShowSync] = useState(false);
   const [query, setQuery] = useState('');
+  const { viewer, openStory, closeStory } = useContactStory();
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -86,7 +89,7 @@ export default function ContactsPage({ onOpenChat }) {
         )}
         {filtered.map((c) => (
           <div key={c.id} className="user-pick-row" style={{ padding: '10px 16px' }} onClick={() => openChatWith(c.id)}>
-            <Avatar name={c.name} color={c.avatarColor} photoUrl={c.avatarUrl} size={44} showStatus status={c.status} />
+            <AvatarWithStory user={c} size={44} showStatus onOpenStory={openStory} />
             <div>
               <div className="name">{c.name}</div>
               <div className="sub">@{c.username}</div>
@@ -94,6 +97,7 @@ export default function ContactsPage({ onOpenChat }) {
           </div>
         ))}
       </div>
+      {viewer && <StoryViewer user={viewer.user} stories={viewer.stories} onClose={closeStory} />}
     </div>
   );
 }

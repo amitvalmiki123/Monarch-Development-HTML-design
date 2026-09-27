@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { id, pickColor, signToken, publicUser } = require('../utils');
+const profileService = require('../services/profileService');
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.post('/register', async (req, res) => {
     );
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     const token = signToken(user);
-    res.json({ token, user: publicUser(user) });
+    res.json({ token, user: { ...publicUser(user), ...profileService.getProfileExtras(user.id) } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Something went wrong during registration' });
@@ -52,7 +53,7 @@ router.post('/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Incorrect username/phone or password' });
     db.prepare('UPDATE users SET status = ?, last_seen = ? WHERE id = ?').run('online', Date.now(), user.id);
     const token = signToken(user);
-    res.json({ token, user: publicUser(user) });
+    res.json({ token, user: { ...publicUser(user), ...profileService.getProfileExtras(user.id) } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Something went wrong during login' });
