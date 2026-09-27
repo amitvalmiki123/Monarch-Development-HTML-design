@@ -181,23 +181,40 @@ async function initNotificationsImpl() {
       pushStatus.localPermission = perm.display;
       if (!channelsReady) {
         logStep('Creating notification channels…');
+        // IMPORTANT: don't pass sound: 'default' — Capacitor's Android channel
+        // code treats *any* non-empty sound string as a raw-resource filename
+        // (res/raw/<name>.*) and builds a URI for it with zero existence
+        // check. "default" doesn't match a real bundled file, so the channel
+        // silently got a sound URI that points at nothing — vibration still
+        // worked (it's a separate flag) but no sound ever played, on every
+        // device. Simply omitting `sound` here leaves Android's own
+        // NotificationChannel constructor default in place, which *is*
+        // already the system default notification sound.
+        // Also bumping the channel id to *_v2: Android permanently locks a
+        // channel's settings the first time it's created — any device that
+        // already ran the old broken version has a permanently-silent
+        // "messages" channel sitting in its system settings that no future
+        // app update can fix in place. A new id starts clean.
         await withTimeout(LocalNotifications.createChannel({
-          id: 'messages',
+          id: 'messages_v2',
           name: 'Messages',
           description: 'New chat messages',
-          importance: 5,
-          visibility: 1,
-          sound: 'default',
-          vibration: true
-        }), 5000, 'createChannel timed out').catch((e) => logStep(`createChannel(messages) failed: ${e.message}`));
-        await withTimeout(LocalNotifications.createChannel({
-          id: 'messages_silent',
-          name: 'Messages (silent)',
-          description: 'New chat messages without sound',
           importance: 4,
           visibility: 1,
+          vibration: true
+        }), 5000, 'createChannel timed out').catch((e) => logStep(`createChannel(messages_v2) failed: ${e.message}`));
+        // Genuinely silent: importance LOW (2) is what actually suppresses
+        // both sound and the heads-up popup on Android — omitting `sound`
+        // alone is not enough, since (per the same bug above) an unset sound
+        // still resolves to the system default at HIGH/DEFAULT importance.
+        await withTimeout(LocalNotifications.createChannel({
+          id: 'messages_silent_v2',
+          name: 'Messages (silent)',
+          description: 'New chat messages without sound',
+          importance: 2,
+          visibility: 1,
           vibration: false
-        }), 5000, 'createChannel timed out').catch((e) => logStep(`createChannel(messages_silent) failed: ${e.message}`));
+        }), 5000, 'createChannel timed out').catch((e) => logStep(`createChannel(messages_silent_v2) failed: ${e.message}`));
         channelsReady = true;
         logStep('Notification channels ready');
       }
@@ -233,7 +250,7 @@ export async function notifyNewMessage({ title, body, chatId, isGroup = false })
           id: notifIdCounter++,
           title,
           body,
-          channelId: prefs.sound ? 'messages' : 'messages_silent',
+          channelId: prefs.sound ? 'messages_v2' : 'messages_silent_v2',
           smallIcon: 'ic_stat_notify',
           extra: { chatId }
         }]
@@ -264,7 +281,7 @@ export async function sendLocalTestNotification() {
           id: notifIdCounter++,
           title: 'FairyChat',
           body: 'Local test notification — if you see this, local alerts work!',
-          channelId: prefs.sound ? 'messages' : 'messages_silent',
+          channelId: prefs.sound ? 'messages_v2' : 'messages_silent_v2',
           smallIcon: 'ic_stat_notify'
         }]
       }), 8000, 'schedule() did not respond in 8s');
@@ -364,7 +381,7 @@ async function registerPushIfConfiguredImpl(http) {
             id: notifIdCounter++,
             title: notification.title || 'FairyChat',
             body: notification.body || 'New message',
-            channelId: prefs.sound ? 'messages' : 'messages_silent',
+            channelId: prefs.sound ? 'messages_v2' : 'messages_silent_v2',
             smallIcon: 'ic_stat_notify'
           }]
         }).catch(() => {});

@@ -13,16 +13,19 @@ const { getMessaging } = require('firebase-admin/messaging');
 const router = express.Router();
 
 // Explicitly routes every push at the same high-importance Android
-// notification channel ("messages") the app creates at runtime (see
-// frontend utils/notifications.js) — without this, Android/FCM silently
-// posts background/killed-app notifications to its own hidden low-priority
+// notification channel ("messages_v2" — see frontend utils/notifications.js
+// for why it has the _v2 suffix: Android locks a channel's settings forever
+// once created, and an earlier build created a "messages" channel whose
+// sound was broken, so the id was bumped to get every device a clean one)
+// the app creates at runtime — without this, Android/FCM silently posts
+// background/killed-app notifications to its own hidden low-priority
 // "Miscellaneous" channel, which can suppress the heads-up popup and sound
 // even though the notification technically "arrived".
 function androidConfig() {
   return {
     priority: 'high',
     notification: {
-      channelId: 'messages',
+      channelId: 'messages_v2',
       icon: 'ic_stat_notify',
       color: '#d9b64c',
       sound: 'default',

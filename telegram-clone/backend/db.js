@@ -161,20 +161,59 @@ CREATE INDEX IF NOT EXISTS idx_members_user ON chat_members(user_id);
 })();
 
 // --- Push notification device tokens (Firebase Cloud Messaging), one row
-// per device a user has registered. Only ever populated/used once a real
+// per (user, device) combination. Only ever populated/used once a real
 // Firebase project is configured server-side (see routes/push.js) — an
 // empty table here is a completely normal, expected state otherwise.
 db.exec(`
 CREATE TABLE IF NOT EXISTS push_tokens (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
-  token TEXT UNIQUE NOT NULL,
+  token TEXT NOT NULL,
   platform TEXT NOT NULL DEFAULT 'android',
   created_at INTEGER NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(user_id, token)
 );
 CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
 `);
+
+// --- Migration: an Android FCM token belongs to one *device installation*,
+// not one account — switching between multiple accounts on the same device
+// (the in-app account switcher) re-registers the exact same token for each
+// account. The original schema had `token TEXT UNIQUE`, so the second
+// account's `INSERT OR IGNORE` silently no-opped (unique violation) and that
+// device only ever got push for whichever account registered the token
+// first — every other account on the same phone silently got nothing, with
+// "No device is registered for push yet" and zero explanation why. Rework
+// the uniqueness to (user_id, token) so the same token can be registered for
+// several accounts, and every one of them gets pushed independently.
+(function migratePushTokensPerUser() {
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='push_tokens'").get();
+  if (!row || !row.sql || !row.sql.includes('token TEXT UNIQUE NOT NULL')) return;
+  db.exec('PRAGMA foreign_keys = OFF;');
+  db.exec('BEGIN');
+  try {
+    db.exec('ALTER TABLE push_tokens RENAME TO push_tokens_old_migration;');
+    db.exec(`CREATE TABLE push_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'android',
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, token)
+    );`);
+    db.exec(`INSERT INTO push_tokens (id, user_id, token, platform, created_at)
+      SELECT id, user_id, token, platform, created_at FROM push_tokens_old_migration;`);
+    db.exec('DROP TABLE push_tokens_old_migration;');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);');
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  db.exec('PRAGMA foreign_keys = ON;');
+})();
 
 // --- Migration: per-member chat pin/mute state (long-press a chat in the
 // list -> Pin / Mute / Delete). Pinning and muting are personal (each
