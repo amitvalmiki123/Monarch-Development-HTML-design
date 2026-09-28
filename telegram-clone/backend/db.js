@@ -371,6 +371,17 @@ CREATE TABLE IF NOT EXISTS premium_codes (
 );
 `);
 
+// A fixed, always-present lifetime test code — seeded on every boot (not
+// just once) so it exists no matter which machine/host actually runs this
+// server (there's no way to reach into a deployed host's disk to run the
+// generator script by hand). This is purely for pre-release friends/family
+// testing: anyone who has the app can redeem it once in Settings ->
+// FairyChat Premium to try every premium perk. Remove this before a real
+// public launch (swap back to one-time codes only, see scripts/
+// generate-premium-codes.js) so it isn't a permanent free-unlock backdoor.
+db.prepare('INSERT OR IGNORE INTO premium_codes (code, duration_days, created_at) VALUES (?, NULL, ?)')
+  .run('FAIRY-TEST-0001', Date.now());
+
 
 
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like

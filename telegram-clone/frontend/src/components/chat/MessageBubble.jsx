@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { formatMessageTime, formatFileSize } from '../../utils/format';
 import { resolveMediaUrl } from '../../utils/resolveUrl';
 import { useMessageGestures } from '../../hooks/useMessageGestures';
-import { isEmojiOnlyMessage } from '../../utils/emojiMessage';
+import { isEmojiOnlyMessage, splitEmojiSegments } from '../../utils/emojiMessage';
 import NameWithFlair from '../common/NameWithFlair';
 
 // Any interactive element nested inside a bubble (media, reaction pills, the
@@ -16,6 +16,25 @@ const stopGesture = {
   onMouseDown: (e) => e.stopPropagation(),
   onTouchStart: (e) => e.stopPropagation()
 };
+
+// Renders normal message text, but with any individual emoji inside it
+// (not just emoji-only messages) given a small looping wiggle for Premium
+// senders — this is the "Animated Emojis in any message" perk in action:
+// "hey 👋 congrats 🎉 on the launch!" gets two little animated emoji sitting
+// right in the middle of otherwise-plain text.
+function TextWithInlineEmoji({ text, animated }) {
+  if (!animated) return <>{text}</>;
+  const segments = splitEmojiSegments(text);
+  return (
+    <>
+      {segments.map((seg, i) => (
+        seg.emoji
+          ? <span key={i} className="inline-emoji inline-emoji--animated">{seg.text}</span>
+          : <span key={i}>{seg.text}</span>
+      ))}
+    </>
+  );
+}
 
 function Ticks({ read, pending, failed }) {
   if (failed) return <span title="Failed to send" style={{ color: 'var(--danger)' }}>⚠</span>;
@@ -186,7 +205,7 @@ export default function MessageBubble({
             isEmojiOnlyMessage(message.content) ? (
               <span className={`jumbo-emoji${senderInfo?.isPremium ? ' jumbo-emoji--animated' : ''}`}>{message.content}</span>
             ) : (
-              <span>{message.content}</span>
+              <span><TextWithInlineEmoji text={message.content} animated={!!senderInfo?.isPremium} /></span>
             )
           )
         )}

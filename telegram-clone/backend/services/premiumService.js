@@ -21,14 +21,23 @@ function createCodes(count = 1, durationDays = null) {
   return codes;
 }
 
+// Reusable, never-locks-out codes — currently just the one seeded testing
+// code (see db.js) so every friend/tester can redeem it on their own
+// account during the pre-release testing phase without it running out.
+// Swap this back to an empty set before a real public launch.
+const REUSABLE_CODES = new Set(['FAIRY-TEST-0001']);
+
 function redeemCode(userId, rawCode) {
   const code = (rawCode || '').trim().toUpperCase();
   const row = db.prepare('SELECT * FROM premium_codes WHERE code = ?').get(code);
   if (!row) throw new Error('INVALID_CODE');
-  if (row.redeemed_by) throw new Error('ALREADY_REDEEMED');
+  const reusable = REUSABLE_CODES.has(code);
+  if (row.redeemed_by && !reusable) throw new Error('ALREADY_REDEEMED');
 
   const now = Date.now();
-  db.prepare('UPDATE premium_codes SET redeemed_by = ?, redeemed_at = ? WHERE code = ?').run(userId, now, code);
+  if (!reusable) {
+    db.prepare('UPDATE premium_codes SET redeemed_by = ?, redeemed_at = ? WHERE code = ?').run(userId, now, code);
+  }
   db.prepare('UPDATE users SET is_premium = 1, premium_since = COALESCE(premium_since, ?) WHERE id = ?').run(now, userId);
   return { durationDays: row.duration_days };
 }

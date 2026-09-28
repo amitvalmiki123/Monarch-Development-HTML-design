@@ -45,9 +45,33 @@ export const PREMIUM_STICKER_PACKS = [
     id: 'weird',
     label: 'Weird',
     icon: '👁️',
-    // Growing pack — more absurd/meme-style stickers land here over time.
     stickers: [
-      { id: 'weird-1', url: '/premium-stickers/weird-1.png', title: 'Potato king' }
+      { id: 'weird-1', url: '/premium-stickers/weird-1.png', title: 'Potato king' },
+      { id: 'weird-2', url: '/premium-stickers/weird-2.png', title: 'Cat-fish' },
+      { id: 'weird-3', url: '/premium-stickers/weird-3.png', title: 'Noodle cloud' },
+      { id: 'weird-4', url: '/premium-stickers/weird-4.png', title: 'Blob' }
+    ]
+  },
+  {
+    id: 'meme',
+    label: 'Meme',
+    icon: '😂',
+    stickers: [
+      { id: 'meme-1', url: '/premium-stickers/meme-1.png', title: 'Shocked' },
+      { id: 'meme-2', url: '/premium-stickers/meme-2.png', title: 'Skull' },
+      { id: 'meme-3', url: '/premium-stickers/meme-3.png', title: 'Sipping tea' },
+      { id: 'meme-4', url: '/premium-stickers/meme-4.png', title: 'Facepalm' }
+    ]
+  },
+  {
+    id: 'game',
+    label: 'Game',
+    icon: '🎮',
+    // Growing pack — one more (game-over) lands here next.
+    stickers: [
+      { id: 'game-1', url: '/premium-stickers/game-1.png', title: 'GG' },
+      { id: 'game-2', url: '/premium-stickers/game-2.png', title: 'Trophy' },
+      { id: 'game-3', url: '/premium-stickers/game-3.png', title: 'Lucky roll' }
     ]
   },
   {

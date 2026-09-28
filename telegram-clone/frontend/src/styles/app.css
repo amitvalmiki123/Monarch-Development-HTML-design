@@ -1917,6 +1917,12 @@
 .sticker-grid__item:hover img { animation: jumbo-emoji-idle 1.6s ease-in-out infinite; }
 .sticker-bubble__img--animated { animation: jumbo-emoji-idle 2.6s ease-in-out infinite; }
 
+/* A single emoji sitting inside otherwise-normal text (Premium's "animated
+   emoji anywhere" perk) — smaller/gentler loop than the jumbo emoji-only
+   case so it doesn't disrupt reading the surrounding sentence. */
+.inline-emoji { display: inline-block; transform-origin: center; }
+.inline-emoji--animated { animation: jumbo-emoji-idle 2.2s ease-in-out infinite; }
+
 .premium-upsell-box {
   background: var(--bg-elevated);
   border: 1px solid var(--gold-soft);
