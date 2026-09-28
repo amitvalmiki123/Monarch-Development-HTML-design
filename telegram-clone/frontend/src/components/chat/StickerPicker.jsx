@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
-import { PREMIUM_STICKERS } from '../../data/premiumStickers';
+import { PREMIUM_STICKER_PACKS } from '../../data/premiumStickers';
 
 // Content-only sticker search + grid, meant to be embedded as the "Stickers"
 // tab of <EmojiGifStickerPicker>. Pulls real, animated (GIF/WEBP) stickers
 // from the same provider that powers the GIF tab — same UX shape as
-// Telegram's own sticker tray — plus FairyChat's own small exclusive
-// "Premium" pack up top (visible to everyone, like Telegram's premium
-// stickers, but only sendable by Premium accounts).
+// Telegram's own sticker tray — plus FairyChat's own exclusive "Premium"
+// packs up top (visible to everyone, like Telegram's own themed sticker
+// packs — Ducks, Birthday, etc. — but only sendable by Premium accounts).
 export default function StickerPicker({ onSelect }) {
   const { user } = useAuth();
   const { searchStickers, trendingStickers } = useChat();
@@ -16,6 +16,9 @@ export default function StickerPicker({ onSelect }) {
   const [stickers, setStickers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [configured, setConfigured] = useState(true);
+  const [pack, setPack] = useState(PREMIUM_STICKER_PACKS[0].id);
+
+  const activePack = PREMIUM_STICKER_PACKS.find((p) => p.id === pack) || PREMIUM_STICKER_PACKS[0];
 
   const selectPremium = (sticker) => {
     if (user?.isPremium) {
@@ -40,8 +43,20 @@ export default function StickerPicker({ onSelect }) {
   return (
     <div className="emg-gif-tab">
       <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 2px 4px' }}>⭐ FairyChat Premium</div>
+      <div className="emg-cat-strip" style={{ marginBottom: 4 }}>
+        {PREMIUM_STICKER_PACKS.map((p) => (
+          <button
+            key={p.id}
+            className={`emg-cat-btn${p.id === pack ? ' active' : ''}`}
+            onClick={() => setPack(p.id)}
+            title={p.label}
+          >
+            {p.icon}
+          </button>
+        ))}
+      </div>
       <div className="sticker-grid" style={{ gridAutoRows: 66, marginBottom: 10 }}>
-        {PREMIUM_STICKERS.map((s) => (
+        {activePack.stickers.map((s) => (
           <button
             key={s.id}
             className={`sticker-grid__item${!user?.isPremium ? ' sticker-grid__item--locked' : ''}`}

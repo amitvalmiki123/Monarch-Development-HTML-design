@@ -117,13 +117,23 @@ export default function MessageBubble({
   // ever stored a plain emoji character.
   if (message.type === 'sticker') {
     const stickerImg = message.fileUrl ? resolveMediaUrl(message.fileUrl) : null;
+    // FairyChat's own bundled premium stickers (/premium-stickers/*) get a
+    // continuous idle loop in the chat feed too, so they read as "animated
+    // stickers" the same way Telegram's Premium ones do — not a one-shot
+    // pop like a regular sticker send.
+    const isPremiumSticker = message.fileUrl?.includes('/premium-stickers/');
     return (
       <div className={`bubble-row ${isOwn ? 'out' : 'in'}${selected ? ' row-selected' : ''}`}>
         {selectionMode && <span className={`msg-select-check${selected ? ' checked' : ''}`}>{selected ? '✓' : ''}</span>}
         <span className="swipe-reply-hint" style={replyHintStyle}>↩</span>
         <div className="sticker-bubble" style={swipeStyle} {...handlers}>
           {stickerImg ? (
-            <img className="sticker-bubble__img" src={stickerImg} alt={message.fileName || 'Sticker'} loading="lazy" />
+            <img
+              className={`sticker-bubble__img${isPremiumSticker ? ' sticker-bubble__img--animated' : ''}`}
+              src={stickerImg}
+              alt={message.fileName || 'Sticker'}
+              loading="lazy"
+            />
           ) : (
             <div className="sticker-bubble__emoji">{message.content}</div>
           )}

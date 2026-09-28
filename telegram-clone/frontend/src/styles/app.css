@@ -1892,13 +1892,30 @@
   transform-origin: center;
 }
 .jumbo-emoji--animated {
-  animation: jumbo-emoji-pop 550ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Pop in once, then keep a gentle continuous loop going — same idea as
+     Telegram Premium's looping animated emoji/stickers, done with our own
+     original CSS animation instead of their proprietary Lottie files. */
+  animation:
+    jumbo-emoji-pop 550ms cubic-bezier(0.34, 1.56, 0.64, 1) 1,
+    jumbo-emoji-idle 2.4s ease-in-out 550ms infinite;
 }
 @keyframes jumbo-emoji-pop {
   0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
   60% { transform: scale(1.15) rotate(4deg); opacity: 1; }
   100% { transform: scale(1) rotate(0deg); }
 }
+@keyframes jumbo-emoji-idle {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+  25% { transform: translateY(-3px) rotate(-4deg) scale(1.03); }
+  50% { transform: translateY(0) rotate(0deg) scale(1); }
+  75% { transform: translateY(-2px) rotate(4deg) scale(1.02); }
+}
+
+/* Premium sticker packs (StickerPicker) get the same idle loop while
+   hovered/visible in the picker, so browsing them already feels animated. */
+.sticker-grid__item img { transition: transform 160ms ease; }
+.sticker-grid__item:hover img { animation: jumbo-emoji-idle 1.6s ease-in-out infinite; }
+.sticker-bubble__img--animated { animation: jumbo-emoji-idle 2.6s ease-in-out infinite; }
 
 .premium-upsell-box {
   background: var(--bg-elevated);
