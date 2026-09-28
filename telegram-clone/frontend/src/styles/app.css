@@ -1891,6 +1891,7 @@
   line-height: 1.2;
   transform-origin: center;
 }
+.jumbo-emoji--row { display: inline-flex; align-items: center; gap: 2px; }
 .jumbo-emoji--animated {
   /* Pop in once, then keep a gentle continuous loop going — same idea as
      Telegram Premium's looping animated emoji/stickers, done with our own
@@ -1924,6 +1925,11 @@
    case so it doesn't disrupt reading the surrounding sentence. */
 .inline-emoji { display: inline-block; transform-origin: center; }
 .inline-emoji--animated { animation: jumbo-emoji-idle 2.2s ease-in-out infinite; }
+
+/* The little animated status icon next to a Premium user's name. */
+.name-flair-status { margin-left: 4px; }
+
+.emoji-status-grid button { display: flex; align-items: center; justify-content: center; }
 
 .premium-upsell-box {
   background: var(--bg-elevated);

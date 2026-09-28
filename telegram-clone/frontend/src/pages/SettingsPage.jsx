@@ -12,6 +12,7 @@ import {
   LockIcon, ShieldIcon, KeyIcon, DevicesIcon, StarIcon, PaletteIcon, PhoneAppIcon
 } from '../components/common/SettingsIcons';
 import NameWithFlair from '../components/common/NameWithFlair';
+import LottieEmoji from '../components/common/LottieEmoji';
 import { NAME_COLORS, STATUS_EMOJIS, APP_ICONS } from '../data/premiumData';
 import { applyNativeAppIcon } from '../utils/appIcon';
 import http from '../api/http';
@@ -370,16 +371,22 @@ function PremiumSettings() {
         ))}
       </div>
 
-      <Row icon={<StarIcon />} iconColor="gold" label="Emoji Status" sub={user.statusEmoji ? `Currently ${user.statusEmoji}` : 'None set'} />
+      <Row
+        icon={<StarIcon />}
+        iconColor="gold"
+        label="Emoji Status"
+        sub={user.statusEmoji ? (STATUS_EMOJIS.find((s) => s.id === user.statusEmoji)?.label || 'Set') : 'None set'}
+      />
       <div className="emoji-status-grid">
-        {STATUS_EMOJIS.map((e) => (
+        {STATUS_EMOJIS.map((s) => (
           <button
-            key={e}
-            className={user.statusEmoji === e ? 'active' : ''}
-            style={{ opacity: busySwatch === e ? 0.5 : 1 }}
-            onClick={() => setStatusEmoji(e)}
+            key={s.id}
+            className={user.statusEmoji === s.id ? 'active' : ''}
+            style={{ opacity: busySwatch === s.id ? 0.5 : 1 }}
+            onClick={() => setStatusEmoji(s.id)}
+            title={s.label}
           >
-            {e}
+            <LottieEmoji id={s.id} size={26} />
           </button>
         ))}
       </div>

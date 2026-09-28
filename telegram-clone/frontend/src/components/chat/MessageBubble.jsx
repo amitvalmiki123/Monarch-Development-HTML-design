@@ -3,7 +3,9 @@ import { formatMessageTime, formatFileSize } from '../../utils/format';
 import { resolveMediaUrl } from '../../utils/resolveUrl';
 import { useMessageGestures } from '../../hooks/useMessageGestures';
 import { isEmojiOnlyMessage, splitEmojiSegments } from '../../utils/emojiMessage';
+import { lottieIdForEmoji } from '../../data/lottieEmojiMap';
 import NameWithFlair from '../common/NameWithFlair';
+import LottieEmoji from '../common/LottieEmoji';
 
 // Any interactive element nested inside a bubble (media, reaction pills, the
 // edit textarea/buttons) needs to stop the tap/long-press/swipe recognizer
@@ -18,21 +20,43 @@ const stopGesture = {
 };
 
 // Renders normal message text, but with any individual emoji inside it
-// (not just emoji-only messages) given a small looping wiggle for Premium
-// senders — this is the "Animated Emojis in any message" perk in action:
-// "hey 👋 congrats 🎉 on the launch!" gets two little animated emoji sitting
-// right in the middle of otherwise-plain text.
+// (not just emoji-only messages) given a real Lottie animation — for the
+// common emoji that have one bundled (see data/lottieEmojiMap.js) — or a
+// small looping CSS wiggle as a fallback for the rest, for Premium
+// senders. This is the "Animated Emojis in any message" perk in action:
+// "hey 👋 congrats 🎉 on the launch!" gets two little animated emoji
+// sitting right in the middle of otherwise-plain text.
 function TextWithInlineEmoji({ text, animated }) {
   if (!animated) return <>{text}</>;
   const segments = splitEmojiSegments(text);
   return (
     <>
-      {segments.map((seg, i) => (
-        seg.emoji
-          ? <span key={i} className="inline-emoji inline-emoji--animated">{seg.text}</span>
-          : <span key={i}>{seg.text}</span>
-      ))}
+      {segments.map((seg, i) => {
+        if (!seg.emoji) return <span key={i}>{seg.text}</span>;
+        const lottieId = lottieIdForEmoji(seg.text);
+        return lottieId
+          ? <LottieEmoji key={i} id={lottieId} size={20} className="inline-emoji" />
+          : <span key={i} className="inline-emoji inline-emoji--animated">{seg.text}</span>;
+      })}
     </>
+  );
+}
+
+// Same idea, but sized up for an emoji-only message (no bubble background,
+// jumbo-sized, same as Telegram) — each emoji renders as a real animation
+// when we have one bundled, falling back to the CSS pop+wiggle otherwise.
+function JumboEmojiContent({ text, animated }) {
+  if (!animated) return <span className="jumbo-emoji">{text}</span>;
+  const segments = splitEmojiSegments(text).filter((s) => s.emoji);
+  return (
+    <span className="jumbo-emoji jumbo-emoji--row">
+      {segments.map((seg, i) => {
+        const lottieId = lottieIdForEmoji(seg.text);
+        return lottieId
+          ? <LottieEmoji key={i} id={lottieId} size={48} />
+          : <span key={i} className="jumbo-emoji--animated">{seg.text}</span>;
+      })}
+    </span>
   );
 }
 
@@ -197,7 +221,7 @@ export default function MessageBubble({
         ) : (
           message.content && (
             isEmojiOnlyMessage(message.content) ? (
-              <span className={`jumbo-emoji${senderInfo?.isPremium ? ' jumbo-emoji--animated' : ''}`}>{message.content}</span>
+              <JumboEmojiContent text={message.content} animated={!!senderInfo?.isPremium} />
             ) : (
               <span><TextWithInlineEmoji text={message.content} animated={!!senderInfo?.isPremium} /></span>
             )

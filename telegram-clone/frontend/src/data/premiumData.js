@@ -7,7 +7,25 @@ export const NAME_COLORS = [
   '#4dabf7', '#748ffc', '#b197fc', '#f783ac', '#e599f7'
 ];
 
-export const STATUS_EMOJIS = ['🔥', '⚡', '🎧', '🚀', '💎', '🌙', '☕', '🎮', '📚', '🧘', '🎨', '⭐'];
+// Emoji Status options — each `id` maps to a real animated Lottie file
+// bundled at src/assets/lottie-emoji/<id>.json (rendered by <LottieEmoji>),
+// not a plain Unicode character, so this actually looks/feels animated
+// next to a name the way Telegram Premium's emoji status does.
+export const STATUS_EMOJIS = [
+  { id: 'fire', label: 'On fire' },
+  { id: 'electricity', label: 'Energetic' },
+  { id: 'rocket', label: 'Launching something' },
+  { id: 'coffee', label: 'Coffee break' },
+  { id: 'game', label: 'Gaming' },
+  { id: 'glowing-star', label: 'Shining' },
+  { id: 'muscle', label: 'Working out' },
+  { id: 'party', label: 'Celebrating' },
+  { id: 'sleepy', label: 'Sleepy' },
+  { id: 'thinking', label: 'Thinking' },
+  { id: 'cool', label: 'Feeling cool' },
+  { id: 'red-heart', label: 'In love' }
+];
+
 
 // App icon ids the native Android project knows how to switch to — see
 // android/app/src/main/AndroidManifest.xml's <activity-alias> entries and
