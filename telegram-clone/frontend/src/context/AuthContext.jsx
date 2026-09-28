@@ -228,10 +228,39 @@ export function AuthProvider({ children }) {
     await logout();
   }, [logout]);
 
+  // "Remove Photo" — deletes one profile photo from the avatar gallery
+  // (falls back to the previous one server-side, or clears to the plain
+  // initials avatar if none are left).
+  const removeAvatar = useCallback(async (avatarId) => {
+    const res = await http.delete(`/users/me/avatar/${avatarId}`);
+    setUser(res.data.user);
+    localStorage.setItem('monarch_user', JSON.stringify(res.data.user));
+    setAccounts((prev) => {
+      const next = prev.map((a) => (a.user.id === res.data.user.id ? { ...a, user: res.data.user } : a));
+      writeAccounts(next);
+      return next;
+    });
+    return res.data.user;
+  }, []);
+
+  // "Change username" from the Profile page's 3-dot menu.
+  const changeUsername = useCallback(async (username) => {
+    const res = await http.patch('/users/me/username', { username });
+    setUser(res.data.user);
+    localStorage.setItem('monarch_user', JSON.stringify(res.data.user));
+    setAccounts((prev) => {
+      const next = prev.map((a) => (a.user.id === res.data.user.id ? { ...a, user: res.data.user } : a));
+      writeAccounts(next);
+      return next;
+    });
+    return res.data.user;
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user, token, loading, offline, accounts,
-      login, submitTwoStep, register, logout, updateProfile, setAvatar, refreshUser, deleteAccount,
+      login, submitTwoStep, register, logout, updateProfile, setAvatar, removeAvatar, changeUsername,
+      refreshUser, deleteAccount,
       switchAccount, forgetAccount
     }}>
       {children}

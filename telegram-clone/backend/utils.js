@@ -63,7 +63,9 @@ function publicUser(u) {
     isPremium: !!u.is_premium,
     nameColor: u.name_color || null,
     statusEmoji: u.status_emoji || null,
-    badgeStyle: u.badge_style || 'star'
+    badgeStyle: u.badge_style || 'star',
+    profileBgStyle: u.profile_bg_style || null,
+    profileBgIcon: u.profile_bg_icon || null
   };
 }
 

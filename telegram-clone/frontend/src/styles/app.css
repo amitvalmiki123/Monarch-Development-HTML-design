@@ -480,6 +480,135 @@
 .profile-hero__actions button span { font-size: 17px; }
 .profile-hero__actions button:hover { background: rgba(255, 255, 255, 0.2); }
 
+/* --- Premium "Profile Colour" background layers (collapsed hero) --- */
+.profile-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.profile-hero__bg--pattern {
+  background-repeat: repeat;
+  background-size: 64px 64px;
+}
+/* Keep every real piece of the hero above the background layers (the pull
+   hint is already absolutely positioned — it only needs the z-index). */
+.profile-hero > *:not(.profile-hero__bg):not(.profile-hero__pull-hint) {
+  position: relative;
+  z-index: 1;
+}
+.profile-hero__pull-hint { z-index: 1; }
+
+/* --- 3-dot menu in the expanded profile-photo viewer --- */
+.profile-hero__photo-menu {
+  position: absolute;
+  top: 16px;
+  right: 54px;
+  z-index: 3;
+}
+.profile-hero__photo-menu-btn {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+/* --- "Change Profile Colour" page --- */
+.profile-color-preview {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  margin: 10px 16px 14px;
+  padding: 22px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--border-soft);
+}
+.profile-color-preview__pattern {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 64px 64px;
+  pointer-events: none;
+}
+.profile-color-preview > *:not(.profile-color-preview__pattern) {
+  position: relative;
+  z-index: 1;
+}
+.profile-color-preview__name {
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.profile-color-preview__buttons {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.profile-color-preview__buttons span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(20, 14, 34, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(6px);
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+.color-swatch--wide {
+  width: 52px;
+  height: 36px;
+  border-radius: 10px;
+}
+.color-swatch__none {
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+}
+.profile-icon-swatch {
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px 8px;
+  border-radius: 12px;
+  border: 2px solid var(--border-soft);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.profile-icon-swatch.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(240, 185, 60, 0.35); }
+.profile-icon-swatch__label { font-size: 10.5px; color: var(--text-secondary); }
+.premium-hint {
+  margin: 10px 16px 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--gold-light, #f0c672);
+  background: rgba(240, 185, 60, 0.08);
+  border: 1px solid rgba(240, 185, 60, 0.25);
+}
+.profile-color-error {
+  margin: 8px 16px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--danger);
+  background: rgba(239, 107, 107, 0.1);
+}
+
 .profile-inline-input {
   width: 100%;
   background: none;

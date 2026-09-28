@@ -6,6 +6,7 @@ import { CameraGlyphIcon, PencilGlyphIcon } from '../common/SettingsIcons';
 import { SettingsIcon } from '../nav/NavIcons';
 import { ChevronDownIcon } from './ProfileIcons';
 import NameWithFlair from '../common/NameWithFlair';
+import { profileBgLayers } from '../../data/profileBackgrounds';
 
 // Any drag starting from inside these should never trigger the pull-down
 // gesture (buttons, the name input while editing, etc.) — same
@@ -26,16 +27,23 @@ const OPEN_THRESHOLD = 0.4;
 export default function ProfileHero({
   user, avatarUrl, avatarHistory, hasActiveStory, uploadingPhoto,
   editing, nameValue, onNameChange,
-  onAvatarTap, onSetPhoto, onEditInfo, onOpenSettings
+  onAvatarTap, onSetPhoto, onEditInfo, onOpenSettings,
+  onRemovePhoto, onSavePhoto
 }) {
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
   const startRef = useRef(null);
   const swipeStartRef = useRef(null);
+  const photoMenuRef = useRef(null);
 
   const gallery = avatarHistory && avatarHistory.length > 0 ? avatarHistory : (avatarUrl ? [{ id: 'current', url: avatarUrl }] : []);
+
+  // The Premium "Profile Colour" background behind the avatar/name/buttons
+  // block (solid or gradient, optionally with a scattered icon pattern).
+  const bgLayers = profileBgLayers(user);
 
   useEffect(() => {
     if (!expanded) return;
@@ -44,6 +52,16 @@ export default function ProfileHero({
     pushBackHandler(close);
     return () => popBackHandler(close);
   }, [expanded]);
+
+  // Close the photo-viewer 3-dot menu when tapping anywhere outside it.
+  useEffect(() => {
+    if (!photoMenuOpen) return;
+    const onClickOutside = (e) => {
+      if (photoMenuRef.current && !photoMenuRef.current.contains(e.target)) setPhotoMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [photoMenuOpen]);
 
   const onTouchStart = (e) => {
     if (expanded) return;
@@ -108,6 +126,9 @@ export default function ProfileHero({
 
   if (expanded) {
     const photo = gallery[photoIndex] || gallery[0];
+    // The fallback "current" entry (when there's no real history row yet)
+    // has no server-side avatar id, so it can't be removed — only saved.
+    const canRemove = photo && photo.id !== 'current';
     return (
       <div className="profile-hero profile-hero--expanded">
         {gallery.length > 1 && (
@@ -120,6 +141,27 @@ export default function ProfileHero({
         <button className="profile-hero__collapse" onClick={() => setExpanded(false)} {...stopGesture}>
           <ChevronDownIcon />
         </button>
+        <div ref={photoMenuRef} className="profile-hero__photo-menu" {...stopGesture}>
+          <button
+            className="profile-hero__collapse profile-hero__photo-menu-btn"
+            onClick={() => setPhotoMenuOpen((v) => !v)}
+            title="Photo options"
+          >
+            ⋮
+          </button>
+          {photoMenuOpen && (
+            <div className="top-menu">
+              <button className="top-menu__item" onClick={() => { setPhotoMenuOpen(false); if (photo) onSavePhoto?.(photo); }}>
+                <span>⬇️</span> Save to Gallery
+              </button>
+              {canRemove && (
+                <button className="top-menu__item top-menu__item--danger" onClick={() => { setPhotoMenuOpen(false); onRemovePhoto?.(photo); }}>
+                  <span>🗑️</span> Remove Photo
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div
           className="profile-hero__photo-stage"
           onTouchStart={swipeOnStart}
@@ -150,6 +192,12 @@ export default function ProfileHero({
       onMouseUp={onTouchEnd}
       onMouseLeave={onTouchEnd}
     >
+      {(bgLayers.background || bgLayers.pattern) && (
+        <>
+          <div className="profile-hero__bg" style={{ background: bgLayers.background || 'transparent' }} />
+          {bgLayers.pattern && <div className="profile-hero__bg profile-hero__bg--pattern" style={{ backgroundImage: bgLayers.pattern }} />}
+        </>
+      )}
       <div className="profile-hero__pull-hint" style={{ opacity: progress }}>
         <ChevronDownIcon />
       </div>

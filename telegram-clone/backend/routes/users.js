@@ -23,7 +23,10 @@ router.get('/me', auth, (req, res) => {
 });
 
 router.put('/me', auth, (req, res) => {
-  const { name, bio, avatarColor, birthday, quickReactions, nameColor, statusEmoji, appIcon, badgeStyle } = req.body;
+  const {
+    name, bio, avatarColor, birthday, quickReactions, nameColor, statusEmoji, appIcon, badgeStyle,
+    profileBgStyle, profileBgIcon
+  } = req.body;
 
   // Name colour and emoji status are FairyChat Premium perks (same as
   // Telegram) — enforce server-side too, not just hide the UI, so a
@@ -40,6 +43,11 @@ router.put('/me', auth, (req, res) => {
   if (badgeStyle !== undefined && badgeStyle !== 'star' && !req.user.is_premium) {
     return res.status(403).json({ error: 'Alternate profile badges are a FairyChat Premium feature' });
   }
+  // Profile background colour/gradient + icon pattern — also a FairyChat
+  // Premium perk (same as Telegram's Profile Colour), enforced server-side.
+  if ((profileBgStyle !== undefined || profileBgIcon !== undefined) && !req.user.is_premium) {
+    return res.status(403).json({ error: 'Profile colour is a FairyChat Premium feature' });
+  }
 
   db.prepare(`UPDATE users SET name = COALESCE(?, name), bio = COALESCE(?, bio),
     avatar_color = COALESCE(?, avatar_color),
@@ -47,7 +55,9 @@ router.put('/me', auth, (req, res) => {
     name_color = CASE WHEN ? THEN ? ELSE name_color END,
     status_emoji = CASE WHEN ? THEN ? ELSE status_emoji END,
     app_icon = COALESCE(?, app_icon),
-    badge_style = COALESCE(?, badge_style)
+    badge_style = COALESCE(?, badge_style),
+    profile_bg_style = CASE WHEN ? THEN ? ELSE profile_bg_style END,
+    profile_bg_icon = CASE WHEN ? THEN ? ELSE profile_bg_icon END
     WHERE id = ?`)
     .run(
       name ?? null, bio ?? null, avatarColor ?? null,
@@ -56,8 +66,27 @@ router.put('/me', auth, (req, res) => {
       statusEmoji !== undefined ? 1 : 0, statusEmoji || null,
       appIcon ?? null,
       badgeStyle ?? null,
+      profileBgStyle !== undefined ? 1 : 0, profileBgStyle || null,
+      profileBgIcon !== undefined ? 1 : 0, profileBgIcon || null,
       req.user.id
     );
+  const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  res.json({ user: withExtras(updated) });
+});
+
+// Changes the account's @username — kept separate from the general PUT
+// /me above because it needs its own format + uniqueness validation (same
+// rules as registration) and distinct error messages the "Change username"
+// menu item can show inline.
+router.patch('/me/username', auth, (req, res) => {
+  const raw = (req.body.username || '').trim();
+  if (raw.length < 3 || !/^[a-zA-Z0-9_]+$/.test(raw)) {
+    return res.status(400).json({ error: 'Username must be at least 3 characters (letters, numbers, underscore only)' });
+  }
+  const username = raw.toLowerCase();
+  const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, req.user.id);
+  if (existing) return res.status(409).json({ error: 'This username is already taken' });
+  db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username, req.user.id);
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   res.json({ user: withExtras(updated) });
 });
@@ -76,6 +105,19 @@ router.post('/me/avatar', auth, (req, res) => {
     return res.status(403).json({ error: 'Animated profile pictures are a FairyChat Premium feature' });
   }
   profileService.addAvatar(req.user.id, url);
+  const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  res.json({ user: withExtras(updated) });
+});
+
+// "Remove Photo" — deletes one profile photo from the gallery (falls back
+// to the previous one, or the plain initials avatar if none are left).
+router.delete('/me/avatar/:avatarId', auth, (req, res) => {
+  try {
+    profileService.removeAvatar(req.user.id, req.params.avatarId);
+  } catch (e) {
+    if (e.message === 'NOT_FOUND') return res.status(404).json({ error: 'Photo not found' });
+    throw e;
+  }
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   res.json({ user: withExtras(updated) });
 });

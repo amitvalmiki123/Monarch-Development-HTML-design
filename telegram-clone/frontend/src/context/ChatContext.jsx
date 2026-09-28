@@ -319,7 +319,14 @@ export function ChatProvider({ children }) {
     form.append('file', file);
     const res = await http.post('/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: (evt) => onProgress && onProgress(Math.round((evt.loaded / evt.total) * 100))
+      onUploadProgress: (evt) => onProgress && onProgress(Math.round((evt.loaded / evt.total) * 100)),
+      // The shared `http` client's default 20s timeout is tuned for plain
+      // JSON API calls; it's far too short for uploading real files (GIF
+      // profile photos, videos, etc. can easily take longer than that on a
+      // slow connection or while Render's free tier is cold-starting),
+      // which is exactly what was causing "Could not upload photo — timeout
+      // of 20000ms exceeded". Give uploads much more room instead.
+      timeout: 120000
     });
     return res.data;
   }, []);

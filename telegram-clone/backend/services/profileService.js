@@ -20,6 +20,24 @@ function getAvatarHistory(userId) {
   return rows.map((r) => ({ id: r.id, url: r.file_url, createdAt: r.created_at }));
 }
 
+// Removes one photo from a user's avatar gallery ("Remove Photo", same as
+// Telegram's profile-photo viewer). If the removed photo was the current
+// one (users.avatar_url), falls back to the next-most-recent remaining
+// photo, or clears it entirely (back to the plain initials avatar) if that
+// was the last one.
+function removeAvatar(userId, avatarId) {
+  const row = db.prepare('SELECT * FROM user_avatars WHERE id = ? AND user_id = ?').get(avatarId, userId);
+  if (!row) throw new Error('NOT_FOUND');
+  db.prepare('DELETE FROM user_avatars WHERE id = ?').run(avatarId);
+
+  const user = db.prepare('SELECT avatar_url FROM users WHERE id = ?').get(userId);
+  if (user && user.avatar_url === row.file_url) {
+    const next = db.prepare('SELECT file_url FROM user_avatars WHERE user_id = ? ORDER BY created_at DESC LIMIT 1').get(userId);
+    db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(next ? next.file_url : null, userId);
+  }
+  return getAvatarHistory(userId);
+}
+
 function createPost(userId, { type = 'photo', fileUrl, fileName = null, fileSize = null, caption = '' }) {
   const postId = id();
   const now = Date.now();
@@ -103,6 +121,6 @@ function areContacts(userIdA, userIdB) {
 }
 
 module.exports = {
-  addAvatar, getAvatarHistory, createPost, getPost, getPosts, setPostArchived, deletePost,
+  addAvatar, getAvatarHistory, removeAvatar, createPost, getPost, getPosts, setPostArchived, deletePost,
   getActiveStoryPosts, hasActiveStory, getProfileExtras, areContacts, STORY_WINDOW_MS
 };

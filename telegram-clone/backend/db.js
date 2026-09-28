@@ -362,6 +362,17 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, revoked);
   if (!cols.some((c) => c.name === 'badge_style')) {
     db.exec("ALTER TABLE users ADD COLUMN badge_style TEXT NOT NULL DEFAULT 'star'");
   }
+  // Profile page background — a FairyChat Premium perk (same as Telegram's
+  // own "Profile Colour"): a solid or gradient colour behind the avatar/
+  // name/action-tabs area on the Profile screen, optionally with a
+  // scattered decorative icon pattern layered on top. Visible on everyone's
+  // profile the same way name colour/badges are, not just to the owner.
+  if (!cols.some((c) => c.name === 'profile_bg_style')) {
+    db.exec('ALTER TABLE users ADD COLUMN profile_bg_style TEXT');
+  }
+  if (!cols.some((c) => c.name === 'profile_bg_icon')) {
+    db.exec('ALTER TABLE users ADD COLUMN profile_bg_icon TEXT');
+  }
 })();
 
 db.exec(`

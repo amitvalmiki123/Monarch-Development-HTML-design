@@ -4,13 +4,16 @@ import ProfileHero from '../components/profile/ProfileHero';
 import PostsSection from '../components/profile/PostsSection';
 import StoryViewer from '../components/profile/StoryViewer';
 import CameraCapture from '../components/profile/CameraCapture';
+import Modal from '../components/common/Modal';
+import ProfileColorPage from './settings/ProfileColorPage';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 import { AtIcon, InfoIcon, PhoneIcon } from '../components/common/SettingsIcons';
 import { ArchiveIcon, TrashIcon, CheckCircleIcon } from '../components/profile/ProfileIcons';
+import { saveToGallery } from '../utils/saveToGallery';
 
 export default function ProfilePage({ onOpenSettings }) {
-  const { user, updateProfile, setAvatar, refreshUser } = useAuth();
+  const { user, updateProfile, setAvatar, removeAvatar, changeUsername, refreshUser } = useAuth();
   const { uploadFile } = useChat();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user.name);
@@ -18,6 +21,28 @@ export default function ProfilePage({ onOpenSettings }) {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Top-right 3-dot menu (replaces the old pencil button — "Edit" lives in
+  // the menu and on the hero's Edit Info button now).
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [menuOpen]);
+
+  // "Change Profile Colour" opens as its own full page (Telegram-style).
+  const [showColorPage, setShowColorPage] = useState(false);
+
+  // "Change Username" modal.
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState(user.username || '');
+  const [usernameBusy, setUsernameBusy] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
 
   const [tab, setTab] = useState('posts');
   const [posts, setPosts] = useState([]);
@@ -75,6 +100,51 @@ export default function ProfilePage({ onOpenSettings }) {
     }
   };
 
+  // "Remove Photo" from the pulled-down profile-photo viewer — falls back
+  // to the previous photo (or the plain initials avatar) server-side.
+  const handleRemovePhoto = async (photo) => {
+    if (!window.confirm('Remove this profile photo?')) return;
+    try {
+      await removeAvatar(photo.id);
+    } catch (err) {
+      alert('Could not remove photo: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  // "Save to Gallery" — share-sheet save on mobile, download fallback on
+  // desktop (see utils/saveToGallery.js).
+  const handleSavePhoto = async (photo) => {
+    try {
+      const result = await saveToGallery(photo.url, 'fairychat-profile-photo');
+      if (result === 'shared') { /* native sheet already confirms */ }
+      else if (result === 'downloaded') alert('Photo saved to your downloads.');
+    } catch (err) {
+      alert('Could not save photo: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const openUsernameModal = () => {
+    setMenuOpen(false);
+    setUsernameDraft(user.username || '');
+    setUsernameError('');
+    setShowUsernameModal(true);
+  };
+
+  const submitUsername = async () => {
+    const v = usernameDraft.trim();
+    if (!v || v === user.username) { setShowUsernameModal(false); return; }
+    setUsernameBusy(true);
+    setUsernameError('');
+    try {
+      await changeUsername(v);
+      setShowUsernameModal(false);
+    } catch (err) {
+      setUsernameError(err.response?.data?.error || err.message);
+    } finally {
+      setUsernameBusy(false);
+    }
+  };
+
   const copyToClipboard = async (text, field) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -112,13 +182,40 @@ export default function ProfilePage({ onOpenSettings }) {
     await Promise.all([loadPosts(), refreshUser()]);
   };
 
+  // "Change Profile Colour" opens as its own full page (Telegram-style).
+  // Kept AFTER every hook above so the hook order stays identical whether
+  // or not the sub-page is showing.
+  if (showColorPage) {
+    return <ProfileColorPage onBack={() => setShowColorPage(false)} />;
+  }
+
   return (
     <div className="page-panel">
       <div className="page-panel__topbar">
         <h1>Profile</h1>
-        <button className="icon-btn" onClick={editing ? save : startEdit} disabled={saving} title={editing ? 'Save' : 'Edit'}>
-          {saving ? '…' : editing ? '✓' : '✎'}
-        </button>
+        {editing ? (
+          <button className="icon-btn" onClick={save} disabled={saving} title="Save">
+            {saving ? '…' : '✓'}
+          </button>
+        ) : (
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button className="icon-btn" onClick={() => setMenuOpen((v) => !v)} title="Profile options">⋮</button>
+            {menuOpen && (
+              <div className="top-menu">
+                <button className="top-menu__item" onClick={() => { setMenuOpen(false); setShowColorPage(true); }}>
+                  <span>🎨</span> Change Profile Colour
+                </button>
+                <button className="top-menu__item" onClick={openUsernameModal}>
+                  <span>👤</span> Change Username
+                </button>
+                <div className="top-menu__divider" />
+                <button className="top-menu__item" onClick={() => { setMenuOpen(false); startEdit(); }}>
+                  <span>✎</span> Edit Info
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="settings-scroll">
@@ -135,6 +232,8 @@ export default function ProfilePage({ onOpenSettings }) {
           onSetPhoto={() => fileInputRef.current?.click()}
           onEditInfo={editing ? save : startEdit}
           onOpenSettings={onOpenSettings}
+          onRemovePhoto={handleRemovePhoto}
+          onSavePhoto={handleSavePhoto}
         />
         <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handlePhotoPick} />
 
@@ -207,6 +306,40 @@ export default function ProfilePage({ onOpenSettings }) {
             </>
           )}
         />
+      )}
+
+      {showUsernameModal && (
+        <Modal title="Change Username" onClose={() => setShowUsernameModal(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 6 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+              You can choose a username on FairyChat. If you do, other people will be able to find
+              you by this username and contact you without needing your phone number.
+            </div>
+            <input
+              className="profile-inline-input"
+              style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', width: '100%' }}
+              value={usernameDraft}
+              onChange={(e) => setUsernameDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitUsername(); }}
+              placeholder="username"
+              autoFocus
+            />
+            {usernameError && <div style={{ color: 'var(--danger)', fontSize: 12.5 }}>{usernameError}</div>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn-primary"
+                style={{ flex: 1, background: 'var(--bg-elevated)', boxShadow: 'none' }}
+                onClick={() => setShowUsernameModal(false)}
+                disabled={usernameBusy}
+              >
+                Cancel
+              </button>
+              <button className="btn-primary btn-gold" style={{ flex: 1 }} onClick={submitUsername} disabled={usernameBusy || !usernameDraft.trim()}>
+                {usernameBusy ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
