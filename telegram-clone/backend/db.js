@@ -301,6 +301,40 @@ CREATE TABLE IF NOT EXISTS posts (
 CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id, created_at);
 `);
 
+// --- Two-Step Verification (Telegram's "cloud password") — an optional
+// second password required to complete login even after the account
+// password is correct. Nullable columns added via migration since `users`
+// already existed before this feature.
+(function migrateTwoStep() {
+  const cols = db.prepare("PRAGMA table_info(users)").all();
+  if (!cols.some((c) => c.name === 'two_step_hash')) {
+    db.exec('ALTER TABLE users ADD COLUMN two_step_hash TEXT');
+  }
+  if (!cols.some((c) => c.name === 'two_step_hint')) {
+    db.exec('ALTER TABLE users ADD COLUMN two_step_hint TEXT');
+  }
+})();
+
+// --- Login sessions (one row per device/browser that has ever logged in).
+// The JWT issued at login carries this row's id as its `sid` claim, so a
+// session can be individually revoked at any time (Settings -> Active
+// Sessions) without waiting for the token to expire — auth middleware
+// checks the row is still present and not revoked on every request.
+db.exec(`
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  device_label TEXT,
+  user_agent TEXT,
+  ip_address TEXT,
+  created_at INTEGER NOT NULL,
+  last_active_at INTEGER NOT NULL,
+  revoked INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, revoked);
+`);
+
 
 
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like

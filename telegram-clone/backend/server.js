@@ -11,6 +11,7 @@ const chatRoutes = require('./routes/chats');
 const uploadRoutes = require('./routes/upload');
 const gifRoutes = require('./routes/gifs');
 const pushRoutes = require('./routes/push');
+const sessionRoutes = require('./routes/sessions');
 const setupSocket = require('./socket/index');
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/gifs', gifRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

@@ -76,6 +76,37 @@ router.delete('/me/posts/:postId', auth, (req, res) => {
   }
 });
 
+// --- Two-Step Verification (cloud password) management ---
+
+router.get('/me/two-step', auth, (req, res) => {
+  res.json({ enabled: !!req.user.two_step_hash, hint: req.user.two_step_hint || '' });
+});
+
+router.post('/me/two-step', auth, async (req, res) => {
+  const { currentPassword, newPassword, hint } = req.body;
+  if (!newPassword || newPassword.length < 4) {
+    return res.status(400).json({ error: 'Cloud password must be at least 4 characters' });
+  }
+  if (req.user.two_step_hash) {
+    if (!currentPassword) return res.status(400).json({ error: 'Enter your current cloud password to change it' });
+    const ok = await bcrypt.compare(currentPassword, req.user.two_step_hash);
+    if (!ok) return res.status(401).json({ error: 'Incorrect current cloud password' });
+  }
+  const hash = await bcrypt.hash(newPassword, 10);
+  db.prepare('UPDATE users SET two_step_hash = ?, two_step_hint = ? WHERE id = ?').run(hash, hint || null, req.user.id);
+  res.json({ ok: true, enabled: true, hint: hint || '' });
+});
+
+router.delete('/me/two-step', auth, async (req, res) => {
+  const { password } = req.body;
+  if (!req.user.two_step_hash) return res.json({ ok: true, enabled: false });
+  if (!password) return res.status(400).json({ error: 'Enter your cloud password to remove it' });
+  const ok = await bcrypt.compare(password, req.user.two_step_hash);
+  if (!ok) return res.status(401).json({ error: 'Incorrect cloud password' });
+  db.prepare('UPDATE users SET two_step_hash = NULL, two_step_hint = NULL WHERE id = ?').run(req.user.id);
+  res.json({ ok: true, enabled: false });
+});
+
 
 // Permanent account deletion. This never deletes rows out from under other
 // users' chat history — it scrubs every personal field and renames the

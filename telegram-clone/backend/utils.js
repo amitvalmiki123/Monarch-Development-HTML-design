@@ -22,8 +22,16 @@ function pickColor(seedStr) {
   return PALETTE[Math.abs(hash) % PALETTE.length];
 }
 
-function signToken(user) {
-  return jwt.sign({ uid: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+function signToken(user, sessionId) {
+  return jwt.sign({ uid: user.id, username: user.username, sid: sessionId }, JWT_SECRET, { expiresIn: '30d' });
+}
+
+// Issued right after a correct password when the account also has
+// Two-Step Verification enabled — proves "you know the account password"
+// without yet granting a real session, until the cloud password is also
+// verified via /auth/two-step. Short-lived and carries no session id.
+function signPendingTwoStepToken(user) {
+  return jwt.sign({ uid: user.id, pending2fa: true }, JWT_SECRET, { expiresIn: '10m' });
 }
 
 function verifyToken(token) {
@@ -63,4 +71,4 @@ function normalizePhone(phone) {
   return digits.slice(-10);
 }
 
-module.exports = { id, pickColor, signToken, verifyToken, publicUser, normalizePhone, JWT_SECRET };
+module.exports = { id, pickColor, signToken, signPendingTwoStepToken, verifyToken, publicUser, normalizePhone, JWT_SECRET };

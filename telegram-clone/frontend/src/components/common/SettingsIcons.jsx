@@ -165,6 +165,47 @@ export function CrownIcon() {
   return <svg {...base}><path d="M3 8.5l3.6 2.6L12 4l5.4 7.1 3.6-2.6-1.6 9.5H4.6L3 8.5z" /><rect x="4.6" y="18" width="14.8" height="2.2" rx="1" /></svg>;
 }
 
+export function LockIcon() {
+  return (
+    <svg {...stroke}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V7.5a4 4 0 0 1 8 0V11" />
+      <circle cx="12" cy="15.3" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function ShieldIcon() {
+  return (
+    <svg {...stroke}>
+      <path d="M12 3l7 3v5.5c0 4.6-3 8.3-7 9.5-4-1.2-7-4.9-7-9.5V6l7-3z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  );
+}
+
+export function KeyIcon() {
+  return (
+    <svg {...stroke}>
+      <circle cx="8" cy="15" r="3.5" />
+      <path d="M10.4 12.6L18 5" />
+      <path d="M15 8l2.3 2.3" />
+      <path d="M17.5 5.5L20 8" />
+    </svg>
+  );
+}
+
+export function DevicesIcon() {
+  return (
+    <svg {...stroke}>
+      <rect x="3" y="4" width="13" height="9" rx="1.5" />
+      <line x1="7" y1="17" x2="12" y2="17" />
+      <rect x="16.5" y="9" width="5.5" height="9" rx="1.2" />
+      <line x1="19" y1="15.3" x2="19" y2="15.4" />
+    </svg>
+  );
+}
+
 export function CameraGlyphIcon() {
   return (
     <svg {...stroke}>

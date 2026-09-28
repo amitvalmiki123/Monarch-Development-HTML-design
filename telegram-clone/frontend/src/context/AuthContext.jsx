@@ -104,6 +104,19 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (identifier, password) => {
     const res = await http.post('/auth/login', { identifier, password });
+    // Two-Step Verification is on for this account — no session yet, the
+    // caller (Login page) must collect the cloud password and call
+    // submitTwoStep() with the pendingToken to actually finish signing in.
+    if (res.data.requiresTwoStep) {
+      return { requiresTwoStep: true, pendingToken: res.data.pendingToken, hint: res.data.hint };
+    }
+    persistSession(res.data.token, res.data.user);
+    return res.data.user;
+  }, [persistSession]);
+
+  // Second step of login when the account has a cloud password set.
+  const submitTwoStep = useCallback(async (pendingToken, password) => {
+    const res = await http.post('/auth/two-step', { pendingToken, password });
     persistSession(res.data.token, res.data.user);
     return res.data.user;
   }, [persistSession]);
@@ -185,25 +198,40 @@ export function AuthProvider({ children }) {
     // messages, etc) whenever `token` changes, so this reload isn't needed.
   }, [accounts]);
 
-  const logout = useCallback((userId) => {
+  // Ends the session server-side (so it drops off the Active Sessions list
+  // immediately) before clearing local state. Best-effort: if we're
+  // offline, we still log out locally and the server-side session just
+  // sits there until its token naturally expires.
+  const logout = useCallback(async (userId) => {
     const targetId = userId || user?.id;
+    const isActive = !userId || userId === user?.id;
+    const targetToken = isActive ? token : accounts.find((a) => a.user.id === targetId)?.token;
+    if (targetToken) {
+      try {
+        await http.post('/auth/logout', {}, { headers: { Authorization: `Bearer ${targetToken}` } });
+      } catch {
+        // offline or already invalid — nothing more we can do server-side
+      }
+    }
     if (targetId) forgetAccount(targetId);
-    localStorage.removeItem('monarch_token');
-    localStorage.removeItem('monarch_user');
-    setToken(null);
-    setUser(null);
-    disconnectSocket();
-  }, [user, forgetAccount]);
+    if (isActive) {
+      localStorage.removeItem('monarch_token');
+      localStorage.removeItem('monarch_user');
+      setToken(null);
+      setUser(null);
+      disconnectSocket();
+    }
+  }, [user, token, accounts, forgetAccount]);
 
   const deleteAccount = useCallback(async () => {
     await http.delete('/users/me');
-    logout();
+    await logout();
   }, [logout]);
 
   return (
     <AuthContext.Provider value={{
       user, token, loading, offline, accounts,
-      login, register, logout, updateProfile, setAvatar, refreshUser, deleteAccount,
+      login, submitTwoStep, register, logout, updateProfile, setAvatar, refreshUser, deleteAccount,
       switchAccount, forgetAccount
     }}>
       {children}

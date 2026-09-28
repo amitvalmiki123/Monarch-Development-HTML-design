@@ -5,6 +5,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatApp from './pages/ChatApp';
+import PasscodeLockScreen from './components/security/PasscodeLockScreen';
+import usePasscodeLock from './hooks/usePasscodeLock';
 
 function Splash() {
   return (
@@ -54,12 +56,28 @@ function AppRoutes() {
   );
 }
 
+// Gates the whole signed-in app behind the local App Passcode Lock (Settings
+// > Privacy and Security), when the user has turned it on. Purely
+// client-side — the server is never involved and never sees the PIN.
+function PasscodeGate({ children }) {
+  const { user } = useAuth();
+  const { locked, unlock } = usePasscodeLock(!!user);
+  return (
+    <>
+      {children}
+      {locked && <PasscodeLockScreen onUnlock={unlock} />}
+    </>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <PasscodeGate>
+            <AppRoutes />
+          </PasscodeGate>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

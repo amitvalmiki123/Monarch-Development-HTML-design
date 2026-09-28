@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-  const { login, user } = useAuth();
+  const { login, submitTwoStep, user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const addingAccount = params.get('addAccount') === '1';
@@ -12,19 +12,84 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Two-Step Verification: set once the server says the account's cloud
+  // password is required to finish signing in. `pendingToken` is the
+  // short-lived token that /auth/two-step redeems.
+  const [twoStep, setTwoStep] = useState(null); // { pendingToken, hint }
+  const [cloudPassword, setCloudPassword] = useState('');
+
   const submit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(identifier.trim(), password);
-      navigate('/', { replace: true });
+      const result = await login(identifier.trim(), password);
+      if (result?.requiresTwoStep) {
+        setTwoStep({ pendingToken: result.pendingToken, hint: result.hint });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err) {
       setError(err.response?.data?.error || (!err.response ? 'No internet connection — please check your network and try again' : 'Login failed'));
     } finally {
       setLoading(false);
     }
   };
+
+  const submitCloudPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await submitTwoStep(twoStep.pendingToken, cloudPassword);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || (!err.response ? 'No internet connection — please check your network and try again' : 'Incorrect password'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (twoStep) {
+    return (
+      <div className="auth-screen">
+        <div className="auth-card">
+          <div className="auth-brand">
+            <img className="auth-brand__crest" src="/icons/brand-crest.png" alt="FairyChat" />
+            <div>
+              <h1>FairyChat</h1>
+              <span>Your own private messenger</span>
+            </div>
+          </div>
+          <h2>Enter your cloud password</h2>
+          <p className="subtitle">
+            This account is protected with an additional password. {twoStep.hint ? `Hint: ${twoStep.hint}` : ''}
+          </p>
+
+          {error && <div className="auth-error">{error}</div>}
+
+          <form onSubmit={submitCloudPassword}>
+            <div className="field">
+              <label>Cloud Password</label>
+              <input
+                type="password"
+                autoFocus
+                value={cloudPassword}
+                onChange={(e) => setCloudPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <button className="btn-primary" disabled={loading}>{loading ? 'Verifying...' : 'Verify'}</button>
+          </form>
+
+          <div className="auth-switch">
+            <button type="button" onClick={() => { setTwoStep(null); setCloudPassword(''); setError(''); }}>← Back to login</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-screen">

@@ -8,10 +8,15 @@ import { EMOJI_CATEGORIES, REACTION_CHOICES, DEFAULT_QUICK_REACTIONS } from '../
 import {
   UserGlyphIcon, AtIcon, InfoIcon, CakeIcon, AddPersonIcon, LogoutIcon,
   MoonIcon, SunIcon, BookmarkIcon, ImageIcon, BellIcon, GroupIcon,
-  SpeakerIcon, WrenchIcon, PuzzleIcon, TrashIcon, CrownIcon
+  SpeakerIcon, WrenchIcon, PuzzleIcon, TrashIcon, CrownIcon,
+  LockIcon, ShieldIcon, KeyIcon, DevicesIcon
 } from '../components/common/SettingsIcons';
 import http from '../api/http';
 import { pushStatus, subscribeStatus, initNotifications, registerPushIfConfigured, sendLocalTestNotification, sendServerTestPush, getNotifPrefs, setNotifPrefs } from '../utils/notifications';
+import {
+  isPasscodeEnabled, setPasscode, disablePasscode, verifyPasscode,
+  getAutoLockSeconds, setAutoLockSeconds, AUTO_LOCK_OPTIONS
+} from '../utils/passcodeLock';
 
 function Row({ icon, iconColor = 'blue', label, sub, right, onClick, danger }) {
   return (
@@ -251,6 +256,384 @@ function EditableRow({ icon, iconColor, label, value, placeholder, type = 'text'
   );
 }
 
+function PasscodeLockSettings() {
+  const [enabled, setEnabled] = useState(() => isPasscodeEnabled());
+  const [mode, setMode] = useState(null); // null | 'setup' | 'change'
+  const [pin1, setPin1] = useState('');
+  const [pin2, setPin2] = useState('');
+  const [currentPin, setCurrentPin] = useState('');
+  const [error, setError] = useState('');
+  const [autoLock, setAutoLock] = useState(() => getAutoLockSeconds());
+
+  const startSetup = () => { setMode('setup'); setPin1(''); setPin2(''); setCurrentPin(''); setError(''); };
+  const startChange = () => { setMode('change'); setPin1(''); setPin2(''); setCurrentPin(''); setError(''); };
+  const cancel = () => { setMode(null); setError(''); };
+
+  const savePin = async () => {
+    setError('');
+    if (!/^\d{4,6}$/.test(pin1)) return setError('Passcode must be 4-6 digits');
+    if (pin1 !== pin2) return setError('Passcodes do not match');
+    if (mode === 'change') {
+      const ok = await verifyPasscode(currentPin);
+      if (!ok) return setError('Current passcode is incorrect');
+    }
+    await setPasscode(pin1);
+    setEnabled(true);
+    setMode(null);
+  };
+
+  const turnOff = async () => {
+    const ok = await verifyPasscode(currentPin);
+    if (!ok) return setError('Current passcode is incorrect');
+    disablePasscode();
+    setEnabled(false);
+    setMode(null);
+    setError('');
+  };
+
+  const changeAutoLock = (val) => {
+    setAutoLockSeconds(val);
+    setAutoLock(val);
+  };
+
+  return (
+    <>
+      <Row
+        icon={<LockIcon />}
+        iconColor="green"
+        label="Passcode Lock"
+        sub={enabled ? `On — auto-lock ${AUTO_LOCK_OPTIONS.find((o) => o.value === autoLock)?.label.toLowerCase() || 'immediately'}` : 'Off'}
+        onClick={() => (enabled ? setMode(mode ? null : 'menu') : startSetup())}
+      />
+      {enabled && mode === 'menu' && (
+        <div className="danger-confirm-box" style={{ borderColor: 'var(--border-soft)' }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 10 }}>
+            Locks FairyChat with a PIN whenever you reopen it. This is stored only on this device.
+          </div>
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Auto-Lock</label>
+            <select
+              className="profile-inline-input"
+              style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', width: '100%' }}
+              value={autoLock}
+              onChange={(e) => changeAutoLock(Number(e.target.value))}
+            >
+              {AUTO_LOCK_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-primary" style={{ flex: 1, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={startChange}>
+              Change Passcode
+            </button>
+            <button className="btn-primary" style={{ flex: 1, background: 'var(--danger)', boxShadow: 'none' }} onClick={() => { setMode('turnoff'); setCurrentPin(''); setError(''); }}>
+              Turn Off
+            </button>
+          </div>
+        </div>
+      )}
+      {(mode === 'setup' || mode === 'change') && (
+        <div className="danger-confirm-box" style={{ borderColor: 'var(--border-soft)' }}>
+          {error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 8 }}>{error}</div>}
+          {mode === 'change' && (
+            <input
+              className="profile-inline-input"
+              style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 8, width: '100%' }}
+              type="password" inputMode="numeric" placeholder="Current passcode"
+              value={currentPin} onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ''))}
+            />
+          )}
+          <input
+            className="profile-inline-input"
+            style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 8, width: '100%' }}
+            type="password" inputMode="numeric" placeholder="New passcode (4-6 digits)"
+            value={pin1} onChange={(e) => setPin1(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          />
+          <input
+            className="profile-inline-input"
+            style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 10, width: '100%' }}
+            type="password" inputMode="numeric" placeholder="Re-enter passcode"
+            value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-primary" style={{ flex: 1, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={cancel}>Cancel</button>
+            <button className="btn-primary btn-gold" style={{ flex: 1 }} onClick={savePin}>Save</button>
+          </div>
+        </div>
+      )}
+      {mode === 'turnoff' && (
+        <div className="danger-confirm-box">
+          <div style={{ fontWeight: 700, color: 'var(--danger)', marginBottom: 4 }}>Turn off Passcode Lock?</div>
+          {error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 8 }}>{error}</div>}
+          <input
+            className="profile-inline-input"
+            style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 10, width: '100%' }}
+            type="password" inputMode="numeric" placeholder="Current passcode"
+            value={currentPin} onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ''))}
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-primary" style={{ flex: 1, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={cancel}>Cancel</button>
+            <button className="btn-primary" style={{ flex: 1, background: 'var(--danger)', boxShadow: 'none' }} onClick={turnOff}>Turn Off</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function TwoStepSettings() {
+  const [status, setStatus] = useState(null); // { enabled, hint }
+  const [expanded, setExpanded] = useState(false);
+  const [mode, setMode] = useState(null); // null | 'set' | 'remove'
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [hint, setHint] = useState('');
+  const [removePassword, setRemovePassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    try {
+      const res = await http.get('/users/me/two-step');
+      setStatus(res.data);
+      setHint(res.data.hint || '');
+    } catch {
+      setStatus({ enabled: false, hint: '' });
+    }
+  };
+
+  const toggleExpand = () => {
+    setExpanded((v) => !v);
+    if (!expanded && !status) load();
+  };
+
+  const startSet = () => { setMode('set'); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setError(''); };
+  const startRemove = () => { setMode('remove'); setRemovePassword(''); setError(''); };
+  const cancel = () => { setMode(null); setError(''); };
+
+  const submitSet = async () => {
+    setError('');
+    if (newPassword.length < 4) return setError('Password must be at least 4 characters');
+    if (newPassword !== confirmPassword) return setError('Passwords do not match');
+    setBusy(true);
+    try {
+      const res = await http.post('/users/me/two-step', { currentPassword, newPassword, hint });
+      setStatus({ enabled: true, hint: res.data.hint || '' });
+      setMode(null);
+    } catch (e) {
+      setError(e.response?.data?.error || 'Something went wrong');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitRemove = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      await http.delete('/users/me/two-step', { data: { password: removePassword } });
+      setStatus({ enabled: false, hint: '' });
+      setMode(null);
+    } catch (e) {
+      setError(e.response?.data?.error || 'Something went wrong');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Row
+        icon={<ShieldIcon />}
+        iconColor="purple"
+        label="Two-Step Verification"
+        sub={status ? (status.enabled ? 'On' : 'Off') : 'Adds a password on top of your login'}
+        onClick={toggleExpand}
+      />
+      {expanded && status && (
+        <div className="danger-confirm-box" style={{ borderColor: 'var(--border-soft)' }}>
+          {mode === null && (
+            <>
+              <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginBottom: 10 }}>
+                {status.enabled
+                  ? `Enabled${status.hint ? ` — hint: "${status.hint}"` : ''}. You'll need this cloud password whenever you log in from a new device.`
+                  : 'Require an extra cloud password when logging into your account, on top of your regular password.'}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-primary btn-gold" style={{ flex: 1 }} onClick={startSet}>
+                  {status.enabled ? 'Change Password' : 'Set Password'}
+                </button>
+                {status.enabled && (
+                  <button className="btn-primary" style={{ flex: 1, background: 'var(--danger)', boxShadow: 'none' }} onClick={startRemove}>
+                    Disable
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+          {mode === 'set' && (
+            <>
+              {error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 8 }}>{error}</div>}
+              {status.enabled && (
+                <input
+                  className="profile-inline-input"
+                  style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 8, width: '100%' }}
+                  type="password" placeholder="Current cloud password"
+                  value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+              )}
+              <input
+                className="profile-inline-input"
+                style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 8, width: '100%' }}
+                type="password" placeholder="New cloud password"
+                value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <input
+                className="profile-inline-input"
+                style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 8, width: '100%' }}
+                type="password" placeholder="Re-enter password"
+                value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              <input
+                className="profile-inline-input"
+                style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 10, width: '100%' }}
+                type="text" placeholder="Hint (optional)"
+                value={hint} onChange={(e) => setHint(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-primary" style={{ flex: 1, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={cancel} disabled={busy}>Cancel</button>
+                <button className="btn-primary btn-gold" style={{ flex: 1 }} onClick={submitSet} disabled={busy}>{busy ? 'Saving...' : 'Save'}</button>
+              </div>
+            </>
+          )}
+          {mode === 'remove' && (
+            <>
+              <div style={{ fontWeight: 700, color: 'var(--danger)', marginBottom: 4 }}>Disable Two-Step Verification?</div>
+              {error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 8 }}>{error}</div>}
+              <input
+                className="profile-inline-input"
+                style={{ border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px', marginBottom: 10, width: '100%' }}
+                type="password" placeholder="Current cloud password"
+                value={removePassword} onChange={(e) => setRemovePassword(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-primary" style={{ flex: 1, background: 'var(--bg-elevated)', boxShadow: 'none' }} onClick={cancel} disabled={busy}>Cancel</button>
+                <button className="btn-primary" style={{ flex: 1, background: 'var(--danger)', boxShadow: 'none' }} onClick={submitRemove} disabled={busy}>
+                  {busy ? 'Removing...' : 'Disable'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function ActiveSessionsSettings() {
+  const [expanded, setExpanded] = useState(false);
+  const [sessions, setSessions] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+
+  const load = async () => {
+    try {
+      const res = await http.get('/sessions');
+      setSessions(res.data.sessions);
+    } catch {
+      setSessions([]);
+    }
+  };
+
+  const toggleExpand = () => {
+    setExpanded((v) => !v);
+    if (!expanded) load();
+  };
+
+  const revoke = async (id) => {
+    setBusyId(id);
+    try {
+      await http.delete(`/sessions/${id}`);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+    } catch {
+      // ignore — list stays as-is, user can retry
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const revokeAllOthers = async () => {
+    if (!confirm('Terminate all other sessions? You will stay logged in on this device only.')) return;
+    setBusyId('__all__');
+    try {
+      await http.delete('/sessions/others');
+      setSessions((prev) => prev.filter((s) => s.current));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const others = sessions ? sessions.filter((s) => !s.current) : [];
+
+  return (
+    <>
+      <Row
+        icon={<DevicesIcon />}
+        iconColor="blue"
+        label="Active Sessions"
+        sub={sessions ? `${sessions.length} device${sessions.length === 1 ? '' : 's'}` : 'See where you\'re logged in'}
+        onClick={toggleExpand}
+      />
+      {expanded && sessions && (
+        <div className="danger-confirm-box" style={{ borderColor: 'var(--border-soft)' }}>
+          {sessions.map((s) => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-soft)' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                  {s.deviceLabel}{s.current ? ' · This device' : ''}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                  {s.ipAddress || 'unknown IP'} · active {timeAgo(s.lastActiveAt)}
+                </div>
+              </div>
+              {!s.current && (
+                <button
+                  className="btn-primary"
+                  style={{ background: 'var(--bg-elevated)', boxShadow: 'none', fontSize: 12, padding: '6px 10px' }}
+                  disabled={busyId === s.id}
+                  onClick={() => revoke(s.id)}
+                >
+                  {busyId === s.id ? '...' : 'Terminate'}
+                </button>
+              )}
+            </div>
+          ))}
+          {others.length > 0 && (
+            <button
+              className="btn-primary"
+              style={{ width: '100%', marginTop: 10, background: 'var(--danger)', boxShadow: 'none' }}
+              disabled={busyId === '__all__'}
+              onClick={revokeAllOthers}
+            >
+              {busyId === '__all__' ? 'Terminating...' : 'Terminate All Other Sessions'}
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function SettingsPage({ onOpenSaved }) {
   const { logout, user, updateProfile, accounts, switchAccount, forgetAccount, deleteAccount } = useAuth();
   const { theme, toggleTheme, wallpaper, setWallpaper } = useTheme();
@@ -353,6 +736,13 @@ export default function SettingsPage({ onOpenSaved }) {
           ))}
           <Row icon={<AddPersonIcon />} iconColor="blue" label="Add Another Account" sub="Sign in or register with a different account" onClick={() => navigate('/login?addAccount=1')} />
           <Row icon={<LogoutIcon />} iconColor="red" label="Log Out" onClick={() => logout()} danger />
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-section__title">Privacy and Security</div>
+          <PasscodeLockSettings />
+          <TwoStepSettings />
+          <ActiveSessionsSettings />
         </div>
 
         <div className="settings-section">
