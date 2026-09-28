@@ -272,3 +272,31 @@ export function MegaphoneGlyphIcon() {
     </svg>
   );
 }
+
+export function SmileGlyphIcon() {
+  return (
+    <svg {...stroke}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.2 14c1 1.3 2.2 2 3.8 2s2.8-.7 3.8-2" />
+      <circle cx="8.7" cy="9.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15.3" cy="9.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function ReactionIcon() {
+  return (
+    <svg {...stroke}>
+      <path d="M12 19.5s-7-4.2-9-8.4C1.6 7.8 3.6 5 6.6 5c1.7 0 3 .9 3.9 2.2.3.4.9.4 1.2 0C12.5 5.9 13.8 5 15.5 5c3 0 5 2.8 3.6 6.1-2 4.2-9 8.4-9 8.4z" />
+    </svg>
+  );
+}
+
+export function SparkleLockIcon() {
+  return (
+    <svg {...base}>
+      <path d="M12 2.5l1.6 4.7 4.7 1.6-4.7 1.6L12 15.1l-1.6-4.7-4.7-1.6 4.7-1.6L12 2.5z" />
+      <path d="M18.5 14l.8 2.3 2.3.8-2.3.8-.8 2.3-.8-2.3-2.3-.8 2.3-.8.8-2.3z" opacity="0.85" />
+    </svg>
+  );
+}

@@ -28,6 +28,13 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // FairyChat Premium's "Animated Emojis" pack (public/premium-emoji/,
+        // ~56MB across 720 files) must NEVER be part of the app-shell
+        // precache — every user's first load would otherwise have to
+        // download the whole pack up front, premium or not. It's excluded
+        // here and instead only cached on-demand (see runtimeCaching below)
+        // the first time each emoji actually gets viewed.
+        globIgnores: ['**/premium-emoji/**'],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/uploads/'),
@@ -35,6 +42,14 @@ export default defineConfig({
             options: {
               cacheName: 'monarch-uploads',
               expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }
+            }
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/premium-emoji/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'fairychat-premium-emoji',
+              expiration: { maxEntries: 720, maxAgeSeconds: 60 * 60 * 24 * 365 }
             }
           }
         ]
