@@ -11,12 +11,12 @@ export const PREMIUM_STICKER_PACKS = [
     label: 'FairyChat',
     icon: '🌟',
     stickers: [
-      { id: 'fc-1', url: '/premium-stickers/sticker-1.png', title: 'Thumbs up' },
-      { id: 'fc-2', url: '/premium-stickers/sticker-2.png', title: 'Laughing' },
-      { id: 'fc-3', url: '/premium-stickers/sticker-3.png', title: 'Sad' },
-      { id: 'fc-4', url: '/premium-stickers/sticker-4.png', title: 'Proud' },
-      { id: 'fc-5', url: '/premium-stickers/sticker-5.png', title: 'Love' },
-      { id: 'fc-6', url: '/premium-stickers/sticker-6.png', title: 'Sleepy' }
+      { id: 'fc-1', url: '/premium-stickers/sticker-1.webp', title: 'Thumbs up' },
+      { id: 'fc-2', url: '/premium-stickers/sticker-2.webp', title: 'Laughing' },
+      { id: 'fc-3', url: '/premium-stickers/sticker-3.webp', title: 'Sad' },
+      { id: 'fc-4', url: '/premium-stickers/sticker-4.webp', title: 'Proud' },
+      { id: 'fc-5', url: '/premium-stickers/sticker-5.webp', title: 'Love' },
+      { id: 'fc-6', url: '/premium-stickers/sticker-6.webp', title: 'Sleepy' }
     ]
   },
   {
@@ -24,10 +24,10 @@ export const PREMIUM_STICKER_PACKS = [
     label: 'Ducks',
     icon: '🦆',
     stickers: [
-      { id: 'duck-1', url: '/premium-stickers/duck-1.png', title: 'Proud duck' },
-      { id: 'duck-2', url: '/premium-stickers/duck-2.png', title: 'Laughing duck' },
-      { id: 'duck-3', url: '/premium-stickers/duck-3.png', title: 'Confused duck' },
-      { id: 'duck-4', url: '/premium-stickers/duck-4.png', title: 'Cool duck' }
+      { id: 'duck-1', url: '/premium-stickers/duck-1.webp', title: 'Proud duck' },
+      { id: 'duck-2', url: '/premium-stickers/duck-2.webp', title: 'Laughing duck' },
+      { id: 'duck-3', url: '/premium-stickers/duck-3.webp', title: 'Confused duck' },
+      { id: 'duck-4', url: '/premium-stickers/duck-4.webp', title: 'Cool duck' }
     ]
   },
   {
@@ -35,10 +35,10 @@ export const PREMIUM_STICKER_PACKS = [
     label: 'Birthday',
     icon: '🎂',
     stickers: [
-      { id: 'bday-1', url: '/premium-stickers/birthday-1.png', title: 'Blowing candles' },
-      { id: 'bday-2', url: '/premium-stickers/birthday-2.png', title: 'Gift' },
-      { id: 'bday-3', url: '/premium-stickers/birthday-3.png', title: 'Balloons' },
-      { id: 'bday-4', url: '/premium-stickers/birthday-4.png', title: 'Cake surprise' }
+      { id: 'bday-1', url: '/premium-stickers/birthday-1.webp', title: 'Blowing candles' },
+      { id: 'bday-2', url: '/premium-stickers/birthday-2.webp', title: 'Gift' },
+      { id: 'bday-3', url: '/premium-stickers/birthday-3.webp', title: 'Balloons' },
+      { id: 'bday-4', url: '/premium-stickers/birthday-4.webp', title: 'Cake surprise' }
     ]
   },
   {
@@ -46,10 +46,10 @@ export const PREMIUM_STICKER_PACKS = [
     label: 'Weird',
     icon: '👁️',
     stickers: [
-      { id: 'weird-1', url: '/premium-stickers/weird-1.png', title: 'Potato king' },
-      { id: 'weird-2', url: '/premium-stickers/weird-2.png', title: 'Cat-fish' },
-      { id: 'weird-3', url: '/premium-stickers/weird-3.png', title: 'Noodle cloud' },
-      { id: 'weird-4', url: '/premium-stickers/weird-4.png', title: 'Blob' }
+      { id: 'weird-1', url: '/premium-stickers/weird-1.webp', title: 'Potato king' },
+      { id: 'weird-2', url: '/premium-stickers/weird-2.webp', title: 'Cat-fish' },
+      { id: 'weird-3', url: '/premium-stickers/weird-3.webp', title: 'Noodle cloud' },
+      { id: 'weird-4', url: '/premium-stickers/weird-4.webp', title: 'Blob' }
     ]
   },
   {
@@ -57,10 +57,10 @@ export const PREMIUM_STICKER_PACKS = [
     label: 'Meme',
     icon: '😂',
     stickers: [
-      { id: 'meme-1', url: '/premium-stickers/meme-1.png', title: 'Shocked' },
-      { id: 'meme-2', url: '/premium-stickers/meme-2.png', title: 'Skull' },
-      { id: 'meme-3', url: '/premium-stickers/meme-3.png', title: 'Sipping tea' },
-      { id: 'meme-4', url: '/premium-stickers/meme-4.png', title: 'Facepalm' }
+      { id: 'meme-1', url: '/premium-stickers/meme-1.webp', title: 'Shocked' },
+      { id: 'meme-2', url: '/premium-stickers/meme-2.webp', title: 'Skull' },
+      { id: 'meme-3', url: '/premium-stickers/meme-3.webp', title: 'Sipping tea' },
+      { id: 'meme-4', url: '/premium-stickers/meme-4.webp', title: 'Facepalm' }
     ]
   },
   {
@@ -69,9 +69,9 @@ export const PREMIUM_STICKER_PACKS = [
     icon: '🎮',
     // Growing pack — one more (game-over) lands here next.
     stickers: [
-      { id: 'game-1', url: '/premium-stickers/game-1.png', title: 'GG' },
-      { id: 'game-2', url: '/premium-stickers/game-2.png', title: 'Trophy' },
-      { id: 'game-3', url: '/premium-stickers/game-3.png', title: 'Lucky roll' }
+      { id: 'game-1', url: '/premium-stickers/game-1.webp', title: 'GG' },
+      { id: 'game-2', url: '/premium-stickers/game-2.webp', title: 'Trophy' },
+      { id: 'game-3', url: '/premium-stickers/game-3.webp', title: 'Lucky roll' }
     ]
   },
   {
@@ -79,7 +79,7 @@ export const PREMIUM_STICKER_PACKS = [
     label: 'Badges',
     icon: '✅',
     stickers: [
-      { id: 'badge-verified', url: '/premium-stickers/badge-verified.png', title: 'Verified' }
+      { id: 'badge-verified', url: '/premium-stickers/badge-verified.webp', title: 'Verified' }
     ]
   }
 ];

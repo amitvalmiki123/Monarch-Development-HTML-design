@@ -1913,9 +1913,11 @@
 
 /* Premium sticker packs (StickerPicker) get the same idle loop while
    hovered/visible in the picker, so browsing them already feels animated. */
+/* Premium sticker packs are real per-frame animated WEBP files (see
+   telegram-clone/tools/animate_sticker.py) — they already loop on their own the moment
+   the <img> loads, no CSS animation layered on top needed (or wanted, it'd
+   just fight with the baked-in motion). */
 .sticker-grid__item img { transition: transform 160ms ease; }
-.sticker-grid__item:hover img { animation: jumbo-emoji-idle 1.6s ease-in-out infinite; }
-.sticker-bubble__img--animated { animation: jumbo-emoji-idle 2.6s ease-in-out infinite; }
 
 /* A single emoji sitting inside otherwise-normal text (Premium's "animated
    emoji anywhere" perk) — smaller/gentler loop than the jumbo emoji-only
