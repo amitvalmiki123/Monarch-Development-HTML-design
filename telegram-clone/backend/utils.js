@@ -62,7 +62,8 @@ function publicUser(u) {
     // not just to the premium user themselves.
     isPremium: !!u.is_premium,
     nameColor: u.name_color || null,
-    statusEmoji: u.status_emoji || null
+    statusEmoji: u.status_emoji || null,
+    badgeStyle: u.badge_style || 'star'
   };
 }
 

@@ -13,7 +13,8 @@ import {
 } from '../components/common/SettingsIcons';
 import NameWithFlair from '../components/common/NameWithFlair';
 import LottieEmoji from '../components/common/LottieEmoji';
-import { NAME_COLORS, STATUS_EMOJIS, APP_ICONS } from '../data/premiumData';
+import PremiumBadge from '../components/common/PremiumBadge';
+import { NAME_COLORS, STATUS_EMOJIS, APP_ICONS, BADGE_STYLES } from '../data/premiumData';
 import { applyNativeAppIcon } from '../utils/appIcon';
 import http from '../api/http';
 import { pushStatus, subscribeStatus, initNotifications, registerPushIfConfigured, sendLocalTestNotification, sendServerTestPush, getNotifPrefs, setNotifPrefs } from '../utils/notifications';
@@ -314,6 +315,11 @@ function PremiumSettings() {
     }
   };
 
+  const setBadgeStyle = async (badgeId) => {
+    setBusySwatch(badgeId);
+    try { await updateProfile({ badgeStyle: badgeId }); } finally { setBusySwatch(null); }
+  };
+
   if (!user?.isPremium) {
     return (
       <div className="premium-upsell-box">
@@ -402,6 +408,23 @@ function PremiumSettings() {
           >
             <img src={icon.preview} alt={icon.label} />
             {icon.label}
+          </button>
+        ))}
+      </div>
+
+      <Row icon={<StarIcon />} iconColor="pink" label="Profile Badge" sub="Shown next to your name everywhere" />
+      <div className="app-icon-grid">
+        {BADGE_STYLES.map((b) => (
+          <button
+            key={b.id}
+            className={`app-icon-option${(user.badgeStyle || 'star') === b.id ? ' active' : ''}`}
+            onClick={() => setBadgeStyle(b.id)}
+            disabled={busySwatch === b.id}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 38 }}>
+              <PremiumBadge size={28} variant={b.id} style={{ marginLeft: 0 }} />
+            </span>
+            {b.label}
           </button>
         ))}
       </div>

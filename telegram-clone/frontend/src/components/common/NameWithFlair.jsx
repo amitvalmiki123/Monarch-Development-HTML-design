@@ -17,7 +17,7 @@ export default function NameWithFlair({ name, user, badgeSize = 13, statusSize =
     <span className={className} style={style}>
       <span style={user.nameColor ? { color: user.nameColor } : undefined}>{name}</span>
       {user.statusEmoji && <LottieEmoji id={user.statusEmoji} size={statusSize} className="name-flair-status" />}
-      {user.isPremium && <PremiumBadge size={badgeSize} />}
+      {user.isPremium && <PremiumBadge size={badgeSize} variant={user.badgeStyle || 'star'} />}
     </span>
   );
 }

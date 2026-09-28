@@ -23,7 +23,7 @@ router.get('/me', auth, (req, res) => {
 });
 
 router.put('/me', auth, (req, res) => {
-  const { name, bio, avatarColor, birthday, quickReactions, nameColor, statusEmoji, appIcon } = req.body;
+  const { name, bio, avatarColor, birthday, quickReactions, nameColor, statusEmoji, appIcon, badgeStyle } = req.body;
 
   // Name colour and emoji status are FairyChat Premium perks (same as
   // Telegram) — enforce server-side too, not just hide the UI, so a
@@ -34,13 +34,20 @@ router.put('/me', auth, (req, res) => {
   if (appIcon !== undefined && appIcon !== 'default' && !req.user.is_premium) {
     return res.status(403).json({ error: 'Premium app icons are a FairyChat Premium feature' });
   }
+  if (badgeStyle !== undefined && !['star', 'verified'].includes(badgeStyle)) {
+    return res.status(400).json({ error: 'Unknown badge style' });
+  }
+  if (badgeStyle !== undefined && badgeStyle !== 'star' && !req.user.is_premium) {
+    return res.status(403).json({ error: 'Alternate profile badges are a FairyChat Premium feature' });
+  }
 
   db.prepare(`UPDATE users SET name = COALESCE(?, name), bio = COALESCE(?, bio),
     avatar_color = COALESCE(?, avatar_color),
     birthday = COALESCE(?, birthday), quick_reactions = COALESCE(?, quick_reactions),
     name_color = CASE WHEN ? THEN ? ELSE name_color END,
     status_emoji = CASE WHEN ? THEN ? ELSE status_emoji END,
-    app_icon = COALESCE(?, app_icon)
+    app_icon = COALESCE(?, app_icon),
+    badge_style = COALESCE(?, badge_style)
     WHERE id = ?`)
     .run(
       name ?? null, bio ?? null, avatarColor ?? null,
@@ -48,6 +55,7 @@ router.put('/me', auth, (req, res) => {
       nameColor !== undefined ? 1 : 0, nameColor || null,
       statusEmoji !== undefined ? 1 : 0, statusEmoji || null,
       appIcon ?? null,
+      badgeStyle ?? null,
       req.user.id
     );
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);

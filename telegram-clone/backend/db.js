@@ -359,6 +359,9 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, revoked);
   if (!cols.some((c) => c.name === 'app_icon')) {
     db.exec("ALTER TABLE users ADD COLUMN app_icon TEXT NOT NULL DEFAULT 'default'");
   }
+  if (!cols.some((c) => c.name === 'badge_style')) {
+    db.exec("ALTER TABLE users ADD COLUMN badge_style TEXT NOT NULL DEFAULT 'star'");
+  }
 })();
 
 db.exec(`

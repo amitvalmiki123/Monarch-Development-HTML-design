@@ -27,6 +27,13 @@ export const STATUS_EMOJIS = [
 ];
 
 
+// Profile badge styles — the little icon shown next to a Premium member's
+// name everywhere (see components/common/PremiumBadge.jsx).
+export const BADGE_STYLES = [
+  { id: 'star', label: 'Gold Star' },
+  { id: 'verified', label: 'Verified' }
+];
+
 // App icon ids the native Android project knows how to switch to — see
 // android/app/src/main/AndroidManifest.xml's <activity-alias> entries and
 // utils/appIcon.js. 'default' is always available to everyone; the rest
