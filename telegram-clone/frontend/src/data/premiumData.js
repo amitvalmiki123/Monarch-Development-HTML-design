@@ -34,6 +34,7 @@ export const BADGE_STYLES = [
   { id: 'verified', label: 'Verified' },
   { id: 'pink-magic', label: 'Magic Sparkle' },
   { id: 'flame', label: 'Flame' },
+  { id: 'fair-icon', label: 'Fair Icon' },
   { id: 'fairy-wings', label: 'Fairy Wings' }
 ];
 
