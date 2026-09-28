@@ -11,7 +11,15 @@ export default function PremiumBadge({ size = 13, style, variant = 'star' }) {
 
   if (variant === 'verified') {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" style={common} aria-label="Verified" title="Verified">
+      <svg
+        className="premium-badge--spin"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        style={common}
+        aria-label="Verified"
+        title="Verified"
+      >
         <path
           fill="#3ba7ff"
           d="M12 1.5l2.1 1.9 2.8-.4 1 2.6 2.6 1-.4 2.8 1.9 2.1-1.9 2.1.4 2.8-2.6 1-1 2.6-2.8-.4L12 22.5l-2.1-1.9-2.8.4-1-2.6-2.6-1 .4-2.8L1.9 12l1.9-2.1-.4-2.8 2.6-1 1-2.6 2.8.4L12 1.5z"

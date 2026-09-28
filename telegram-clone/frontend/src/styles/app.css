@@ -1912,6 +1912,20 @@
   75% { transform: translateY(-2px) rotate(4deg) scale(1.02); }
 }
 
+/* Verified profile badge (Settings -> FairyChat Premium -> Profile Badge)
+   gets a slow continuous spin so it reads as "alive" next to a name, same
+   spirit as Telegram Premium's animated badge — done as a lightweight CSS
+   transform loop (GPU-accelerated, zero extra asset weight) rather than a
+   full Lottie file, since a rotation is all it needs. */
+.premium-badge--spin {
+  animation: premiumBadgeSpin 3.2s linear infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes premiumBadgeSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Premium sticker packs (StickerPicker) get the same idle loop while
    hovered/visible in the picker, so browsing them already feels animated. */
 /* Premium sticker packs are real per-frame animated WEBP files (see
