@@ -11,7 +11,7 @@ const router = express.Router();
 function fullSessionPayload(user, req) {
   const sessionId = sessionService.createSession(user.id, req);
   const token = signToken(user, sessionId);
-  return { token, user: { ...publicUser(user), ...profileService.getProfileExtras(user.id) } };
+  return { token, user: { ...publicUser(user), ...profileService.getProfileExtras(user.id), appIcon: user.app_icon || 'default' } };
 }
 
 router.post('/register', async (req, res) => {

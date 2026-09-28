@@ -335,6 +335,42 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, revoked);
 `);
 
+// --- FairyChat Premium. `is_premium` gates every premium-only perk
+// (profile badge, animated emoji, emoji status, name/profile colour,
+// premium app icons, animated avatar, premium stickers, multi-reactions).
+// Since there's no payment gateway wired up yet, premium is granted by
+// redeeming a one-time code (see `premium_codes` below) — generate codes
+// with `node scripts/generate-premium-codes.js`, hand them to whoever paid
+// you, they redeem in Settings -> FairyChat Premium.
+(function migratePremium() {
+  const cols = db.prepare("PRAGMA table_info(users)").all();
+  if (!cols.some((c) => c.name === 'is_premium')) {
+    db.exec('ALTER TABLE users ADD COLUMN is_premium INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!cols.some((c) => c.name === 'premium_since')) {
+    db.exec('ALTER TABLE users ADD COLUMN premium_since INTEGER');
+  }
+  if (!cols.some((c) => c.name === 'name_color')) {
+    db.exec('ALTER TABLE users ADD COLUMN name_color TEXT');
+  }
+  if (!cols.some((c) => c.name === 'status_emoji')) {
+    db.exec('ALTER TABLE users ADD COLUMN status_emoji TEXT');
+  }
+  if (!cols.some((c) => c.name === 'app_icon')) {
+    db.exec("ALTER TABLE users ADD COLUMN app_icon TEXT NOT NULL DEFAULT 'default'");
+  }
+})();
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS premium_codes (
+  code TEXT PRIMARY KEY,
+  duration_days INTEGER,
+  created_at INTEGER NOT NULL,
+  redeemed_by TEXT,
+  redeemed_at INTEGER
+);
+`);
+
 
 
 // node:sqlite's DatabaseSync has no built-in `.transaction()` helper like

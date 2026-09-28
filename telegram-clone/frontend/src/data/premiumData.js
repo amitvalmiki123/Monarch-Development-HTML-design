@@ -1,0 +1,21 @@
+// Preset palettes/options for FairyChat Premium's cosmetic perks — kept as
+// small curated lists (like Telegram's own limited palette) rather than a
+// raw colour/emoji picker, so results always look intentional.
+
+export const NAME_COLORS = [
+  '#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#38d9a9',
+  '#4dabf7', '#748ffc', '#b197fc', '#f783ac', '#e599f7'
+];
+
+export const STATUS_EMOJIS = ['🔥', '⚡', '🎧', '🚀', '💎', '🌙', '☕', '🎮', '📚', '🧘', '🎨', '⭐'];
+
+// App icon ids the native Android project knows how to switch to — see
+// android/app/src/main/AndroidManifest.xml's <activity-alias> entries and
+// utils/appIcon.js. 'default' is always available to everyone; the rest
+// are FairyChat Premium perks.
+export const APP_ICONS = [
+  { id: 'default', label: 'Classic', preview: '/icons/icon-192.png' },
+  { id: 'gold', label: 'Gold', preview: '/icons/app-icon-gold.png' },
+  { id: 'midnight', label: 'Midnight', preview: '/icons/app-icon-midnight.png' },
+  { id: 'neon', label: 'Neon', preview: '/icons/app-icon-neon.png' }
+];

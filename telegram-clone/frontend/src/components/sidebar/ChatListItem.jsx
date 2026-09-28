@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import Avatar from '../common/Avatar';
 import AvatarWithStory from '../common/AvatarWithStory';
 import StoryViewer from '../profile/StoryViewer';
+import NameWithFlair from '../common/NameWithFlair';
 import useContactStory from '../../hooks/useContactStory';
 import { formatMessageTime } from '../../utils/format';
 
@@ -82,7 +83,8 @@ export default function ChatListItem({ chat, active, onClick, onLongPress, selec
         <div className="chat-list-item__top">
           <span className="chat-list-item__name">
             {chat.pinned && <span className="chat-list-item__pin" title="Pinned">📌</span>}
-            {ICON_BY_TYPE[chat.type] || ''}{chat.name}
+            {ICON_BY_TYPE[chat.type] || ''}
+            {statusUser ? <NameWithFlair name={chat.name} user={statusUser} /> : chat.name}
           </span>
           {lm && <span className="chat-list-item__time">{formatMessageTime(lm.createdAt)}</span>}
         </div>

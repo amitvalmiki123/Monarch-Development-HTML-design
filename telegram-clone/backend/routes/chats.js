@@ -34,7 +34,8 @@ function ensureSavedChat(userId) {
 }
 
 function chatSummary(chat, currentUserId) {
-  const members = db.prepare(`SELECT u.id, u.username, u.name, u.avatar_color, u.avatar_url, u.status, u.last_seen, cm.role
+  const members = db.prepare(`SELECT u.id, u.username, u.name, u.avatar_color, u.avatar_url, u.status, u.last_seen,
+    u.is_premium, u.name_color, u.status_emoji, cm.role
     FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.chat_id = ?`).all(chat.id);
 
   const myMember = db.prepare('SELECT * FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chat.id, currentUserId);
@@ -65,7 +66,11 @@ function chatSummary(chat, currentUserId) {
     avatarColor,
     description: chat.description || '',
     peer: peer ? { ...publicUser(peer), hasActiveStory: profileService.hasActiveStory(peer.id) } : null,
-    members: members.map(m => ({ id: m.id, username: m.username, name: m.name, avatarColor: m.avatar_color, avatarUrl: m.avatar_url || null, status: m.status, lastSeen: m.last_seen, role: m.role })),
+    members: members.map(m => ({
+      id: m.id, username: m.username, name: m.name, avatarColor: m.avatar_color, avatarUrl: m.avatar_url || null,
+      status: m.status, lastSeen: m.last_seen, role: m.role,
+      isPremium: !!m.is_premium, nameColor: m.name_color || null, statusEmoji: m.status_emoji || null
+    })),
     myRole: myMember ? myMember.role : null,
     canPost,
     pinned: !!(myMember && myMember.pinned_at),

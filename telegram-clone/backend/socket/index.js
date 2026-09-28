@@ -103,7 +103,11 @@ function setupSocket(io) {
     socket.on('message:react', (payload, ack) => {
       try {
         const { messageId, emoji } = payload;
-        const message = messageService.toggleReaction(messageId, userId, emoji);
+        // Re-check premium status live (socket.user is a snapshot from
+        // connect time) so redeeming a code mid-session takes effect
+        // immediately without needing to reconnect the socket.
+        const fresh = db.prepare('SELECT is_premium FROM users WHERE id = ?').get(userId);
+        const message = messageService.toggleReaction(messageId, userId, emoji, { allowMulti: !!fresh?.is_premium });
         io.to(`chat:${message.chatId}`).emit('message:updated', message);
         if (ack) ack({ message });
       } catch (e) {

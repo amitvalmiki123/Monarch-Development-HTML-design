@@ -5,6 +5,7 @@ const db = require('../db');
 const auth = require('../middleware/auth');
 const { publicUser, id, normalizePhone } = require('../utils');
 const profileService = require('../services/profileService');
+const premiumService = require('../services/premiumService');
 
 const router = express.Router();
 
@@ -12,7 +13,9 @@ const router = express.Router();
 // elsewhere in the app don't need this) include the profile-photo gallery
 // and story-ring state the Profile screen's redesign needs.
 function withExtras(user) {
-  return { ...publicUser(user), ...profileService.getProfileExtras(user.id) };
+  // appIcon is a device-preference field, only meaningful to the owning
+  // account itself (not exposed via publicUser to other users' views).
+  return { ...publicUser(user), ...profileService.getProfileExtras(user.id), appIcon: user.app_icon || 'default' };
 }
 
 router.get('/me', auth, (req, res) => {
@@ -20,13 +23,31 @@ router.get('/me', auth, (req, res) => {
 });
 
 router.put('/me', auth, (req, res) => {
-  const { name, bio, avatarColor, birthday, quickReactions } = req.body;
+  const { name, bio, avatarColor, birthday, quickReactions, nameColor, statusEmoji, appIcon } = req.body;
+
+  // Name colour and emoji status are FairyChat Premium perks (same as
+  // Telegram) — enforce server-side too, not just hide the UI, so a
+  // free-tier client can't just call the API directly to get them for free.
+  if ((nameColor !== undefined || statusEmoji !== undefined) && !req.user.is_premium) {
+    return res.status(403).json({ error: 'Name colour and emoji status are FairyChat Premium features' });
+  }
+  if (appIcon !== undefined && appIcon !== 'default' && !req.user.is_premium) {
+    return res.status(403).json({ error: 'Premium app icons are a FairyChat Premium feature' });
+  }
+
   db.prepare(`UPDATE users SET name = COALESCE(?, name), bio = COALESCE(?, bio),
     avatar_color = COALESCE(?, avatar_color),
-    birthday = COALESCE(?, birthday), quick_reactions = COALESCE(?, quick_reactions) WHERE id = ?`)
+    birthday = COALESCE(?, birthday), quick_reactions = COALESCE(?, quick_reactions),
+    name_color = CASE WHEN ? THEN ? ELSE name_color END,
+    status_emoji = CASE WHEN ? THEN ? ELSE status_emoji END,
+    app_icon = COALESCE(?, app_icon)
+    WHERE id = ?`)
     .run(
       name ?? null, bio ?? null, avatarColor ?? null,
       birthday ?? null, Array.isArray(quickReactions) ? JSON.stringify(quickReactions) : null,
+      nameColor !== undefined ? 1 : 0, nameColor || null,
+      statusEmoji !== undefined ? 1 : 0, statusEmoji || null,
+      appIcon ?? null,
       req.user.id
     );
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
@@ -39,9 +60,38 @@ router.put('/me', auth, (req, res) => {
 router.post('/me/avatar', auth, (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'Missing photo url' });
+  // Animated (GIF/WEBM/APNG) profile pictures are a Premium perk — a
+  // <img>/<video> tag will happily play any animated file a non-premium
+  // client tries to sneak through, so this has to be enforced here too.
+  const isAnimated = /\.(gif|webm|apng)(\?.*)?$/i.test(url);
+  if (isAnimated && !req.user.is_premium) {
+    return res.status(403).json({ error: 'Animated profile pictures are a FairyChat Premium feature' });
+  }
   profileService.addAvatar(req.user.id, url);
   const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   res.json({ user: withExtras(updated) });
+});
+
+// --- FairyChat Premium ---
+
+router.get('/me/premium', auth, (req, res) => {
+  res.json({ isPremium: !!req.user.is_premium, premiumSince: req.user.premium_since || null });
+});
+
+router.post('/me/premium/redeem', auth, (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'Enter a code' });
+  try {
+    premiumService.redeemCode(req.user.id, code);
+    const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    res.json({ ok: true, user: withExtras(updated) });
+  } catch (e) {
+    const messages = {
+      INVALID_CODE: 'That code is not valid',
+      ALREADY_REDEEMED: 'That code has already been used'
+    };
+    res.status(400).json({ error: messages[e.message] || 'Could not redeem code' });
+  }
 });
 
 // --- Profile "Posts" (Posts / Archived Posts tabs + the 24h story ring) ---

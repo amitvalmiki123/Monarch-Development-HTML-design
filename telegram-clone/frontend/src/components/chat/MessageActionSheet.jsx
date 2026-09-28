@@ -1,6 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { DEFAULT_QUICK_REACTIONS } from '../../data/emojiData';
 import { pushBackHandler, popBackHandler } from '../../utils/backStack';
+import { useAuth } from '../../context/AuthContext';
+import ReactionEmojiPicker from './ReactionEmojiPicker';
 
 // Replaces the old hover-only ".msg-actions" row (which, on a phone, had no
 // real anchor and rendered pinned to the very top of the screen instead of
@@ -13,15 +15,19 @@ export default function MessageActionSheet({
   message, isOwn, isPinned, quickReactions, canEdit, currentUserId,
   onClose, onReact, onReply, onCopy, onForward, onPin, onUnpin, onEdit, onDelete, onSelect
 }) {
+  const { user } = useAuth();
   const hasText = message.type === 'text' && !!message.content;
+  const [showFullPicker, setShowFullPicker] = useState(false);
 
-  // Whichever emoji `currentUserId` already reacted with (if any) so it can
-  // be highlighted — tapping that SAME emoji again removes the reaction
-  // (the backend already toggles it off; this just makes it visible/obvious
-  // which one is currently "yours" so tapping it again to undo it is clear).
-  const activeEmoji = Object.entries(message.reactions || {}).find(
-    ([, users]) => Array.isArray(users) && users.includes(currentUserId)
-  )?.[0];
+  // Every emoji `currentUserId` already reacted with (FairyChat Premium's
+  // "Infinite Reactions" lets more than one coexist on the same message) so
+  // they can all be highlighted — tapping an already-active one again
+  // removes just that reaction (the backend already toggles it off).
+  const activeEmojis = new Set(
+    Object.entries(message.reactions || {})
+      .filter(([, users]) => Array.isArray(users) && users.includes(currentUserId))
+      .map(([emoji]) => emoji)
+  );
 
   // Let the Android back button close the sheet instead of minimizing the app.
   useEffect(() => {
@@ -38,13 +44,22 @@ export default function MessageActionSheet({
           {(quickReactions?.length ? quickReactions : DEFAULT_QUICK_REACTIONS).map((emoji) => (
             <button
               key={emoji}
-              className={`action-sheet__reaction${emoji === activeEmoji ? ' action-sheet__reaction--active' : ''}`}
+              className={`action-sheet__reaction${activeEmojis.has(emoji) ? ' action-sheet__reaction--active' : ''}`}
               onClick={run(() => onReact(emoji))}
-              title={emoji === activeEmoji ? 'Tap again to remove' : undefined}
+              title={activeEmojis.has(emoji) ? 'Tap again to remove' : undefined}
             >
               {emoji}
             </button>
           ))}
+          {user?.isPremium && (
+            <button
+              className="action-sheet__reaction action-sheet__reaction--more"
+              onClick={() => setShowFullPicker(true)}
+              title="React with any emoji (FairyChat Premium)"
+            >
+              ➕
+            </button>
+          )}
         </div>
         <div className="action-sheet__list">
           <button className="action-sheet__item" onClick={run(onReply)}>
@@ -82,6 +97,13 @@ export default function MessageActionSheet({
           )}
         </div>
       </div>
+
+      {showFullPicker && (
+        <ReactionEmojiPicker
+          onSelect={(emoji) => { onReact(emoji); onClose(); }}
+          onClose={() => setShowFullPicker(false)}
+        />
+      )}
     </div>
   );
 }

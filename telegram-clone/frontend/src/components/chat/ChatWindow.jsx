@@ -73,6 +73,11 @@ export default function ChatWindow({ chat, onBack }) {
     lastMsgCount.current = messages.length;
   }, [messages.length]);
 
+  const memberById = useMemo(() => {
+    const map = {};
+    (chat.members || []).forEach((m) => { map[m.id] = m; });
+    return map;
+  }, [chat.members]);
   const memberNameById = useMemo(() => {
     const map = {};
     (chat.members || []).forEach((m) => { map[m.id] = m.name; });
@@ -213,6 +218,7 @@ export default function ChatWindow({ chat, onBack }) {
                 message={m}
                 isOwn={isOwn}
                 senderName={memberNameById[m.senderId] || 'Member'}
+                senderInfo={memberById[m.senderId]}
                 showSenderName={showSenderName}
                 currentUserId={user.id}
                 onReact={handleReact}

@@ -9,8 +9,11 @@ import {
   UserGlyphIcon, AtIcon, InfoIcon, CakeIcon, AddPersonIcon, LogoutIcon,
   MoonIcon, SunIcon, BookmarkIcon, ImageIcon, BellIcon, GroupIcon,
   SpeakerIcon, WrenchIcon, PuzzleIcon, TrashIcon, CrownIcon,
-  LockIcon, ShieldIcon, KeyIcon, DevicesIcon
+  LockIcon, ShieldIcon, KeyIcon, DevicesIcon, StarIcon, PaletteIcon, PhoneAppIcon
 } from '../components/common/SettingsIcons';
+import NameWithFlair from '../components/common/NameWithFlair';
+import { NAME_COLORS, STATUS_EMOJIS, APP_ICONS } from '../data/premiumData';
+import { applyNativeAppIcon } from '../utils/appIcon';
 import http from '../api/http';
 import { pushStatus, subscribeStatus, initNotifications, registerPushIfConfigured, sendLocalTestNotification, sendServerTestPush, getNotifPrefs, setNotifPrefs } from '../utils/notifications';
 import {
@@ -253,6 +256,155 @@ function EditableRow({ icon, iconColor, label, value, placeholder, type = 'text'
       </div>
       <button className="settings-row__edit" onClick={save}>✓</button>
     </div>
+  );
+}
+
+const PREMIUM_PERKS = [
+  '⭐ Profile badge', '✨ Animated emoji messages', '😎 Emoji status',
+  '🎨 Name & profile colour', '📱 Premium app icons', '🖼️ Animated avatar',
+  '🧩 Premium stickers', '💬 Infinite reactions'
+];
+
+function PremiumSettings() {
+  const { user, updateProfile } = useAuth();
+  const [code, setCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [busySwatch, setBusySwatch] = useState(null);
+
+  const redeem = async () => {
+    if (!code.trim()) return;
+    setError(''); setSuccess(''); setRedeeming(true);
+    try {
+      const res = await http.post('/users/me/premium/redeem', { code: code.trim() });
+      setSuccess('🎉 FairyChat Premium activated!');
+      setCode('');
+      // Reflect the now-premium user everywhere (chat list badges, Settings
+      // header, etc.) without a manual refresh.
+      if (res.data?.user) {
+        localStorage.setItem('monarch_user', JSON.stringify(res.data.user));
+        window.location.reload();
+      }
+    } catch (e) {
+      setError(e.response?.data?.error || 'Could not redeem that code');
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const setNameColor = async (color) => {
+    setBusySwatch(color);
+    try { await updateProfile({ nameColor: color }); } finally { setBusySwatch(null); }
+  };
+
+  const setStatusEmoji = async (emoji) => {
+    setBusySwatch(emoji);
+    try { await updateProfile({ statusEmoji: user.statusEmoji === emoji ? null : emoji }); } finally { setBusySwatch(null); }
+  };
+
+  const setAppIconChoice = async (iconId) => {
+    setBusySwatch(iconId);
+    try {
+      await updateProfile({ appIcon: iconId });
+      await applyNativeAppIcon(iconId);
+    } finally {
+      setBusySwatch(null);
+    }
+  };
+
+  if (!user?.isPremium) {
+    return (
+      <div className="premium-upsell-box">
+        <div className="premium-upsell-box__title">✨ FairyChat Premium</div>
+        <div className="premium-upsell-box__sub">Unlock a profile badge, name colours, an emoji status, premium app icons, animated avatars, exclusive stickers and infinite reactions.</div>
+        <div className="premium-feature-grid">
+          {PREMIUM_PERKS.map((p) => <div key={p} className="premium-feature-chip">{p}</div>)}
+        </div>
+        {error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 8 }}>{error}</div>}
+        {success && <div style={{ color: 'var(--gold-light)', fontSize: 12.5, marginBottom: 8 }}>{success}</div>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            className="profile-inline-input"
+            style={{ flex: 1, border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px' }}
+            placeholder="FAIRY-XXXX-XXXX"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+          />
+          <button className="btn-primary btn-gold" disabled={redeeming || !code.trim()} onClick={redeem}>
+            {redeeming ? '...' : 'Redeem'}
+          </button>
+        </div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8 }}>
+          No payment gateway yet — ask the app owner for a redeem code.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="premium-status-card">
+        <span className="premium-status-card__icon">✨</span>
+        <div>
+          <div className="premium-status-card__title">FairyChat Premium — active</div>
+          <div className="premium-status-card__sub">Thanks for supporting FairyChat!</div>
+        </div>
+      </div>
+
+      <Row icon={<PaletteIcon />} iconColor="pink" label="Name Colour" sub={user.nameColor ? 'Custom colour set' : 'Default'} />
+      <div className="color-swatch-grid">
+        <button
+          className={`color-swatch${!user.nameColor ? ' active' : ''}`}
+          style={{ background: 'var(--text-primary, #fff)', border: '1px solid var(--border-soft)' }}
+          onClick={() => setNameColor(null)}
+          title="Default"
+        />
+        {NAME_COLORS.map((c) => (
+          <button
+            key={c}
+            className={`color-swatch${user.nameColor === c ? ' active' : ''}`}
+            style={{ background: c, opacity: busySwatch === c ? 0.5 : 1 }}
+            onClick={() => setNameColor(c)}
+          />
+        ))}
+      </div>
+
+      <Row icon={<StarIcon />} iconColor="gold" label="Emoji Status" sub={user.statusEmoji ? `Currently ${user.statusEmoji}` : 'None set'} />
+      <div className="emoji-status-grid">
+        {STATUS_EMOJIS.map((e) => (
+          <button
+            key={e}
+            className={user.statusEmoji === e ? 'active' : ''}
+            style={{ opacity: busySwatch === e ? 0.5 : 1 }}
+            onClick={() => setStatusEmoji(e)}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+
+      <Row icon={<PhoneAppIcon />} iconColor="blue" label="App Icon" sub="Only visible on the installed Android app" />
+      <div className="app-icon-grid">
+        {APP_ICONS.map((icon) => (
+          <button
+            key={icon.id}
+            className={`app-icon-option${(user.appIcon || 'default') === icon.id ? ' active' : ''}`}
+            onClick={() => setAppIconChoice(icon.id)}
+            disabled={busySwatch === icon.id}
+          >
+            <img src={icon.preview} alt={icon.label} />
+            {icon.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: '2px 16px 10px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        Animated avatars: upload a GIF from your Profile photo picker — it'll play automatically. ✨ Animated emoji messages
+        happen automatically when you send 1-3 emoji alone. 💬 Infinite Reactions: long-press any message and tap the ➕
+        to react with any emoji, and stack more than one.
+      </div>
+    </>
   );
 }
 
@@ -700,7 +852,7 @@ export default function SettingsPage({ onOpenSaved }) {
         <div className="settings-profile-head">
           <Avatar name={user?.name} color={user?.avatarColor} photoUrl={user?.avatarUrl} size={62} />
           <div>
-            <div className="settings-profile-head__name">{user?.name}</div>
+            <div className="settings-profile-head__name"><NameWithFlair name={user?.name} user={user} badgeSize={15} /></div>
             <div className="settings-profile-head__sub">
               {user?.phone ? `${user.phone} • ` : ''}@{user?.username}
             </div>
@@ -736,6 +888,11 @@ export default function SettingsPage({ onOpenSaved }) {
           ))}
           <Row icon={<AddPersonIcon />} iconColor="blue" label="Add Another Account" sub="Sign in or register with a different account" onClick={() => navigate('/login?addAccount=1')} />
           <Row icon={<LogoutIcon />} iconColor="red" label="Log Out" onClick={() => logout()} danger />
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-section__title">FairyChat Premium</div>
+          <PremiumSettings />
         </div>
 
         <div className="settings-section">

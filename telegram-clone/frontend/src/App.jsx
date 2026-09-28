@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';
@@ -7,6 +8,7 @@ import Register from './pages/Register';
 import ChatApp from './pages/ChatApp';
 import PasscodeLockScreen from './components/security/PasscodeLockScreen';
 import usePasscodeLock from './hooks/usePasscodeLock';
+import { applyNativeAppIcon } from './utils/appIcon';
 
 function Splash() {
   return (
@@ -62,6 +64,19 @@ function AppRoutes() {
 function PasscodeGate({ children }) {
   const { user } = useAuth();
   const { locked, unlock } = usePasscodeLock(!!user);
+
+  // Self-heals the device's actual launcher icon to match the account's
+  // saved preference on every app open — covers reinstalls, and switching
+  // between saved accounts that each chose a different Premium icon.
+  const appliedIcon = useRef(null);
+  useEffect(() => {
+    const wanted = user?.appIcon || 'default';
+    if (user && appliedIcon.current !== wanted) {
+      appliedIcon.current = wanted;
+      applyNativeAppIcon(wanted);
+    }
+  }, [user]);
+
   return (
     <>
       {children}

@@ -56,7 +56,13 @@ function publicUser(u) {
     quickReactions: (() => { try { return JSON.parse(u.quick_reactions || '[]'); } catch { return []; } })(),
     status: u.status,
     lastSeen: u.last_seen,
-    deleted: !!u.deleted
+    deleted: !!u.deleted,
+    // FairyChat Premium flair — visible on everyone's profile/messages the
+    // same way Telegram shows a contact's badge/status/name-colour to you,
+    // not just to the premium user themselves.
+    isPremium: !!u.is_premium,
+    nameColor: u.name_color || null,
+    statusEmoji: u.status_emoji || null
   };
 }
 

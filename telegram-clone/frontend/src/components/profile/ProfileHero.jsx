@@ -5,6 +5,7 @@ import { pushBackHandler, popBackHandler } from '../../utils/backStack';
 import { CameraGlyphIcon, PencilGlyphIcon } from '../common/SettingsIcons';
 import { SettingsIcon } from '../nav/NavIcons';
 import { ChevronDownIcon } from './ProfileIcons';
+import NameWithFlair from '../common/NameWithFlair';
 
 // Any drag starting from inside these should never trigger the pull-down
 // gesture (buttons, the name input while editing, etc.) — same
@@ -129,7 +130,7 @@ export default function ProfileHero({
           {photo && <img src={resolveMediaUrl(photo.url)} alt={user.name} className="profile-hero__photo-img" />}
         </div>
         <div className="profile-hero__scrim">
-          <div className="profile-hero__name">{user.name}</div>
+          <div className="profile-hero__name"><NameWithFlair name={user.name} user={user} badgeSize={15} /></div>
           <div className="profile-hero__status">online</div>
           {actionButtons}
         </div>
@@ -166,7 +167,7 @@ export default function ProfileHero({
 
       {!editing ? (
         <>
-          <div className="profile-hero__name">{user.name}</div>
+          <div className="profile-hero__name"><NameWithFlair name={user.name} user={user} badgeSize={15} /></div>
           <div className="profile-hero__status">online</div>
         </>
       ) : (

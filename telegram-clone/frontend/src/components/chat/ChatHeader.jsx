@@ -4,6 +4,7 @@ import Avatar from '../common/Avatar';
 import AvatarWithStory from '../common/AvatarWithStory';
 import StoryViewer from '../profile/StoryViewer';
 import useContactStory from '../../hooks/useContactStory';
+import NameWithFlair from '../common/NameWithFlair';
 import { formatLastSeen } from '../../utils/format';
 import { useChat } from '../../context/ChatContext';
 
@@ -103,7 +104,11 @@ export default function ChatHeader({ chat, typingNames, onBack, onShowInfo }) {
       )}
       {viewer && <StoryViewer user={viewer.user} stories={viewer.stories} onClose={closeStory} />}
       <div className="chat-header__info" onClick={onShowInfo} style={{ cursor: 'pointer' }}>
-        <div className="chat-header__name">{ICON_BY_TYPE[chat.type] || ''}{chat.name}{chat.muted ? ' 🔕' : ''}</div>
+        <div className="chat-header__name">
+          {ICON_BY_TYPE[chat.type] || ''}
+          {isDirect && chat.peer ? <NameWithFlair name={chat.name} user={chat.peer} /> : chat.name}
+          {chat.muted ? ' 🔕' : ''}
+        </div>
         <div className="chat-header__status" style={{ color: typingNames?.length ? 'var(--gold-light)' : undefined }}>{statusLine}</div>
       </div>
       <ChatOptionsMenu chat={chat} onBack={onBack} />

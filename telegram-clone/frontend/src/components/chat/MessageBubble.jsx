@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { formatMessageTime, formatFileSize } from '../../utils/format';
 import { resolveMediaUrl } from '../../utils/resolveUrl';
 import { useMessageGestures } from '../../hooks/useMessageGestures';
+import { isEmojiOnlyMessage } from '../../utils/emojiMessage';
+import NameWithFlair from '../common/NameWithFlair';
 
 // Any interactive element nested inside a bubble (media, reaction pills, the
 // edit textarea/buttons) needs to stop the tap/long-press/swipe recognizer
@@ -65,7 +67,7 @@ function ReactionPills({ reactions, currentUserId, onToggle }) {
 }
 
 export default function MessageBubble({
-  message, isOwn, senderName, showSenderName, replyPreview,
+  message, isOwn, senderName, senderInfo, showSenderName, replyPreview,
   currentUserId, onReact,
   isEditing, editDraft, onEditDraftChange, onSubmitEdit, onCancelEdit,
   isPinned,
@@ -140,7 +142,9 @@ export default function MessageBubble({
       {selectionMode && <span className={`msg-select-check${selected ? ' checked' : ''}`}>{selected ? '✓' : ''}</span>}
       <span className="swipe-reply-hint" style={replyHintStyle}>↩</span>
       <div className={`bubble ${isOwn ? 'out' : 'in'}`} style={{ opacity: message.pending ? 0.7 : 1, ...swipeStyle }} {...handlers}>
-        {!isOwn && showSenderName && <span className="sender-name">{senderName}</span>}
+        {!isOwn && showSenderName && (
+          <NameWithFlair name={senderName} user={senderInfo} className="sender-name" badgeSize={12} />
+        )}
 
         {isPinned && <div className="pinned-tag">📌 Pinned</div>}
 
@@ -168,7 +172,13 @@ export default function MessageBubble({
             </div>
           </div>
         ) : (
-          message.content && <span>{message.content}</span>
+          message.content && (
+            isEmojiOnlyMessage(message.content) ? (
+              <span className={`jumbo-emoji${senderInfo?.isPremium ? ' jumbo-emoji--animated' : ''}`}>{message.content}</span>
+            ) : (
+              <span>{message.content}</span>
+            )
+          )
         )}
 
         <div className="meta">

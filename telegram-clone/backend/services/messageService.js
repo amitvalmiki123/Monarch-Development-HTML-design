@@ -62,11 +62,13 @@ function getMessage(messageId) {
   };
 }
 
-// Toggles `emoji` as userId's reaction on a message. A user may only have one
-// active reaction per message at a time (same as Telegram's default
+// Toggles `emoji` as userId's reaction on a message. Free accounts may only
+// have one active reaction per message at a time (Telegram's default
 // behaviour) — picking a different emoji switches it, tapping the same one
-// again removes it.
-function toggleReaction(messageId, userId, emoji) {
+// again removes it. FairyChat Premium's "Infinite Reactions" perk lets a
+// user stack multiple different reactions on the same message instead of
+// the new one replacing the old (pass allowMulti: true for premium senders).
+function toggleReaction(messageId, userId, emoji, { allowMulti = false } = {}) {
   const m = db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
   if (!m) throw new Error('NOT_FOUND');
   if (!isMember(m.chat_id, userId)) throw new Error('FORBIDDEN');
@@ -75,10 +77,16 @@ function toggleReaction(messageId, userId, emoji) {
 
   const hadThisEmoji = Array.isArray(reactions[emoji]) && reactions[emoji].includes(userId);
 
-  // Remove this user from every emoji first (single-reaction-per-user rule).
-  for (const key of Object.keys(reactions)) {
-    reactions[key] = reactions[key].filter((uid) => uid !== userId);
-    if (reactions[key].length === 0) delete reactions[key];
+  if (!allowMulti) {
+    // Remove this user from every emoji first (single-reaction-per-user rule).
+    for (const key of Object.keys(reactions)) {
+      reactions[key] = reactions[key].filter((uid) => uid !== userId);
+      if (reactions[key].length === 0) delete reactions[key];
+    }
+  } else if (hadThisEmoji) {
+    // Multi mode: only this specific emoji toggles off, others stay put.
+    reactions[emoji] = reactions[emoji].filter((uid) => uid !== userId);
+    if (reactions[emoji].length === 0) delete reactions[emoji];
   }
 
   if (!hadThisEmoji) {

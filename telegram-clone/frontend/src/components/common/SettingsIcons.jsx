@@ -206,6 +206,31 @@ export function DevicesIcon() {
   );
 }
 
+export function StarIcon() {
+  return <svg {...base}><path d="M12 2.5l2.5 4.9 5.4.8-3.9 3.8.9 5.4L12 15l-4.9 2.4.9-5.4-3.9-3.8 5.4-.8L12 2.5z" /></svg>;
+}
+
+export function PaletteIcon() {
+  return (
+    <svg {...stroke}>
+      <path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.7 2-1.8 0-.5-.2-.9-.5-1.3-.3-.3-.5-.7-.5-1.2 0-1 .8-1.7 1.7-1.7h2C19 15 21 13 21 10.5 21 6.4 17 3 12 3z" />
+      <circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="10.5" cy="7" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="17" cy="11.5" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function PhoneAppIcon() {
+  return (
+    <svg {...stroke}>
+      <rect x="7" y="2.5" width="10" height="19" rx="2.2" />
+      <line x1="11" y1="18.3" x2="13" y2="18.3" />
+    </svg>
+  );
+}
+
 export function CameraGlyphIcon() {
   return (
     <svg {...stroke}>

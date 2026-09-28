@@ -1,16 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
+import { useAuth } from '../../context/AuthContext';
+import { PREMIUM_STICKERS } from '../../data/premiumStickers';
 
 // Content-only sticker search + grid, meant to be embedded as the "Stickers"
 // tab of <EmojiGifStickerPicker>. Pulls real, animated (GIF/WEBP) stickers
 // from the same provider that powers the GIF tab — same UX shape as
-// Telegram's own sticker tray, just without custom user-uploaded packs.
+// Telegram's own sticker tray — plus FairyChat's own small exclusive
+// "Premium" pack up top (visible to everyone, like Telegram's premium
+// stickers, but only sendable by Premium accounts).
 export default function StickerPicker({ onSelect }) {
+  const { user } = useAuth();
   const { searchStickers, trendingStickers } = useChat();
   const [query, setQuery] = useState('');
   const [stickers, setStickers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [configured, setConfigured] = useState(true);
+
+  const selectPremium = (sticker) => {
+    if (user?.isPremium) {
+      onSelect(sticker);
+    } else {
+      alert('⭐ This is a FairyChat Premium sticker. Redeem a Premium code in Settings to send it.');
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -26,6 +39,20 @@ export default function StickerPicker({ onSelect }) {
 
   return (
     <div className="emg-gif-tab">
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 2px 4px' }}>⭐ FairyChat Premium</div>
+      <div className="sticker-grid" style={{ gridAutoRows: 66, marginBottom: 10 }}>
+        {PREMIUM_STICKERS.map((s) => (
+          <button
+            key={s.id}
+            className={`sticker-grid__item${!user?.isPremium ? ' sticker-grid__item--locked' : ''}`}
+            onClick={() => selectPremium(s)}
+            title={s.title}
+          >
+            <img src={s.url} alt={s.title} loading="lazy" />
+          </button>
+        ))}
+      </div>
+
       <div className="field-inline" style={{ marginBottom: 8 }}>
         <input
           autoFocus
