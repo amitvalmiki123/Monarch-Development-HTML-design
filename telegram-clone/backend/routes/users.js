@@ -34,7 +34,7 @@ router.put('/me', auth, (req, res) => {
   if (appIcon !== undefined && appIcon !== 'default' && !req.user.is_premium) {
     return res.status(403).json({ error: 'Premium app icons are a FairyChat Premium feature' });
   }
-  if (badgeStyle !== undefined && !['star', 'verified', 'pink-magic', 'flame', 'fairy-wings'].includes(badgeStyle)) {
+  if (badgeStyle !== undefined && !['star', 'verified', 'pink-magic', 'flame', 'fairy-wings', 'fair-icon'].includes(badgeStyle)) {
     return res.status(400).json({ error: 'Unknown badge style' });
   }
   if (badgeStyle !== undefined && badgeStyle !== 'star' && !req.user.is_premium) {
