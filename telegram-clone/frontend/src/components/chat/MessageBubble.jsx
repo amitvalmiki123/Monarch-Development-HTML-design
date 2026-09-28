@@ -6,6 +6,7 @@ import { isEmojiOnlyMessage, splitEmojiSegments } from '../../utils/emojiMessage
 import { lottieIdForEmoji } from '../../data/lottieEmojiMap';
 import NameWithFlair from '../common/NameWithFlair';
 import LottieEmoji from '../common/LottieEmoji';
+import PremiumLottieEmoji from '../common/PremiumLottieEmoji';
 
 // Any interactive element nested inside a bubble (media, reaction pills, the
 // edit textarea/buttons) needs to stop the tap/long-press/swipe recognizer
@@ -174,6 +175,27 @@ export default function MessageBubble({
           ) : (
             <div className="sticker-bubble__emoji">{message.content}</div>
           )}
+          <div className="sticker-bubble__meta">
+            {formatMessageTime(message.createdAt)}
+            {isOwn && <Ticks read={message.read} pending={message.pending} failed={message.failed} />}
+          </div>
+          <ReactionPills reactions={message.reactions} currentUserId={currentUserId} onToggle={toggleReaction} />
+        </div>
+      </div>
+    );
+  }
+
+  // FairyChat Premium's "Animated Emojis" — sent from the Emoji tab's
+  // Premium categories. Rendered jumbo, no bubble background, same treatment
+  // as a sticker, but using the real looping Lottie animation instead of an
+  // image file (content holds the pack's emoji id, e.g. "fire").
+  if (message.type === 'animated-emoji') {
+    return (
+      <div className={`bubble-row ${isOwn ? 'out' : 'in'}${selected ? ' row-selected' : ''}`}>
+        {selectionMode && <span className={`msg-select-check${selected ? ' checked' : ''}`}>{selected ? '✓' : ''}</span>}
+        <span className="swipe-reply-hint" style={replyHintStyle}>↩</span>
+        <div className="sticker-bubble" style={swipeStyle} {...handlers}>
+          <PremiumLottieEmoji id={message.content} size={100} />
           <div className="sticker-bubble__meta">
             {formatMessageTime(message.createdAt)}
             {isOwn && <Ticks read={message.read} pending={message.pending} failed={message.failed} />}

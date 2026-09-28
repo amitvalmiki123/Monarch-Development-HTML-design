@@ -4,6 +4,7 @@ function pinnedPreviewText(message) {
   if (message.type === 'image') return '📷 Photo';
   if (message.type === 'gif') return '🎞️ GIF';
   if (message.type === 'sticker') return '🧩 Sticker';
+  if (message.type === 'animated-emoji') return '✨ Animated Emoji';
   if (message.type === 'video') return '🎬 Video';
   if (message.type === 'audio') return '🎙️ Audio message';
   if (message.type === 'file') return '📎 File';

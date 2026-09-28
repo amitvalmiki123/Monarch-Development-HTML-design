@@ -1460,6 +1460,65 @@
 }
 .emg-emoji-btn:hover { background: var(--bg-hover); }
 
+/* Divider between the plain-Unicode categories and FairyChat Premium's
+   "Animated Emojis" categories in the picker's category strip. */
+.emg-cat-divider {
+  flex-shrink: 0;
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 3px;
+  background: var(--border-soft);
+}
+.emg-cat-btn--animated { position: relative; }
+.emg-cat-btn__lock {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.emg-animated-hint {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--gold-light);
+  padding: 2px 2px 8px;
+}
+
+/* Animated Emojis grid inside the chat picker — every cell keeps playing its
+   loop the whole time it's visible (see <PremiumLottieEmoji>) so a Premium
+   user can see exactly how the animation looks before they send it, and a
+   free user still gets to watch it animate (just can't send it — see
+   .emg-animated-cell--locked below), same "preview the perk" idea as the
+   Stickers tab's premium packs. */
+.emg-animated-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  overflow-y: auto;
+}
+.emg-animated-cell {
+  border: none;
+  background: none;
+  border-radius: 8px;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.emg-animated-cell:hover { background: var(--bg-hover); }
+.emg-animated-cell--locked {
+  position: relative;
+  opacity: 0.62;
+}
+.emg-animated-cell--locked::after {
+  content: '⭐';
+  position: absolute;
+  bottom: 0;
+  right: 6px;
+  font-size: 9px;
+}
+
 /* Shared content wrapper for the GIFs and Stickers tabs (search box on top,
    scrollable results grid filling the rest). */
 .emg-gif-tab { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -2028,6 +2087,45 @@
   border: 2px solid transparent;
 }
 .app-icon-option.active img { border-color: var(--gold); }
+
+/* Profile Badge grid — the currently-active badge gets a clear gold
+   ring + soft glow + a small checkmark chip, plus its label turns gold and
+   says "· Active", so it's obvious at a glance which one is selected. */
+.badge-option__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--bg-input);
+  border: 2px solid transparent;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.badge-option.active .badge-option__preview {
+  border-color: var(--gold);
+  background: rgba(217, 182, 76, 0.14);
+  box-shadow: 0 0 0 3px rgba(217, 182, 76, 0.22), 0 0 14px rgba(217, 182, 76, 0.45);
+}
+.badge-option__check {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #201a08;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-panel, #151b28);
+}
+.badge-option__label { transition: color 0.15s; }
+.badge-option.active .badge-option__label { color: var(--gold); font-weight: 600; }
 
 .sticker-grid__item--locked {
   position: relative;

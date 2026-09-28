@@ -103,6 +103,23 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
     onCancelReply?.();
   };
 
+  // FairyChat Premium's "Animated Emojis" pack — sent as their own message
+  // type (content = the pack's emoji id, e.g. "fire") rather than a plain
+  // Unicode character, so the recipient's bubble renders the real Lottie
+  // animation (see MessageBubble.jsx) instead of a static glyph.
+  const handleSelectAnimatedEmoji = (emoji) => {
+    sendMessage(chatId, {
+      type: 'animated-emoji',
+      content: emoji.id,
+      fileUrl: null,
+      fileName: emoji.label || 'Animated Emoji',
+      fileSize: null,
+      replyToId: replyingTo?.id || null
+    });
+    setShowPicker(false);
+    onCancelReply?.();
+  };
+
   return (
     <div style={{ position: 'relative' }}>
       {showPicker && (
@@ -110,6 +127,7 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
           onSelectEmoji={handleSelectEmoji}
           onSelectGif={handleSelectGif}
           onSelectSticker={handleSelectSticker}
+          onSelectAnimatedEmoji={handleSelectAnimatedEmoji}
           onClose={() => setShowPicker(false)}
         />
       )}
@@ -118,7 +136,7 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
           <div>
             <div style={{ fontWeight: 700 }}>↩ Replying</div>
             <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
-              {replyingTo.content || 'Media message'}
+              {replyingTo.type === 'animated-emoji' ? '✨ Animated Emoji' : (replyingTo.content || 'Media message')}
             </div>
           </div>
           <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={onCancelReply}>✕</button>

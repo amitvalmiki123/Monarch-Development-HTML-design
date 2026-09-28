@@ -69,15 +69,24 @@ function LottiePremiumBadge({ size, style, loadAsset, label, loopSegment }) {
     Promise.all([import('lottie-web'), loadAsset()]).then(([lottieMod, dataMod]) => {
       if (cancelled || !containerRef.current) return;
       const lottie = lottieMod.default || lottieMod;
+      // Always loop — badges are a constant "premium feel" accent, not a
+      // one-shot success animation, so they should never freeze after their
+      // first play. For variants with a loopSegment (their source file ends
+      // in a one-shot shrink-to-nothing outro we don't want), restrict
+      // playback to just the safe in/out frame range and keep re-triggering
+      // that same range every time it finishes, forever.
       anim = lottie.loadAnimation({
         container: containerRef.current,
         renderer: 'svg',
-        loop: !loopSegment,
+        loop: true,
         autoplay: !loopSegment,
         animationData: dataMod.default || dataMod
       });
       if (loopSegment) {
-        anim.playSegments([loopSegment], true);
+        const replay = () => { if (!cancelled) anim.playSegments([loopSegment], true); };
+        anim.addEventListener('complete', replay);
+        anim.addEventListener('loopComplete', replay);
+        replay();
       }
     }).catch(() => { /* asset missing — render nothing rather than crash */ });
     return () => { cancelled = true; anim?.destroy(); };

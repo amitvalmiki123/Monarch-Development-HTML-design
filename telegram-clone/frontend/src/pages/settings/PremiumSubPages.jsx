@@ -129,19 +129,23 @@ export function ProfileBadgePage({ onBack }) {
           Shown next to your name everywhere.
         </div>
         <div className="app-icon-grid">
-          {BADGE_STYLES.map((b) => (
-            <button
-              key={b.id}
-              className={`app-icon-option${(user.badgeStyle || 'star') === b.id ? ' active' : ''}`}
-              onClick={() => setBadgeStyle(b.id)}
-              disabled={busy === b.id}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 38 }}>
-                <PremiumBadge size={28} variant={b.id} style={{ marginLeft: 0 }} />
-              </span>
-              {b.label}
-            </button>
-          ))}
+          {BADGE_STYLES.map((b) => {
+            const isActive = (user.badgeStyle || 'star') === b.id;
+            return (
+              <button
+                key={b.id}
+                className={`app-icon-option badge-option${isActive ? ' active' : ''}`}
+                onClick={() => setBadgeStyle(b.id)}
+                disabled={busy === b.id}
+              >
+                <span className="badge-option__preview">
+                  <PremiumBadge size={28} variant={b.id} style={{ marginLeft: 0 }} />
+                  {isActive && <span className="badge-option__check">✓</span>}
+                </span>
+                <span className="badge-option__label">{b.label}{isActive ? ' · Active' : ''}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </SettingsSubPage>

@@ -236,7 +236,9 @@ export default function ChatWindow({ chat, onBack }) {
                 onSwipeReply={setReplyingTo}
                 replyPreview={replyMsg ? {
                   senderName: replyMsg.senderId === user.id ? 'You' : (memberNameById[replyMsg.senderId] || 'Member'),
-                  text: replyMsg.deleted ? 'Deleted message' : (replyMsg.content || 'Media message')
+                  text: replyMsg.deleted
+                    ? 'Deleted message'
+                    : (replyMsg.type === 'animated-emoji' ? '✨ Animated Emoji' : (replyMsg.content || 'Media message'))
                 } : null}
               />
             </div>
