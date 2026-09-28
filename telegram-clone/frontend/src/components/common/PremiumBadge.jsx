@@ -7,19 +7,26 @@ import { useEffect, useRef } from 'react';
 //
 //  - 'star' (default): the classic gold star, FairyChat's own take on
 //    Telegram's Premium star — a plain static SVG.
-//  - 'verified': a real Lottie animation (not just a CSS spin) — a blue
-//    checkmark badge that pops in with a shine sweep and loops.
+//  - 'verified': a real Lottie animation (not just a CSS spin) — a teal
+//    scalloped checkmark badge that pops in and loops (the pop-in/hold
+//    portion only — its source animation ends with a shrink-to-nothing
+//    outro, which is skipped via a custom loop segment so the badge never
+//    disappears mid-loop).
 //  - 'pink-magic': a pink sparkle/twinkle emblem with a soft glow + orbiting
 //    magic sparks, looping.
 //  - 'flame': a layered red/orange/yellow flame emblem with a soft glow +
 //    orbiting embers, looping.
 //
-// All three Lottie variants are FairyChat's own original vector artwork (see
+// All Lottie variants are FairyChat's own original vector artwork (see
 // src/assets/badges/THIRD_PARTY_NOTICE.md for how the base animation motion
 // they reuse was sourced) — none of them reproduce any other app's or
 // franchise's actual copyrighted badge/logo artwork.
 const LOTTIE_VARIANTS = {
-  verified: { asset: () => import('../../assets/badges/verified-badge.json'), label: 'Verified' },
+  // loopSegment restricts playback to [inFrame, outFrame] instead of the full
+  // timeline — used for 'verified' because its source file's last ~17 frames
+  // shrink the badge down to nothing (a one-shot "success pop" outro) which
+  // would otherwise make the badge flash blank on every loop.
+  verified: { asset: () => import('../../assets/badges/verified-badge.json'), label: 'Verified', loopSegment: [0, 73] },
   'pink-magic': { asset: () => import('../../assets/badges/pink-magic.json'), label: 'Magic Sparkle' },
   flame: { asset: () => import('../../assets/badges/flame.json'), label: 'Flame' },
   'fairy-wings': { asset: () => import('../../assets/badges/fairy-wings.json'), label: 'Fairy Wings' }
@@ -30,7 +37,15 @@ export default function PremiumBadge({ size = 13, style, variant = 'star' }) {
 
   const lottieVariant = LOTTIE_VARIANTS[variant];
   if (lottieVariant) {
-    return <LottiePremiumBadge size={size} style={common} loadAsset={lottieVariant.asset} label={lottieVariant.label} />;
+    return (
+      <LottiePremiumBadge
+        size={size}
+        style={common}
+        loadAsset={lottieVariant.asset}
+        label={lottieVariant.label}
+        loopSegment={lottieVariant.loopSegment}
+      />
+    );
   }
 
   return (
@@ -43,7 +58,7 @@ export default function PremiumBadge({ size = 13, style, variant = 'star' }) {
   );
 }
 
-function LottiePremiumBadge({ size, style, loadAsset, label }) {
+function LottiePremiumBadge({ size, style, loadAsset, label, loopSegment }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -56,13 +71,16 @@ function LottiePremiumBadge({ size, style, loadAsset, label }) {
       anim = lottie.loadAnimation({
         container: containerRef.current,
         renderer: 'svg',
-        loop: true,
-        autoplay: true,
+        loop: !loopSegment,
+        autoplay: !loopSegment,
         animationData: dataMod.default || dataMod
       });
+      if (loopSegment) {
+        anim.playSegments([loopSegment], true);
+      }
     }).catch(() => { /* asset missing — render nothing rather than crash */ });
     return () => { cancelled = true; anim?.destroy(); };
-  }, [loadAsset]);
+  }, [loadAsset, loopSegment]);
 
   return (
     <span
