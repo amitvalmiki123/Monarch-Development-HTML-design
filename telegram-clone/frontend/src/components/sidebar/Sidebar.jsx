@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import ChatListItem from './ChatListItem';
 import NewChatModal from './NewChatModal';
 import TopMenu from '../nav/TopMenu';
+import PremiumBadge from '../common/PremiumBadge';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 
@@ -104,7 +105,13 @@ export default function Sidebar({ activeChatId, onSelectChat }) {
         <div className="sidebar__topbar">
           <div className="brand">
             <img className="brand__crest" src="/icons/brand-crest.png" alt="FairyChat" />
-            <h1>FairyChat</h1>
+            <h1>
+              FairyChat
+              {/* Premium members can show their chosen profile badge right next to
+                  the app name at the top too, not just next to their own name —
+                  a Premium-only flex, gated the same way everywhere else. */}
+              {user?.isPremium && <PremiumBadge size={18} variant={user.badgeStyle || 'star'} />}
+            </h1>
           </div>
           <TopMenu
             onNewDirect={() => setNewChatMode('direct')}
