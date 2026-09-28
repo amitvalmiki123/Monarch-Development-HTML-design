@@ -33,7 +33,8 @@ export const BADGE_STYLES = [
   { id: 'star', label: 'Gold Star' },
   { id: 'verified', label: 'Verified' },
   { id: 'pink-magic', label: 'Magic Sparkle' },
-  { id: 'flame', label: 'Flame' }
+  { id: 'flame', label: 'Flame' },
+  { id: 'fairy-wings', label: 'Fairy Wings' }
 ];
 
 // App icon ids the native Android project knows how to switch to — see

@@ -21,7 +21,8 @@ import { useEffect, useRef } from 'react';
 const LOTTIE_VARIANTS = {
   verified: { asset: () => import('../../assets/badges/verified-badge.json'), label: 'Verified' },
   'pink-magic': { asset: () => import('../../assets/badges/pink-magic.json'), label: 'Magic Sparkle' },
-  flame: { asset: () => import('../../assets/badges/flame.json'), label: 'Flame' }
+  flame: { asset: () => import('../../assets/badges/flame.json'), label: 'Flame' },
+  'fairy-wings': { asset: () => import('../../assets/badges/fairy-wings.json'), label: 'Fairy Wings' }
 };
 
 export default function PremiumBadge({ size = 13, style, variant = 'star' }) {
