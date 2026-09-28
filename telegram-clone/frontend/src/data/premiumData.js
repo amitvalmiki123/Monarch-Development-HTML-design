@@ -31,7 +31,9 @@ export const STATUS_EMOJIS = [
 // name everywhere (see components/common/PremiumBadge.jsx).
 export const BADGE_STYLES = [
   { id: 'star', label: 'Gold Star' },
-  { id: 'verified', label: 'Verified' }
+  { id: 'verified', label: 'Verified' },
+  { id: 'pink-magic', label: 'Magic Sparkle' },
+  { id: 'flame', label: 'Flame' }
 ];
 
 // App icon ids the native Android project knows how to switch to — see
