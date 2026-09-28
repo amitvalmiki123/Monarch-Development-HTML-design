@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useChat } from '../../context/ChatContext';
 import EmojiGifStickerPicker from './EmojiGifStickerPicker';
+import { wrapAnimatedEmojiToken } from '../../utils/emojiMessage';
 
 export default function MessageInput({ chatId, replyingTo, onCancelReply, readOnly }) {
   const { sendMessage, startTyping, stopTyping, uploadFile } = useChat();
@@ -103,21 +104,16 @@ export default function MessageInput({ chatId, replyingTo, onCancelReply, readOn
     onCancelReply?.();
   };
 
-  // FairyChat Premium's "Animated Emojis" pack — sent as their own message
-  // type (content = the pack's emoji id, e.g. "fire") rather than a plain
-  // Unicode character, so the recipient's bubble renders the real Lottie
-  // animation (see MessageBubble.jsx) instead of a static glyph.
+  // FairyChat Premium's "Animated Emojis" pack — inserted into the compose
+  // text as a small `[id]` token (e.g. "[fire]"), same as picking a normal
+  // emoji, so it can be mixed freely with typed text and other emoji in one
+  // message. It shows as that plain token while composing (like a
+  // WhatsApp/Discord `:shortcode:`), and renders as the real looping
+  // animation, inline with the rest of the message, once sent — see
+  // TextWithInlineEmoji / JumboEmojiContent in MessageBubble.jsx.
   const handleSelectAnimatedEmoji = (emoji) => {
-    sendMessage(chatId, {
-      type: 'animated-emoji',
-      content: emoji.id,
-      fileUrl: null,
-      fileName: emoji.label || 'Animated Emoji',
-      fileSize: null,
-      replyToId: replyingTo?.id || null
-    });
-    setShowPicker(false);
-    onCancelReply?.();
+    setText((t) => t + wrapAnimatedEmojiToken(emoji.id));
+    textareaRef.current?.focus();
   };
 
   return (

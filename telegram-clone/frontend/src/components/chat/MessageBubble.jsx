@@ -26,14 +26,21 @@ const stopGesture = {
 // small looping CSS wiggle as a fallback for the rest, for Premium
 // senders. This is the "Animated Emojis in any message" perk in action:
 // "hey 👋 congrats 🎉 on the launch!" gets two little animated emoji
-// sitting right in the middle of otherwise-plain text.
+// sitting right in the middle of otherwise-plain text. A `[id]` token from
+// FairyChat Premium's 720-emoji pack (inserted via the chat picker's
+// "Animated Emojis" categories) always renders as the real animation here,
+// regardless of the sender's current Premium status — it was a deliberate
+// pick, not an automatic re-skin of a plain emoji.
 function TextWithInlineEmoji({ text, animated }) {
-  if (!animated) return <>{text}</>;
+  const hasAnimToken = text.includes('[');
+  if (!animated && !hasAnimToken) return <>{text}</>;
   const segments = splitEmojiSegments(text);
   return (
     <>
       {segments.map((seg, i) => {
         if (!seg.emoji) return <span key={i}>{seg.text}</span>;
+        if (seg.animId) return <PremiumLottieEmoji key={i} id={seg.animId} size={20} />;
+        if (!animated) return <span key={i}>{seg.text}</span>;
         const lottieId = lottieIdForEmoji(seg.text);
         return lottieId
           ? <LottieEmoji key={i} id={lottieId} size={20} className="inline-emoji" />
@@ -47,11 +54,14 @@ function TextWithInlineEmoji({ text, animated }) {
 // jumbo-sized, same as Telegram) — each emoji renders as a real animation
 // when we have one bundled, falling back to the CSS pop+wiggle otherwise.
 function JumboEmojiContent({ text, animated }) {
-  if (!animated) return <span className="jumbo-emoji">{text}</span>;
+  const hasAnimToken = text.includes('[');
+  if (!animated && !hasAnimToken) return <span className="jumbo-emoji">{text}</span>;
   const segments = splitEmojiSegments(text).filter((s) => s.emoji);
   return (
     <span className="jumbo-emoji jumbo-emoji--row">
       {segments.map((seg, i) => {
+        if (seg.animId) return <PremiumLottieEmoji key={i} id={seg.animId} size={52} />;
+        if (!animated) return <span key={i} className="jumbo-emoji--animated">{seg.text}</span>;
         const lottieId = lottieIdForEmoji(seg.text);
         return lottieId
           ? <LottieEmoji key={i} id={lottieId} size={48} />
