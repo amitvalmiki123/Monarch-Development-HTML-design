@@ -48,6 +48,12 @@ Without them the APK still **compiles** (using Telegram's public sample
 values), but **login will not work** — so set them before installing on a
 phone. Never commit the hash to the repo.
 
+> The workflow has a hard gate: if no usable api_id/api_hash secret is
+> found, the build **fails at the "Verify API credentials" step** instead
+> of publishing a sample-credentials APK. If that happens, re-check the
+> secrets page (the **Secrets** tab, not Variables; repository scope, not
+> an Environment) and push any change under `telegram-fork/` to rebuild.
+
 ## Triggering a build
 
 - Push any change under `telegram-fork/` (or this workflow) → automatic.
