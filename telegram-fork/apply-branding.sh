@@ -60,6 +60,27 @@ echo "==> BuildVars: APP_ID/APP_HASH (from secrets, or sample fallback)"
 BUILDVARS="$SRC/TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java"
 sed -i.bak "s/public static int APP_ID = .*/public static int APP_ID = $APP_ID;/" "$BUILDVARS"
 sed -i.bak "s|public static String APP_HASH = .*|public static String APP_HASH = \"$APP_HASH\";|" "$BUILDVARS"
+if [ -n "${TG_APP_ID:-}" ] && [ "$TG_APP_ID" != "4" ]; then
+  echo "    using real API credentials from secrets (login will work)"
+else
+  echo "::warning::TG_APP_ID secret not set — using Telegram's public sample values. The APK compiles and runs, but LOGIN WILL NOT WORK until TG_APP_ID / TG_APP_HASH secrets are configured in the repo."
+  echo "    WARNING: TG_APP_ID secret not set — login will NOT work."
+fi
+
+# --- Size guard: GitHub blocks pushing files >100MiB into a repo, and a
+# debug build with all four ABIs plus unstripped native debug symbols
+# lands right around that limit (our first successful build was ~104MB
+# raw and the publish step failed). Ship arm64-v8a only (every modern
+# phone) and strip native debug symbols — brings the APK to roughly half
+# the size and is still a fully working client. Override with FAIRY_ABIS
+# (e.g. "armeabi-v7a", "arm64-v8a") if you need more ABIs back.
+ABIS="${FAIRY_ABIS:-arm64-v8a}"
+echo "==> ABIs -> $ABIS (native debug symbols stripped)"
+for GRADLE in "$SRC/TMessagesProj_App/build.gradle" "$SRC/TMessagesProj/build.gradle"; do
+  [ -f "$GRADLE" ] || continue
+  sed -i.bak "s/abiFilters \"armeabi-v7a\", \"arm64-v8a\", \"x86\", \"x86_64\"/abiFilters \"$ABIS\"/g" "$GRADLE"
+  sed -i.bak "s/ndk.debugSymbolLevel = 'FULL'/ndk.debugSymbolLevel = 'NONE'/g" "$GRADLE"
+done
 
 echo "==> app_name -> $APP_NAME (every locale)"
 find "$SRC/TMessagesProj/src/main/res" -name "strings.xml" -path "*/values*" -type f | while read -r f; do
