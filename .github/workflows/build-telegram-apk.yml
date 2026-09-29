@@ -54,8 +54,12 @@ jobs:
 
       - name: Apply FairyChat branding
         env:
-          TG_APP_ID: ${{ secrets.TG_APP_ID }}
-          TG_APP_HASH: ${{ secrets.TG_APP_HASH }}
+          # Primary names, with common renaming variants as fallbacks (empty
+          # secrets are falsy in GH expressions, so the first non-empty one
+          # wins) — saves a whole debugging round if the secret was added
+          # under a slightly different name.
+          TG_APP_ID: ${{ secrets.TG_APP_ID || secrets.API_ID || secrets.TG_API_ID || secrets.APP_ID || secrets.TELEGRAM_APP_ID }}
+          TG_APP_HASH: ${{ secrets.TG_APP_HASH || secrets.API_HASH || secrets.TG_API_HASH || secrets.APP_HASH || secrets.TELEGRAM_APP_HASH }}
         run: |
           chmod +x telegram-fork/apply-branding.sh
           ./telegram-fork/apply-branding.sh telegram-src \
@@ -67,11 +71,25 @@ jobs:
       # published api_ids. Failing here — with instructions — is far better
       # than silently shipping a login-broken build.
       - name: Verify API credentials were applied
+        env:
+          HINT_API_ID: ${{ secrets.API_ID }}
+          HINT_TG_API_ID: ${{ secrets.TG_API_ID }}
+          HINT_APP_ID: ${{ secrets.APP_ID }}
+          HINT_TELEGRAM_APP_ID: ${{ secrets.TELEGRAM_APP_ID }}
         run: |
           STATUS=$(cat telegram-src/.fairychat-creds-status)
           echo "credentials status: $STATUS"
           if [ "$STATUS" != "real" ]; then
-            echo "::error::TG_APP_ID / TG_APP_HASH secrets NOT found — the build would fall back to Telegram's public sample api_id=4 (login fails with API_ID_PUBLISHED_FLOOD). Fix: repo Settings -> Secrets and variables -> Actions -> 'Secrets' tab (NOT 'Variables') -> 'New repository secret' -> names exactly TG_APP_ID (your numeric api_id) and TG_APP_HASH (your api_hash) from my.telegram.org. Then re-run this workflow."
+            # Help diagnose near-miss secret names (existence only, never values).
+            FOUND=""
+            for v in HINT_API_ID HINT_TG_API_ID HINT_APP_ID HINT_TELEGRAM_APP_ID; do
+              if [ -n "${!v}" ]; then FOUND="$FOUND ${v#HINT_}"; fi
+            done
+            if [ -n "$FOUND" ]; then
+              echo "::error::Found secret(s) named:$FOUND — but they were empty or not usable as api_id. TG_APP_ID must be the NUMERIC api_id and TG_APP_HASH the api_hash string from my.telegram.org, added under Settings -> Secrets and variables -> Actions -> SECRETS tab (not Variables)."
+            else
+              echo "::error::TG_APP_ID / TG_APP_HASH secrets NOT found — the build would fall back to Telegram's public sample api_id=4 (login fails with API_ID_PUBLISHED_FLOOD). Fix: repo Settings -> Secrets and variables -> Actions -> 'Secrets' tab (NOT 'Variables') -> 'New repository secret' -> names exactly TG_APP_ID (numeric api_id) and TG_APP_HASH (api_hash) from my.telegram.org. Then re-run this workflow."
+            fi
             exit 1
           fi
           echo "Real API credentials applied."
