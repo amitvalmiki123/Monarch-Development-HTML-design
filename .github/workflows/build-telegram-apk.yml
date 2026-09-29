@@ -61,6 +61,21 @@ jobs:
           ./telegram-fork/apply-branding.sh telegram-src \
             telegram-clone/frontend/android/app/src/main/res
 
+      # Hard gate: NEVER publish an APK built with Telegram's public sample
+      # credentials. Login from a sample api_id gets API_ID_PUBLISHED_FLOOD
+      # (this happened to the user) and Telegram's API terms forbid shipping
+      # published api_ids. Failing here — with instructions — is far better
+      # than silently shipping a login-broken build.
+      - name: Verify API credentials were applied
+        run: |
+          STATUS=$(cat telegram-src/.fairychat-creds-status)
+          echo "credentials status: $STATUS"
+          if [ "$STATUS" != "real" ]; then
+            echo "::error::TG_APP_ID / TG_APP_HASH secrets NOT found — the build would fall back to Telegram's public sample api_id=4 (login fails with API_ID_PUBLISHED_FLOOD). Fix: repo Settings -> Secrets and variables -> Actions -> 'Secrets' tab (NOT 'Variables') -> 'New repository secret' -> names exactly TG_APP_ID (your numeric api_id) and TG_APP_HASH (your api_hash) from my.telegram.org. Then re-run this workflow."
+            exit 1
+          fi
+          echo "Real API credentials applied."
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:

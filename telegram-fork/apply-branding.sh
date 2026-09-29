@@ -60,11 +60,13 @@ echo "==> BuildVars: APP_ID/APP_HASH (from secrets, or sample fallback)"
 BUILDVARS="$SRC/TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java"
 sed -i.bak "s/public static int APP_ID = .*/public static int APP_ID = $APP_ID;/" "$BUILDVARS"
 sed -i.bak "s|public static String APP_HASH = .*|public static String APP_HASH = \"$APP_HASH\";|" "$BUILDVARS"
-if [ -n "${TG_APP_ID:-}" ] && [ "$TG_APP_ID" != "4" ]; then
+if [ -n "${TG_APP_ID:-}" ] && [ "$TG_APP_ID" != "4" ] && [ -n "${TG_APP_HASH:-}" ] && [ "$TG_APP_HASH" != "014b35b6184100b085b0d0572f9b5103" ]; then
   echo "    using real API credentials from secrets (login will work)"
+  echo "real" > "$SRC/.fairychat-creds-status"
 else
   echo "::warning::TG_APP_ID secret not set — using Telegram's public sample values. The APK compiles and runs, but LOGIN WILL NOT WORK until TG_APP_ID / TG_APP_HASH secrets are configured in the repo."
   echo "    WARNING: TG_APP_ID secret not set — login will NOT work."
+  echo "sample" > "$SRC/.fairychat-creds-status"
 fi
 
 # --- Size guard: GitHub blocks pushing files >100MiB into a repo, and a
