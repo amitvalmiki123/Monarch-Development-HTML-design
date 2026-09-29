@@ -84,7 +84,22 @@ jobs:
       - name: Build debug APK
         run: |
           cd telegram-src
-          ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon -x lint
+          set -o pipefail
+          ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon -x lint 2>&1 | tee gradle-build.log
+
+      # The sandbox we develop from cannot reach GitHub's Azure blob log
+      # storage, so on failure we commit the tail of the Gradle log into
+      # the repo — readable via plain git fetch/pull from anywhere.
+      - name: Publish build log on failure
+        if: failure()
+        run: |
+          mkdir -p telegram-fork
+          { tail -n 400 telegram-src/gradle-build.log 2>/dev/null || echo "(no gradle log captured — failure happened before the build step)"; } > telegram-fork/last-build-error.log
+          git config user.name "fairychat-ci"
+          git config user.email "ci@fairychat.local"
+          git add telegram-fork/last-build-error.log
+          git commit -m "chore: capture Telegram build failure log [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
 
       - name: Locate APK
         id: apk
@@ -102,6 +117,9 @@ jobs:
 
       - name: Publish APK into repo (mobile-builds/)
         run: |
+          # Drop any failure log left over from a previous failed run.
+          git rm --cached --ignore-unmatch telegram-fork/last-build-error.log > /dev/null 2>&1 || true
+          rm -f telegram-fork/last-build-error.log
           mkdir -p mobile-builds
           cp "${{ steps.apk.outputs.apk }}" mobile-builds/fairychat-telegram-debug.apk
           git config user.name "fairychat-ci"

@@ -42,6 +42,20 @@ fi
 echo "==> applicationId -> $APP_PACKAGE"
 sed -i.bak "s/^APP_PACKAGE=.*/APP_PACKAGE=$APP_PACKAGE/" "$SRC/gradle.properties"
 
+# The google-services plugin fails the build ("Package Name in
+# google-services.json doesn't match...") when the applicationId changes,
+# because Telegram's bundled config only lists their own package names.
+# Rewrite the client package_name entries to ours. (The Firebase project
+# behind it stays Telegram's for now — compiles and runs fine, just no
+# working push until you swap in your own Firebase config: Stage 2.)
+GS="$SRC/TMessagesProj_App/google-services.json"
+if [ -f "$GS" ]; then
+  echo "==> google-services.json package_name -> $APP_PACKAGE(.beta/.web)"
+  sed -i.bak "s/\"package_name\": \"org\.telegram\.messenger\.beta\"/\"package_name\": \"$APP_PACKAGE.beta\"/g" "$GS"
+  sed -i.bak "s/\"package_name\": \"org\.telegram\.messenger\.web\"/\"package_name\": \"$APP_PACKAGE.web\"/g" "$GS"
+  sed -i.bak "s/\"package_name\": \"org\.telegram\.messenger\"/\"package_name\": \"$APP_PACKAGE\"/g" "$GS"
+fi
+
 echo "==> BuildVars: APP_ID/APP_HASH (from secrets, or sample fallback)"
 BUILDVARS="$SRC/TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java"
 sed -i.bak "s/public static int APP_ID = .*/public static int APP_ID = $APP_ID;/" "$BUILDVARS"
