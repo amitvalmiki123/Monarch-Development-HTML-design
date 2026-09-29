@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# Applies FairyChat branding to a freshly-cloned Telegram-Android source tree.
+#
+# Usage:
+#   ./apply-branding.sh <telegram-source-root> <fairychat-icons-res-root>
+#
+# Environment:
+#   TG_APP_ID   / TG_APP_HASH   — your Telegram API credentials from
+#                                 my.telegram.org (injected as GitHub
+#                                 secrets in CI). If unset, Telegram's
+#                                 public sample values are left in place so
+#                                 the build still compiles (login won't work
+#                                 with the sample values, though).
+#   FAIRY_APP_NAME / FAIRY_APP_PACKAGE — overrides, default
+#                                 FairyChat / com.fairychat.app
+#
+# What this deliberately does NOT do (yet):
+#   - rename the Java namespace (org.telegram.messenger stays — the standard
+#     fork approach; only the applicationId changes, so the app installs as
+#     its own package and can coexist with the real Telegram app)
+#   - replace google-services.json (Telegram's own Firebase config ships in
+#     the repo; push notifications won't be ours until you swap in your own
+#     Firebase project's file)
+#   - replace the alternate launcher icons (icon_2..icon_6 "app icon" presets)
+# ---------------------------------------------------------------------------
+set -euo pipefail
+
+SRC="$1"
+ICONS="$2"
+
+APP_NAME="${FAIRY_APP_NAME:-FairyChat}"
+APP_PACKAGE="${FAIRY_APP_PACKAGE:-com.fairychat.app}"
+APP_ID="${TG_APP_ID:-4}"
+APP_HASH="${TG_APP_HASH:-014b35b6184100b085b0d0572f9b5103}"
+
+if [ ! -f "$SRC/gradle.properties" ] || [ ! -d "$SRC/TMessagesProj" ]; then
+  echo "apply-branding.sh: '$SRC' does not look like the Telegram-Android source root" >&2
+  exit 1
+fi
+
+echo "==> applicationId -> $APP_PACKAGE"
+sed -i.bak "s/^APP_PACKAGE=.*/APP_PACKAGE=$APP_PACKAGE/" "$SRC/gradle.properties"
+
+echo "==> BuildVars: APP_ID/APP_HASH (from secrets, or sample fallback)"
+BUILDVARS="$SRC/TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java"
+sed -i.bak "s/public static int APP_ID = .*/public static int APP_ID = $APP_ID;/" "$BUILDVARS"
+sed -i.bak "s|public static String APP_HASH = .*|public static String APP_HASH = \"$APP_HASH\";|" "$BUILDVARS"
+
+echo "==> app_name -> $APP_NAME (every locale)"
+find "$SRC/TMessagesProj/src/main/res" -name "strings.xml" -path "*/values*" -type f | while read -r f; do
+  sed -i.bak "s|<string name=\"app_name\">[^<]*</string>|<string name=\"app_name\">$APP_NAME</string>|g" "$f" || true
+done
+
+echo "==> launcher icons -> FairyChat (all densities)"
+for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+  src_dir="$ICONS/mipmap-$density"
+  [ -d "$src_dir" ] || continue
+  for f in ic_launcher.png ic_launcher_round.png; do
+    [ -f "$src_dir/$f" ] || continue
+    find "$SRC/TMessagesProj/src/main/res" -type d -name "mipmap-$density" | while read -r d; do
+      if [ -f "$d/$f" ]; then
+        cp "$src_dir/$f" "$d/$f"
+        echo "    replaced $d/$f"
+      fi
+    done
+  done
+done
+
+# Clean the sed backup files so they don't end up scanned by gradle/aapt.
+find "$SRC" -name "*.bak" -delete
+
+echo "==> branding done: $APP_NAME ($APP_PACKAGE)"

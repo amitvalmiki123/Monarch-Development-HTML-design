@@ -1,0 +1,115 @@
+name: Build FairyChat Telegram APK
+
+# Stage 1 of the "FairyChat on the real Telegram source" direction:
+# clones the official Telegram-Android source at build time (so we never
+# vendor its ~750MB into this repo), applies our FairyChat branding patch
+# (telegram-fork/apply-branding.sh), and builds a debug APK on GitHub's free
+# runners — the same publish-to-mobile-builds/ pattern the Capacitor APK
+# workflow uses.
+#
+# This APK is the REAL Telegram client rebranded as FairyChat: users log in
+# with their Telegram accounts and chat on the Telegram network. It is NOT
+# connected to the FairyChat Node backend (that integration is a later
+# stage).
+#
+# Required GitHub secrets (repo -> Settings -> Secrets and variables ->
+# Actions), both optional for the build to compile but REQUIRED for login
+# to actually work:
+#   TG_APP_ID    — numeric api_id from my.telegram.org
+#   TG_APP_HASH  — api_hash from my.telegram.org (never commit it to the repo)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - arena/01a0dc23-monarch-development-html-desig
+    paths:
+      - 'telegram-fork/**'
+      - '.github/workflows/build-telegram-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Telegram's native build is disk-hungry; the runner's preinstalled
+      # SDK/NDK/toolchains plus a full CMake build can brush against the
+      # ~25GB free. Drop some of the biggest unused preinstalled stacks.
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/ghc /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: Clone Telegram-Android source (shallow + submodules)
+        run: |
+          git clone --depth 1 --recurse-submodules --shallow-submodules --jobs 4 \
+            https://github.com/DrKLO/Telegram.git telegram-src
+          du -sh telegram-src
+
+      - name: Apply FairyChat branding
+        env:
+          TG_APP_ID: ${{ secrets.TG_APP_ID }}
+          TG_APP_HASH: ${{ secrets.TG_APP_HASH }}
+        run: |
+          chmod +x telegram-fork/apply-branding.sh
+          ./telegram-fork/apply-branding.sh telegram-src \
+            telegram-clone/frontend/android/app/src/main/res
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Android NDK + CMake + accept licenses
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | sudo "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "ndk;27.2.12479018" "cmake;3.22.1" > /dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle
+          key: gradle-telegram-${{ hashFiles('telegram-fork/apply-branding.sh') }}
+          restore-keys: gradle-telegram-
+
+      - name: Build debug APK
+        run: |
+          cd telegram-src
+          ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon -x lint
+
+      - name: Locate APK
+        id: apk
+        run: |
+          APK=$(find telegram-src/TMessagesProj_App/build/outputs/apk -name "*.apk" -type f | head -1)
+          if [ -z "$APK" ]; then echo "No APK produced"; exit 1; fi
+          ls -la "$APK"
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fairychat-telegram-debug-apk
+          path: ${{ steps.apk.outputs.apk }}
+
+      - name: Publish APK into repo (mobile-builds/)
+        run: |
+          mkdir -p mobile-builds
+          cp "${{ steps.apk.outputs.apk }}" mobile-builds/fairychat-telegram-debug.apk
+          git config user.name "fairychat-ci"
+          git config user.email "ci@fairychat.local"
+          git add -f mobile-builds/fairychat-telegram-debug.apk
+          if git diff --cached --quiet; then
+            echo "No APK changes to commit."
+          else
+            git commit -m "chore: publish FairyChat Telegram-source debug APK [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
