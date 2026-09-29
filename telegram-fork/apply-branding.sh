@@ -83,8 +83,15 @@ for GRADLE in "$SRC/TMessagesProj_App/build.gradle" "$SRC/TMessagesProj/build.gr
 done
 
 echo "==> app_name -> $APP_NAME (every locale)"
+# NOTE: Telegram's launcher label resolves to @string/AppName (set in
+# TMessagesProj/config/{debug,release}/AndroidManifest*.xml) — the value
+# lives in strings.xml as "AppName" / "AppNameBeta", NOT "app_name" (which
+# is why our first build still showed "Telegram" under the FairyChat icon).
+# Patch both key styles; no-ops where a key doesn't exist.
 find "$SRC/TMessagesProj/src/main/res" -name "strings.xml" -path "*/values*" -type f | while read -r f; do
   sed -i.bak "s|<string name=\"app_name\">[^<]*</string>|<string name=\"app_name\">$APP_NAME</string>|g" "$f" || true
+  sed -i.bak "s|<string name=\"AppName\">[^<]*</string>|<string name=\"AppName\">$APP_NAME</string>|g" "$f" || true
+  sed -i.bak "s|<string name=\"AppNameBeta\">[^<]*</string>|<string name=\"AppNameBeta\">$APP_NAME Beta</string>|g" "$f" || true
 done
 
 echo "==> launcher icons -> FairyChat (all densities)"
