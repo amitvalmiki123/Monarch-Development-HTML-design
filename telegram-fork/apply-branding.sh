@@ -96,6 +96,20 @@ find "$SRC/TMessagesProj/src/main/res" -name "strings.xml" -path "*/values*" -ty
   sed -i.bak "s|<string name=\"AppNameBeta\">[^<]*</string>|<string name=\"AppNameBeta\">$APP_NAME Beta</string>|g" "$f" || true
 done
 
+# --- Deep brand (Stage 2): scrub "Telegram" from every user-visible string
+# VALUE, leaving resource KEYS intact (code references them) and skipping
+# strings that contain links/domains/handles so nothing functional breaks.
+# The user's feedback: the app is "hubahu Telegram" — inside the app the
+# Telegram brand is everywhere (settings titles, descriptions, dialogs...).
+# Note: each sed pass replaces (greedily) one occurrence per line, so a
+# string mentioning Telegram twice needs two passes — run several.
+echo "==> deep brand: Telegram -> $APP_NAME in all string values (keys & links untouched)"
+find "$SRC/TMessagesProj/src/main/res" -name "strings.xml" -path "*/values*" -type f | while read -r f; do
+  for pass in 1 2 3 4; do
+    sed -i.bak -E '/http|telegram\.org|t\.me|@|[a-zA-Z0-9._%+-]+\.com/!s/(<string name="[^"]*"[^>]*>[^<]*)Telegram([^<]*<\/string>)/\1'"$APP_NAME"'\2/g' "$f" || true
+  done
+done
+
 echo "==> launcher icons -> FairyChat (all densities)"
 for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
   src_dir="$ICONS/mipmap-$density"
