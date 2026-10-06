@@ -98,10 +98,57 @@ if [ -f "$LOGO_SRC" ]; then
   mkdir -p "$SRC/TMessagesProj/src/main/res/drawable-nodpi"
   cp "$LOGO_SRC" "$SRC/TMessagesProj/src/main/res/drawable-nodpi/telegram_logo.png"
   cp "$LOGO_SRC" "$SRC/TMessagesProj/src/main/res/drawable-nodpi/telegram_logo_2.png"
-  sed -i.bak "s/logoDrawable.setBounds(0, dp(8.666f), dp(115), dp(35));/logoDrawable.setBounds(0, dp(4), dp(42), dp(42));/" \
-    "$SRC/TMessagesProj/src/main/java/org/telegram/ui/IntroActivity.java"
+  INTRO="$SRC/TMessagesProj/src/main/java/org/telegram/ui/IntroActivity.java"
+  if [ -f "$INTRO" ]; then
+    sed -i.bak "s/logoDrawable.setBounds(0, dp(8.666f), dp(115), dp(35));/logoDrawable.setBounds(0, dp(4), dp(42), dp(42));/" "$INTRO"
+  else
+    echo "    (IntroActivity.java not found — intro logo bounds left as-is)"
+  fi
 else
   echo "    (telegram-fork/branding/telegram_logo.png missing — skipping logo swap)"
+fi
+
+# --- FairyChat default palette (Stage 2.5): Telegram's blue accent family →
+# FairyChat purple (#7C3AED accent / #6D28D9 text) with gold (#D9B64C)
+# gradient highlights. The two TELEGRAM_COLOR constants cover most of the
+# app (send button, switches, checkboxes, radio, FABs, seekbars, tabs,
+# unread counters); the rest are the scattered blue text/line hexes.
+# Semantic colors (name-color palette, call green/red) are left untouched.
+THEME_FILE="$SRC/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/ThemeColors.java"
+if [ -f "$THEME_FILE" ]; then
+  echo "==> default theme accent -> FairyChat purple/gold"
+  sed -i.bak \
+    -e 's/TELEGRAM_COLOR = 0xFF229AF0/TELEGRAM_COLOR = 0xFF7C3AED/' \
+    -e 's/TELEGRAM_COLOR_TEXT = 0xFF298ACF/TELEGRAM_COLOR_TEXT = 0xFF6D28D9/' \
+    -e 's/0xff2678b6/0xff6D28D9/g' \
+    -e 's/0xff2f8cc9/0xff6D28D9/g' \
+    -e 's/0xff3a95d5/0xff7C3AED/g' \
+    -e 's/0xff348bc1/0xff6D28D9/g' \
+    -e 's/0xff527da3/0xff6D28D9/g' \
+    -e 's/0xff4092cd/0xff6D28D9/g' \
+    -e 's/0xff4c8eca/0xff7C3AED/g' \
+    -e 's/0xff3a8ccf/0xff7C3AED/g' \
+    -e 's/0xff377aae/0xff6D28D9/g' \
+    -e 's/0xff379de5/0xff7C3AED/g' \
+    -e 's/0xff599fd8/0xff7C3AED/g' \
+    -e 's/0xff278ddb/0xff6D28D9/g' \
+    -e 's/0xff5695cc/0xff6D28D9/g' \
+    -e 's/0xff5093d3/0xff6D28D9/g' \
+    -e 's/0xff4da6ea/0xff7C3AED/g' \
+    -e 's/0xFF56baf0/0xFFD9B64C/g' \
+    -e 's/0xff2288d1/0xff6D28D9/g' \
+    -e 's/0xFF66ade1/0xFF7C3AED/g' \
+    -e 's/0xff229AF0/0xff7C3AED/g' \
+    -e 's/0xff229af0/0xff7C3AED/g' \
+    -e 's/0xff2b96e2/0xff7C3AED/g' \
+    -e 's/0xff33a8e6/0xff7C3AED/g' \
+    -e 's/0xff3A95D4/0xff7C3AED/g' \
+    -e 's/0xff3a95d4/0xff7C3AED/g' \
+    -e 's/0xff3fa8ef/0xff7C3AED/g' \
+    -e 's/0xff359fe5/0xff7C3AED/g' \
+    "$THEME_FILE"
+else
+  echo "::warning::ThemeColors.java not found — theme palette not applied"
 fi
 
 # --- Size guard: GitHub blocks pushing files >100MiB into a repo, and a
