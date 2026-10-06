@@ -97,13 +97,79 @@ if [ -f "$LOGO_SRC" ]; then
         "$SRC/TMessagesProj/src/main/res/drawable/telegram_logo_2.xml"
   mkdir -p "$SRC/TMessagesProj/src/main/res/drawable-nodpi"
   cp "$LOGO_SRC" "$SRC/TMessagesProj/src/main/res/drawable-nodpi/telegram_logo.png"
-  cp "$LOGO_SRC" "$SRC/TMessagesProj/src/main/res/drawable-nodpi/telegram_logo_2.png"
-  INTRO="$SRC/TMessagesProj/src/main/java/org/telegram/ui/IntroActivity.java"
-  if [ -f "$INTRO" ]; then
-    sed -i.bak "s/logoDrawable.setBounds(0, dp(8.666f), dp(115), dp(35));/logoDrawable.setBounds(0, dp(4), dp(42), dp(42));/" "$INTRO"
-  else
-    echo "    (IntroActivity.java not found — intro logo bounds left as-is)"
-  fi
+# --- Intro screen: big logo was too large/clipped. Instead show the
+# "FairyChat" wordmark as TEXT (the slide title), like our own app's
+# branding. (Premium animated-icon next to the text = Stage 3.)
+INTRO="$SRC/TMessagesProj/src/main/java/org/telegram/ui/IntroActivity.java"
+if [ -f "$INTRO" ]; then
+  echo "==> intro title -> FairyChat text wordmark"
+  python3 - "$INTRO" << 'PYEOF' || echo "    ::warning::intro title patch failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+old = (
+    '        SpannableStringBuilder ssb = new SpannableStringBuilder(LocaleController.getString(R.string.Page1Title));\n'
+    '        ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);\n'
+    '        titles[0] = ssb;'
+)
+new = '        titles[0] = LocaleController.getString(R.string.AppName);'
+if old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print("    patched: intro slide 1 title is now the FairyChat text")
+else:
+    print("    ::warning::intro ImageSpan block not found — title left as-is")
+PYEOF
+else
+  echo "    (IntroActivity.java not found — intro title left as-is)"
+fi
+
+# --- Service-notifications chat (Telegram's real service account 777000,
+# the one that delivers login codes) shows its server-set name "Telegram"
+# in the chat list, chat header and message senders. That name can't be
+# changed server-side, so override the DISPLAY client-side in UserObject —
+# every surface then reads "FairyChat".
+UO_FILE="$SRC/TMessagesProj/src/main/java/org/telegram/messenger/UserObject.java"
+if [ -f "$UO_FILE" ]; then
+  echo "==> service chat (777000) display name -> FairyChat"
+  python3 - "$UO_FILE" << 'PYEOF' || echo "    ::warning::777000 rename patch failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+checks = [
+    ('    public static String getUserName(TLRPC.User user) {\n'
+     '        if (user == null || isDeleted(user)) {\n'
+     '            return LocaleController.getString(R.string.HiddenName);\n'
+     '        }\n',
+     '    public static String getUserName(TLRPC.User user) {\n'
+     '        if (user == null || isDeleted(user)) {\n'
+     '            return LocaleController.getString(R.string.HiddenName);\n'
+     '        }\n'
+     '        if (user.id == 777000) {\n'
+     '            return "FairyChat";\n'
+     '        }\n'),
+    ('    public static String getFirstName(TLRPC.User user, boolean allowShort) {\n'
+     '        if (user == null || isDeleted(user)) {\n'
+     '            return "DELETED";\n'
+     '        }\n',
+     '    public static String getFirstName(TLRPC.User user, boolean allowShort) {\n'
+     '        if (user == null || isDeleted(user)) {\n'
+     '            return "DELETED";\n'
+     '        }\n'
+     '        if (user.id == 777000) {\n'
+     '            return "FairyChat";\n'
+     '        }\n'),
+]
+for old, new in checks:
+    if old in s:
+        s = s.replace(old, new, 1)
+        print("    patched:", old.split('(')[0].split()[-1])
+    else:
+        print("    ::warning::pattern not found:", old.split('(')[0].split()[-1])
+open(p, 'w', encoding='utf-8').write(s)
+PYEOF
+else
+  echo "    ::warning::UserObject.java not found — service chat name not renamed"
+fi
 else
   echo "    (telegram-fork/branding/telegram_logo.png missing — skipping logo swap)"
 fi
