@@ -171,6 +171,76 @@ PYEOF
 else
   echo "    ::warning::UserObject.java not found — service chat name not renamed"
 fi
+
+# --- Main screen title (chat list top-left, where official Telegram shows
+# its wordmark): DialogsActivity built the title as an ImageSpan around
+# R.drawable.telegram_logo_2 sized by INTRINSIC dimensions — with our
+# 512px crest PNG that rendered huge and clipped. Replace with the plain
+# "FairyChat" text title (the emoji-status drawable next to it stays —
+# animated for premium users, exactly the branding pattern we want).
+DLG="$SRC/TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java"
+if [ -f "$DLG" ]; then
+  echo "==> main screen title -> FairyChat text (fix giant clipped logo)"
+  python3 - "$DLG" << 'PYEOF' || echo "    ::warning::main title patch failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+old = (
+    '                logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();\n'
+    '                logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());\n'
+    '                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);\n'
+    '                SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));\n'
+    '                ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);\n'
+    '                actionBar.setTitle(ssb, statusDrawable);'
+)
+new = '                actionBar.setTitle(getString(R.string.AppName), statusDrawable);'
+if old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print("    patched: main screen title is now FairyChat text")
+else:
+    print("    ::warning::DialogsActivity title block not found — left as-is")
+PYEOF
+else
+  echo "    ::warning::DialogsActivity.java not found — main title left as-is"
+fi
+
+# --- Service chat (777000) data-level rename: chat-list rows build their
+# title via ContactsController.formatName(first_name, last_name) directly,
+# bypassing UserObject — so patch the cache entry point instead. Every
+# consumer (dialog rows, headers, senders, mentions) then reads
+# "FairyChat" from the user object itself.
+MC="$SRC/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java"
+if [ -f "$MC" ]; then
+  echo "==> service chat (777000) data-level rename -> FairyChat"
+  python3 - "$MC" << 'PYEOF' || echo "    ::warning::putUser patch failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+old = (
+    '    public boolean putUser(TLRPC.User user, boolean fromCache, boolean force) {\n'
+    '        if (user == null) {\n'
+    '            return false;\n'
+    '        }\n'
+)
+new = (
+    '    public boolean putUser(TLRPC.User user, boolean fromCache, boolean force) {\n'
+    '        if (user == null) {\n'
+    '            return false;\n'
+    '        }\n'
+    '        if (user.id == 777000) {\n'
+    '            user.first_name = "FairyChat";\n'
+    '            user.last_name = null;\n'
+    '        }\n'
+)
+if old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print("    patched: putUser renames 777000 to FairyChat at data level")
+else:
+    print("    ::warning::putUser signature not found — 777000 keeps server name")
+PYEOF
+else
+  echo "    ::warning::MessagesController.java not found — 777000 keeps server name"
+fi
 else
   echo "    (telegram-fork/branding/telegram_logo.png missing — skipping logo swap)"
 fi
