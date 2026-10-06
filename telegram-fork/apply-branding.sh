@@ -69,6 +69,41 @@ else
   echo "sample" > "$SRC/.fairychat-creds-status"
 fi
 
+# --- Cloud strings OFF (critical!): Telegram's server sends its own
+# language pack that OVERRIDES our rebranded local strings — that's why
+# "Telegram" still showed everywhere after the deep-brand pass. Also stop
+# the "update Telegram" prompts our fork should never show.
+echo "==> disable cloud langpack + official update prompts"
+sed -i.bak "s/USE_CLOUD_STRINGS = true/USE_CLOUD_STRINGS = false/" "$BUILDVARS"
+sed -i.bak "s/CHECK_UPDATES = true/CHECK_UPDATES = false/" "$BUILDVARS"
+
+# --- Launcher adaptive-icon override (Android 8+): mipmap-anydpi-v26/
+# ic_launcher.xml references Telegram's own foreground/background vectors
+# and completely ignores the raster ic_launcher.png files we replace —
+# deleting the XMLs makes Android fall back to OUR FairyChat rasters.
+echo "==> remove adaptive-icon XMLs so our launcher rasters win"
+rm -f "$SRC/TMessagesProj/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" \
+      "$SRC/TMessagesProj/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
+
+# --- In-app logo: the big logo on the intro screen (and the archived-
+# stories placeholder) is the vector drawable telegram_logo — Telegram's
+# plane wordmark. Swap it for our FairyChat crest under the same resource
+# name, and square up the intro's 115x35dp wordmark bounds so our square
+# crest isn't squashed.
+LOGO_SRC="$(cd "$(dirname "$0")" && pwd)/branding/telegram_logo.png"
+if [ -f "$LOGO_SRC" ]; then
+  echo "==> in-app logo -> FairyChat crest"
+  rm -f "$SRC/TMessagesProj/src/main/res/drawable/telegram_logo.xml" \
+        "$SRC/TMessagesProj/src/main/res/drawable/telegram_logo_2.xml"
+  mkdir -p "$SRC/TMessagesProj/src/main/res/drawable-nodpi"
+  cp "$LOGO_SRC" "$SRC/TMessagesProj/src/main/res/drawable-nodpi/telegram_logo.png"
+  cp "$LOGO_SRC" "$SRC/TMessagesProj/src/main/res/drawable-nodpi/telegram_logo_2.png"
+  sed -i.bak "s/logoDrawable.setBounds(0, dp(8.666f), dp(115), dp(35));/logoDrawable.setBounds(0, dp(4), dp(42), dp(42));/" \
+    "$SRC/TMessagesProj/src/main/java/org/telegram/ui/IntroActivity.java"
+else
+  echo "    (telegram-fork/branding/telegram_logo.png missing — skipping logo swap)"
+fi
+
 # --- Size guard: GitHub blocks pushing files >100MiB into a repo, and a
 # debug build with all four ABIs plus unstripped native debug symbols
 # lands right around that limit (our first successful build was ~104MB
