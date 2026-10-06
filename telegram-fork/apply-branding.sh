@@ -97,6 +97,7 @@ if [ -f "$LOGO_SRC" ]; then
         "$SRC/TMessagesProj/src/main/res/drawable/telegram_logo_2.xml"
   mkdir -p "$SRC/TMessagesProj/src/main/res/drawable-nodpi"
   cp "$LOGO_SRC" "$SRC/TMessagesProj/src/main/res/drawable-nodpi/telegram_logo.png"
+  cp "$LOGO_SRC" "$SRC/TMessagesProj/src/main/res/drawable-nodpi/telegram_logo_2.png"
 # --- Intro screen: big logo was too large/clipped. Instead show the
 # "FairyChat" wordmark as TEXT (the slide title), like our own app's
 # branding. (Premium animated-icon next to the text = Stage 3.)
