@@ -413,10 +413,17 @@ PYEOF
 import re, sys
 p = sys.argv[1]
 s = open(p, encoding='utf-8').read()
-s2, n = re.subn(r'new PremiumPreviewFragment\([^)]*\)', 'new FairyChatPremiumActivity()', s)
-if n:
+# Nesting-aware: matches the full constructor call even when args contain
+# nested parens like uri.getQueryParameter("ref") — a flat [^)]* pattern
+# leaves a stray ')' behind and breaks javac (build 37615564461 failed
+# exactly like that).
+s2, n = re.subn(r'new PremiumPreviewFragment\((?:[^()]|\([^()]*\))*\)', 'new FairyChatPremiumActivity()', s)
+bad = [ln for ln in s2.splitlines() if 'FairyChatPremiumActivity' in ln and ln.count('(') != ln.count(')')]
+if n and not bad:
     open(p, 'w', encoding='utf-8').write(s2)
     print("    patched: %d LaunchActivity premium entry point(s) -> our page" % n)
+elif bad:
+    print("    ::warning::unbalanced parens after patch — left Telegram's page in place")
 else:
     print("    ::warning::no PremiumPreviewFragment in LaunchActivity")
 PYEOF2
