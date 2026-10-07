@@ -241,6 +241,45 @@ PYEOF
 else
   echo "    ::warning::MessagesController.java not found — 777000 keeps server name"
 fi
+
+# --- Stage 3.1 — "FairyChat Premium" always visible in Settings:
+# Telegram ships a premium row (deep-branded label reads "FairyChat
+# Premium") that opens the full PremiumPreviewFragment features page,
+# but hides it when premiumFeaturesBlocked() is true (regional/remote
+# config). Remove the guard so every user sees the FairyChat Premium
+# and FairyChat Business sections; also unhide the gift row.
+SA="$SRC/TMessagesProj/src/main/java/org/telegram/ui/SettingsActivity.java"
+if [ -f "$SA" ]; then
+  echo "==> Settings: always show FairyChat Premium + Business rows"
+  python3 - "$SA" << 'PYEOF' || echo "    ::warning::premium rows patch failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+pairs = [
+    ('        if (!getMessagesController().premiumFeaturesBlocked()) {\n'
+     '            items.add(SettingCell.Factory.of(11, 0xFFB659FF, 0xFF617CFF, R.drawable.settings_premium, getString(R.string.TelegramPremium)));\n'
+     '        }\n',
+     '        items.add(SettingCell.Factory.of(11, 0xFFB659FF, 0xFF617CFF, R.drawable.settings_premium, getString(R.string.TelegramPremium)));\n'),
+    ('        if (!getMessagesController().premiumFeaturesBlocked()) {\n'
+     '            items.add(SettingCell.Factory.of(15, 0xFFF45255, 0xFFDF3955, R.drawable.settings_business, getString(R.string.TelegramBusiness)));\n'
+     '        }\n',
+     '        items.add(SettingCell.Factory.of(15, 0xFFF45255, 0xFFDF3955, R.drawable.settings_business, getString(R.string.TelegramBusiness)));\n'),
+    ('        if (!getMessagesController().premiumPurchaseBlocked()) {\n'
+     '            items.add(SettingCell.Factory.of(16, 0xFFF38B31, 0xFFE26314, R.drawable.settings_gift, getString(R.string.SendAGift)));\n'
+     '        }\n',
+     '        items.add(SettingCell.Factory.of(16, 0xFFF38B31, 0xFFE26314, R.drawable.settings_gift, getString(R.string.SendAGift)));\n'),
+]
+for old, new in pairs:
+    if old in s:
+        s = s.replace(old, new, 1)
+        print("    patched: premium row guard removed")
+    else:
+        print("    ::warning::premium row block not found")
+open(p, 'w', encoding='utf-8').write(s)
+PYEOF
+else
+  echo "    ::warning::SettingsActivity.java not found — premium rows stay conditional"
+fi
 else
   echo "    (telegram-fork/branding/telegram_logo.png missing — skipping logo swap)"
 fi
