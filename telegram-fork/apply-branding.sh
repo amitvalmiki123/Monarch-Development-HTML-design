@@ -313,6 +313,40 @@ PYEOF
 else
   echo "    ::warning::SettingsActivity.java not found — premium rows stay conditional"
 fi
+
+# --- Stage 3.1b — App Icon picker previews (Settings → Appearance → App
+# Icon): LauncherIcon.DEFAULT previews from icon_background_sa +
+# icon_foreground_sa ("_sa" standalone assets) — still Telegram's plane on
+# Telegram's gradient, which is why the default icon in Settings looked
+# like Telegram's. Replace every preview foreground with our crest and
+# every preview background with FairyChat purple, for ALL icon variants.
+echo "==> App Icon picker previews -> FairyChat crest + purple"
+if [ -f "$LOGO_SRC" ]; then
+MIPMAP_BASE="$SRC/TMessagesProj/src/main/res/mipmap"
+mkdir -p "$MIPMAP_BASE"
+for FG in icon_foreground_sa icon_3_foreground_sa icon_5_foreground_sa icon_6_foreground_sa; do
+  find "$SRC/TMessagesProj/src/main/res" -name "$FG.*" -delete
+  cp "$LOGO_SRC" "$MIPMAP_BASE/$FG.png"
+done
+find "$SRC/TMessagesProj/src/main/res" -name "icon_2_background_sa.*" -delete
+cat > "$MIPMAP_BASE/icon_2_background_sa.xml" << 'XEOF'
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#7C3AED"/>
+</shape>
+XEOF
+for BG in icon_background_sa icon_3_background_sa icon_4_background_sa icon_5_background_sa icon_6_background_sa; do
+  find "$SRC/TMessagesProj/src/main/res" -name "$BG.*" -delete
+  cat > "$SRC/TMessagesProj/src/main/res/drawable/$BG.xml" << 'XEOF'
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#7C3AED"/>
+</shape>
+XEOF
+done
+else
+  echo "    (logo asset missing — App Icon previews left as Telegram's)"
+fi
 else
   echo "    (telegram-fork/branding/telegram_logo.png missing — skipping logo swap)"
 fi
