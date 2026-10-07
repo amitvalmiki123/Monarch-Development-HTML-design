@@ -193,15 +193,48 @@ old = (
     '                ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);\n'
     '                actionBar.setTitle(ssb, statusDrawable);'
 )
-new = '                actionBar.setTitle(getString(R.string.AppName), statusDrawable);'
+new = (
+    '                logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();\n'
+    '                logoDrawable.setBounds(0, dp(2), dp(26), dp(28));\n'
+    '                SpannableStringBuilder ssb = new SpannableStringBuilder("T");\n'
+    '                ssb.setSpan(new ImageSpan(logoDrawable), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);\n'
+    '                ssb.append(" ").append(getString(R.string.AppName));\n'
+    '                actionBar.setTitle(ssb, statusDrawable);'
+)
 if old in s:
     open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
-    print("    patched: main screen title is now FairyChat text")
+    print("    patched: main title = small FairyChat logo + text")
 else:
     print("    ::warning::DialogsActivity title block not found — left as-is")
 PYEOF
 else
   echo "    ::warning::DialogsActivity.java not found — main title left as-is"
+fi
+
+# --- Theme-switch tint: the onThemeChanged listener re-applies a
+# MULTIPLY color filter to logoDrawable (meant for Telegram's flat plane
+# vector). Our crest is a full-color image — clear the filter instead.
+if [ -f "$DLG" ]; then
+  python3 - "$DLG" << 'PYEOF2' || echo "    ::warning::tint neutralizer failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+old = (
+    '            if (logoDrawable != null) {\n'
+    '                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);\n'
+    '            }\n'
+)
+new = (
+    '            if (logoDrawable != null) {\n'
+    '                logoDrawable.setColorFilter(null);\n'
+    '            }\n'
+)
+if old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print("    patched: theme-switch logo tint cleared")
+else:
+    print("    ::warning::theme-change tint block not found")
+PYEOF2
 fi
 
 # --- Service chat (777000) data-level rename: chat-list rows build their
@@ -316,6 +349,8 @@ if [ -f "$THEME_FILE" ]; then
     -e 's/0xFF66ade1/0xFF7C3AED/g' \
     -e 's/0xff229AF0/0xff7C3AED/g' \
     -e 's/0xff229af0/0xff7C3AED/g' \
+    -e 's/0xFF168bdb/0xFF7C3AED/g' \
+    -e 's/0xff168bdb/0xff7C3AED/g' \
     -e 's/0xff2b96e2/0xff7C3AED/g' \
     -e 's/0xff33a8e6/0xff7C3AED/g' \
     -e 's/0xff3A95D4/0xff7C3AED/g' \
