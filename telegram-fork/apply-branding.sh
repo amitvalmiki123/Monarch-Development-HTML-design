@@ -276,14 +276,13 @@ else
 fi
 
 # --- Stage 3.1 — "FairyChat Premium" always visible in Settings:
-# Telegram ships a premium row (deep-branded label reads "FairyChat
-# Premium") that opens the full PremiumPreviewFragment features page,
-# but hides it when premiumFeaturesBlocked() is true (regional/remote
-# config). Remove the guard so every user sees the FairyChat Premium
-# and FairyChat Business sections; also unhide the gift row.
+# the premium row now opens OUR OWN FairyChatPremiumActivity. Remove the
+# guard for THAT row only — Telegram's Stars/Business/Gift rows keep
+# their original regional guards so users don't confuse Telegram's
+# premium surfaces with FairyChat Premium.
 SA="$SRC/TMessagesProj/src/main/java/org/telegram/ui/SettingsActivity.java"
 if [ -f "$SA" ]; then
-  echo "==> Settings: always show FairyChat Premium + Business rows"
+  echo "==> Settings: always show OUR FairyChat Premium row"
   python3 - "$SA" << 'PYEOF' || echo "    ::warning::premium rows patch failed"
 import sys
 p = sys.argv[1]
@@ -293,19 +292,11 @@ pairs = [
      '            items.add(SettingCell.Factory.of(11, 0xFFB659FF, 0xFF617CFF, R.drawable.settings_premium, getString(R.string.TelegramPremium)));\n'
      '        }\n',
      '        items.add(SettingCell.Factory.of(11, 0xFFB659FF, 0xFF617CFF, R.drawable.settings_premium, getString(R.string.TelegramPremium)));\n'),
-    ('        if (!getMessagesController().premiumFeaturesBlocked()) {\n'
-     '            items.add(SettingCell.Factory.of(15, 0xFFF45255, 0xFFDF3955, R.drawable.settings_business, getString(R.string.TelegramBusiness)));\n'
-     '        }\n',
-     '        items.add(SettingCell.Factory.of(15, 0xFFF45255, 0xFFDF3955, R.drawable.settings_business, getString(R.string.TelegramBusiness)));\n'),
-    ('        if (!getMessagesController().premiumPurchaseBlocked()) {\n'
-     '            items.add(SettingCell.Factory.of(16, 0xFFF38B31, 0xFFE26314, R.drawable.settings_gift, getString(R.string.SendAGift)));\n'
-     '        }\n',
-     '        items.add(SettingCell.Factory.of(16, 0xFFF38B31, 0xFFE26314, R.drawable.settings_gift, getString(R.string.SendAGift)));\n'),
 ]
 for old, new in pairs:
     if old in s:
         s = s.replace(old, new, 1)
-        print("    patched: premium row guard removed")
+        print("    patched: premium row guard removed (row 11 only)")
     else:
         print("    ::warning::premium row block not found")
 open(p, 'w', encoding='utf-8').write(s)
@@ -314,38 +305,73 @@ else
   echo "    ::warning::SettingsActivity.java not found — premium rows stay conditional"
 fi
 
-# --- Stage 3.1b — App Icon picker previews (Settings → Appearance → App
-# Icon): LauncherIcon.DEFAULT previews from icon_background_sa +
-# icon_foreground_sa ("_sa" standalone assets) — still Telegram's plane on
-# Telegram's gradient, which is why the default icon in Settings looked
-# like Telegram's. Replace every preview foreground with our crest and
-# every preview background with FairyChat purple, for ALL icon variants.
-echo "==> App Icon picker previews -> FairyChat crest + purple"
-if [ -f "$LOGO_SRC" ]; then
+# --- Stage 3.3 — App Icon picker: SIX DISTINCT FairyChat editions.
+# User feedback: every option showed the same crest on the same purple —
+# only DEFAULT may show our branding crest; every other option must be
+# its own FairyChat edition (own launcher raster AND own preview):
+#   Default = crest, FairyChat purple #7C3AED
+#   Nox     = icon_2: crest fg, black #1A1A1A bg,  launcher nox.png
+#   Premium = icon_3: premium fg, deep purple #6D28D9, launcher premium.png
+#   Aqua    = icon_4: crest fg, teal #17A2B8 bg,  launcher aqua.png
+#   Turbo   = icon_5: turbo fg, charcoal #262626, launcher turbo.png
+#   Vintage = icon_6: vintage fg, mahogany #5C3A21, launcher vintage.png
+echo "==> App Icon picker -> 6 distinct FairyChat editions"
+LOGO_SRC="$(cd "$(dirname "$0")" && pwd)/branding/telegram_logo.png"
+BRAND_ICONS="$(cd "$(dirname "$0")" && pwd)/branding/icons"
+if [ -f "$LOGO_SRC" ] && [ -d "$BRAND_ICONS" ]; then
 MIPMAP_BASE="$SRC/TMessagesProj/src/main/res/mipmap"
-mkdir -p "$MIPMAP_BASE"
-for FG in icon_foreground_sa icon_3_foreground_sa icon_5_foreground_sa icon_6_foreground_sa; do
-  find "$SRC/TMessagesProj/src/main/res" -name "$FG.*" -delete
+mkdir -p "$MIPMAP_BASE" "$SRC/TMessagesProj/src/main/res/mipmap-anydpi-v26"
+
+# 1) Kill the adaptive-icon XMLs + density rasters for icon_2..6 so our
+#    baseline-mipmap edition rasters actually apply when picked.
+for N in 2 3 4 5 6; do
+  find "$SRC/TMessagesProj/src/main/res/mipmap-anydpi-v26" -name "icon_${N}_launcher*.xml" -delete 2>/dev/null
+  find "$SRC/TMessagesProj/src/main/res" -name "icon_${N}_launcher*.png" -delete 2>/dev/null
+done
+
+# 2) Each edition's launcher raster (square + round alias) into the
+#    baseline mipmap bucket (Android density-scales as needed).
+place_mipmap_png() {
+  find "$SRC/TMessagesProj/src/main/res" -name "$1.*" -delete 2>/dev/null
+  cp "$2" "$MIPMAP_BASE/$1.png"
+}
+place_mipmap_png icon_2_launcher       "$BRAND_ICONS/nox.png"
+place_mipmap_png icon_2_launcher_round "$BRAND_ICONS/nox.png"
+place_mipmap_png icon_3_launcher       "$BRAND_ICONS/premium.png"
+place_mipmap_png icon_3_launcher_round "$BRAND_ICONS/premium.png"
+place_mipmap_png icon_4_launcher       "$BRAND_ICONS/aqua.png"
+place_mipmap_png icon_4_launcher_round "$BRAND_ICONS/aqua.png"
+place_mipmap_png icon_5_launcher       "$BRAND_ICONS/turbo.png"
+place_mipmap_png icon_5_launcher_round "$BRAND_ICONS/turbo.png"
+place_mipmap_png icon_6_launcher       "$BRAND_ICONS/vintage.png"
+place_mipmap_png icon_6_launcher_round "$BRAND_ICONS/vintage.png"
+
+# 3) Preview foregrounds: Default/Nox/Aqua keep the crest; Premium/
+#    Turbo/Vintage preview their own artwork.
+for FG in icon_foreground_sa icon_2_foreground_sa icon_4_foreground_sa; do
+  find "$SRC/TMessagesProj/src/main/res" -name "$FG.*" -delete 2>/dev/null
   cp "$LOGO_SRC" "$MIPMAP_BASE/$FG.png"
 done
-find "$SRC/TMessagesProj/src/main/res" -name "icon_2_background_sa.*" -delete
-cat > "$MIPMAP_BASE/icon_2_background_sa.xml" << 'XEOF'
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#7C3AED"/>
-</shape>
-XEOF
-for BG in icon_background_sa icon_3_background_sa icon_4_background_sa icon_5_background_sa icon_6_background_sa; do
-  find "$SRC/TMessagesProj/src/main/res" -name "$BG.*" -delete
-  cat > "$SRC/TMessagesProj/src/main/res/drawable/$BG.xml" << 'XEOF'
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#7C3AED"/>
-</shape>
-XEOF
+for PAIR in "icon_3_foreground_sa:premium.png" "icon_5_foreground_sa:turbo.png" "icon_6_foreground_sa:vintage.png"; do
+  FG="${PAIR%%:*}"
+  find "$SRC/TMessagesProj/src/main/res" -name "$FG.*" -delete 2>/dev/null
+  cp "$BRAND_ICONS/${PAIR#*:}" "$MIPMAP_BASE/$FG.png"
 done
+
+# 4) Preview backgrounds: one solid color per edition.
+shape_bg() {
+  find "$SRC/TMessagesProj/src/main/res" -name "$1.*" -delete 2>/dev/null
+  mkdir -p "$SRC/TMessagesProj/src/main/res/$3"
+  printf '<?xml version="1.0" encoding="utf-8"?>\n<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">\n    <solid android:color="%s"/>\n</shape>\n' "$2" > "$SRC/TMessagesProj/src/main/res/$3/$1.xml"
+}
+shape_bg icon_background_sa   "#7C3AED" drawable
+shape_bg icon_2_background_sa "#1A1A1A" mipmap
+shape_bg icon_3_background_sa "#6D28D9" drawable
+shape_bg icon_4_background_sa "#17A2B8" drawable
+shape_bg icon_5_background_sa "#262626" drawable
+shape_bg icon_6_background_sa "#5C3A21" drawable
 else
-  echo "    (logo asset missing — App Icon previews left as Telegram's)"
+  echo "    (branding assets missing — App Icon picker left as Telegram's)"
 fi
 
 # --- Stage 3.2 — OUR OWN FairyChat Premium page (INR 99/month, 599/year):
@@ -378,6 +404,23 @@ if old in s:
 else:
     print("    ::warning::case 11 click handler not found — row still opens Telegram premium")
 PYEOF
+  # Redirect Telegram's remaining premium entry points (tg://premium_offer
+  # deep link + the gift flow in LaunchActivity) to OUR Advanced page too,
+  # so no surface in the app ever shows Telegram's premium content.
+  LA_FILE="$SRC/TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
+  if [ -f "$LA_FILE" ]; then
+    python3 - "$LA_FILE" << 'PYEOF2' || echo "    ::warning::LaunchActivity premium redirect failed"
+import re, sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+s2, n = re.subn(r'new PremiumPreviewFragment\([^)]*\)', 'new FairyChatPremiumActivity()', s)
+if n:
+    open(p, 'w', encoding='utf-8').write(s2)
+    print("    patched: %d LaunchActivity premium entry point(s) -> our page" % n)
+else:
+    print("    ::warning::no PremiumPreviewFragment in LaunchActivity")
+PYEOF2
+  fi
 else
   echo "    ::warning::premium page source or SettingsActivity missing — skipped"
 fi

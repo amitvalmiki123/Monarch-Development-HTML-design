@@ -62,7 +62,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle("FairyChat Premium");
+        actionBar.setTitle("Advanced FairyChat Premium");
         actionBar.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         actionBar.setTitleColor(PURPLE);
         actionBar.setItemsColor(PURPLE, false);
@@ -100,6 +100,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
         banner.setBackground(bannerBg);
 
         bannerTitle = new TextView(context);
+        bannerTitle.setText("Advanced FairyChat Premium");
         bannerTitle.setTextColor(Color.WHITE);
         bannerTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
         bannerTitle.setTypeface(Typeface.DEFAULT_BOLD);
@@ -117,12 +118,13 @@ public class FairyChatPremiumActivity extends BaseFragment {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         // ---- features ----
-        addSectionTitle(context, root, "Premium Features", txt);
+        addSectionTitle(context, root, "Advanced FairyChat Features (sirf FairyChat me)", txt);
         String[][] features = {
-            {"\uD83C\uDFA8", "Exclusive FairyChat Themes", "Purple/Gold, Midnight, Neon aur bhi — sirf premium users ke liye"},
-            {"\u2728", "Poora 720 Animated Emoji Pack", "FairyChat ke saare animated emojis unlock"},
-            {"\uD83C\uDF1F", "Premium Badge + Profile Colors", "Apne profile pe premium star aur custom colors"},
-            {"\uD83D\uDCF1", "Exclusive App Icons", "FairyChat ke special icon variants"},
+            {"\uD83C\uDFA8", "Exclusive FairyChat Themes", "Purple/Gold, Midnight, Neon aur bhi — sirf premium ke liye"},
+            {"\u2728", "720 Animated Emoji Pack", "Text ke sath Lottie animated emojis aur stickers"},
+            {"\uD83C\uDF1F", "Premium Badge", "Apne naam ke sath premium star badge"},
+            {"\uD83D\uDDBC\uFE0F", "Profile BG Colors + Animated Profile", "Custom profile background colors aur animated profile elements"},
+            {"\uD83D\uDCF1", "6 App Icon Editions", "Default, Vintage, Aqua, Premium, Turbo, Nox"},
             {"\uD83D\uDE80", "Early Access", "Naye features sabse pehle"}
         };
         for (String[] f : features) {
