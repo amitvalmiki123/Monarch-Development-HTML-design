@@ -347,6 +347,40 @@ done
 else
   echo "    (logo asset missing — App Icon previews left as Telegram's)"
 fi
+
+# --- Stage 3.2 — OUR OWN FairyChat Premium page (INR 99/month, 599/year):
+# the settings row previously opened Telegram's PremiumPreviewFragment
+# (Telegram's features, Telegram's billing). Ship our own branded premium
+# page instead — features list, INR pricing cards, UPI payment steps and
+# a code-redemption field (backend verification lands in Stage 4). The
+# app is sideloaded (not Play Store), so direct UPI is allowed.
+PREM_SRC="$(cd "$(dirname "$0")" && pwd)/branding/FairyChatPremiumActivity.java"
+if [ -f "$PREM_SRC" ] && [ -f "$SA" ]; then
+  echo "==> FairyChat Premium: apna premium page (INR 99/mo, 599/yr)"
+  cp "$PREM_SRC" "$SRC/TMessagesProj/src/main/java/org/telegram/ui/FairyChatPremiumActivity.java"
+  python3 - "$SA" << 'PYEOF' || echo "    ::warning::premium row click patch failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+old = (
+    '            case 11:\n'
+    '                presentSettingFragment(new PremiumPreviewFragment("settings"));\n'
+    '                break;\n'
+)
+new = (
+    '            case 11:\n'
+    '                presentSettingFragment(new FairyChatPremiumActivity());\n'
+    '                break;\n'
+)
+if old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print("    patched: FairyChat Premium row opens OUR premium page")
+else:
+    print("    ::warning::case 11 click handler not found — row still opens Telegram premium")
+PYEOF
+else
+  echo "    ::warning::premium page source or SettingsActivity missing — skipped"
+fi
 else
   echo "    (telegram-fork/branding/telegram_logo.png missing — skipping logo swap)"
 fi
