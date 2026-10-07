@@ -159,6 +159,29 @@ jobs:
             git push origin HEAD:${{ github.ref_name }}
           fi
 
+      # Cache-proof distribution: browsers kept serving stale cached APKs
+      # from the branch path, so users installed old builds over and over.
+      # A GitHub Release per build has a UNIQUE, immutable download URL —
+      # a stale download is impossible.
+      - name: Publish APK as a GitHub Release (cache-proof download)
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="${{ steps.apk.outputs.apk }}"
+          SHA7=$(echo '${{ github.sha }}' | cut -c1-7)
+          TAG="fairychat-${SHA7}"
+          # a rebuild of the same commit would clash — clean any stale release first
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" "$APK#fairychat.apk" \
+            --target "${{ github.sha }}" \
+            --title "FairyChat build ${SHA7}" \
+            --notes "Automated FairyChat (Telegram-source) debug build from commit ${SHA7}.
+
+          Install OVER THE TOP of your existing FairyChat app — do NOT uninstall first (uninstalling logs you out).
+
+          This release URL is unique per build, so your browser can never hand you a cached old APK."
+
       # Catch-all: if ANY step failed (build, publish, anything), commit a
       # diagnostic file into the repo so it can be read via plain git from
       # environments that cannot reach GitHub's Azure log storage.
