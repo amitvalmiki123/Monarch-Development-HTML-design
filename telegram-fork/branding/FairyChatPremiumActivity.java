@@ -1,6 +1,7 @@
 package org.telegram.ui;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -10,14 +11,13 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.FileLog;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -28,12 +28,36 @@ import org.telegram.ui.ActionBar.Theme;
  * Pricing: INR 99/month, INR 599/year.
  * Payment: UPI (this build is sideloaded, not from Play Store, so direct
  * UPI is allowed). Code redemption: FairyChat backend (Stage 4 wiring).
+ *
+ * Founder code FC-FOUNDER-2026 activates FairyChat Premium free forever
+ * on this device (for the owner to test all premium features).
  */
 public class FairyChatPremiumActivity extends BaseFragment {
 
     private static final int PURPLE = 0xFF7C3AED;
     private static final int PURPLE_DARK = 0xFF6D28D9;
     private static final int GOLD = 0xFFD9B64C;
+    private static final String FOUNDER_CODE = "FC-FOUNDER-2026";
+
+    private TextView bannerTitle;
+    private TextView bannerSub;
+    private LinearLayout activeCard;
+    private LinearLayout redeemCard;
+
+    /** Premium flag used by all FairyChat premium features. */
+    public static boolean isPremiumActive(Context ctx) {
+        if (ctx == null) {
+            ctx = ApplicationLoader.applicationContext;
+        }
+        SharedPreferences prefs = ctx.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE);
+        return prefs.getBoolean("premium_active", false);
+    }
+
+    private void setPremiumActive(boolean active) {
+        Context ctx = getContext() != null ? getContext() : ApplicationLoader.applicationContext;
+        ctx.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE)
+            .edit().putBoolean("premium_active", active).apply();
+    }
 
     @Override
     public View createView(Context context) {
@@ -75,16 +99,14 @@ public class FairyChatPremiumActivity extends BaseFragment {
         bannerBg.setCornerRadius(AndroidUtilities.dp(18));
         banner.setBackground(bannerBg);
 
-        TextView starTitle = new TextView(context);
-        starTitle.setText("\u2B50 FairyChat Premium");
-        starTitle.setTextColor(Color.WHITE);
-        starTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
-        starTitle.setTypeface(Typeface.DEFAULT_BOLD);
-        starTitle.setGravity(Gravity.CENTER);
-        banner.addView(starTitle);
+        bannerTitle = new TextView(context);
+        bannerTitle.setTextColor(Color.WHITE);
+        bannerTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        bannerTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        bannerTitle.setGravity(Gravity.CENTER);
+        banner.addView(bannerTitle);
 
-        TextView bannerSub = new TextView(context);
-        bannerSub.setText("Upgrade karke apni FairyChat ko\npoora personal banao!");
+        bannerSub = new TextView(context);
         bannerSub.setTextColor(0xFFF3E8FF);
         bannerSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         bannerSub.setGravity(Gravity.CENTER);
@@ -107,7 +129,43 @@ public class FairyChatPremiumActivity extends BaseFragment {
             addFeatureRow(context, root, f[0], f[1], f[2], txt, sub);
         }
 
-        // ---- pricing ----
+        // ---- active state card (visible when premium is on) ----
+        activeCard = card(context);
+        TextView activeTitle = new TextView(context);
+        activeTitle.setText("\u2714 FairyChat Premium ACTIVE");
+        activeTitle.setTextColor(PURPLE);
+        activeTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        activeTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        activeCard.addView(activeTitle);
+        TextView activeSub = new TextView(context);
+        activeSub.setText("Status: Founder \u2014 Lifetime (FREE)\nSaare premium features unlocked!");
+        activeSub.setTextColor(txt);
+        activeSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        activeSub.setPadding(0, AndroidUtilities.dp(6), 0, 0);
+        activeCard.addView(activeSub);
+
+        Button reset = new Button(context);
+        reset.setText("Deactivate (testing)");
+        reset.setTextColor(PURPLE);
+        reset.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        GradientDrawable resetBg = new GradientDrawable();
+        resetBg.setColor(0x00000000);
+        resetBg.setCornerRadius(AndroidUtilities.dp(12));
+        resetBg.setStroke(AndroidUtilities.dp(1), PURPLE);
+        reset.setBackground(resetBg);
+        reset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setPremiumActive(false);
+                Toast.makeText(getContext(), "Premium deactivate (testing)", Toast.LENGTH_SHORT).show();
+                refreshState();
+            }
+        });
+        activeCard.addView(reset, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        root.addView(activeCard, cardParams());
+
+        // ---- pricing (hidden once active) ----
         addSectionTitle(context, root, "Plans (INR)", txt);
         addPlanCard(context, root, "Monthly", "\u20B999 / month", "Sab kuch unlock — month ke hisab se", false, sub);
         addPlanCard(context, root, "Yearly \u2014 BEST VALUE", "\u20B9599 / year", "2 month free ke sath (49% bachat!)", true, sub);
@@ -116,7 +174,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
         addSectionTitle(context, root, "Kaise kharidein", txt);
         LinearLayout payCard = card(context);
         TextView pay1 = new TextView(context);
-        pay1.setText("1. Payment karo (UPI): fairychat@upi\n2. Payment screenshot + apna FairyChat number bhejo support ko\n3. Aapko 12-digit ka Premium Code milega\n4. Neeche code enter karke Activate karo");
+        pay1.setText("1. Payment karo (UPI): fairychat@upi\n2. Payment screenshot + apna FairyChat number bhejo support ko\n3. Aapko 12-digit ka Premium Code milega\n4. Neeche code enter karke Activate karo\n\n(Owner/testing ke liye founder code bhi chalta hai)");
         pay1.setTextColor(txt);
         pay1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         pay1.setLineSpacing(AndroidUtilities.dp(3), 1f);
@@ -125,7 +183,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
 
         // ---- redeem ----
         addSectionTitle(context, root, "Premium Code Activate karo", txt);
-        LinearLayout redeemCard = card(context);
+        redeemCard = card(context);
         final EditText codeInput = new EditText(context);
         codeInput.setHint("Code (jaise FC-XXXX-XXXX)");
         codeInput.setTextColor(txt);
@@ -152,10 +210,15 @@ public class FairyChatPremiumActivity extends BaseFragment {
                     Toast.makeText(getContext(), "Code enter karo", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                // Stage 4: yahan FairyChat backend (Render) se code verify hoga.
-                // Abhi ke liye format check + confirmation message.
+                if (FOUNDER_CODE.equalsIgnoreCase(code)) {
+                    setPremiumActive(true);
+                    Toast.makeText(getContext(), "\u2B50 FairyChat Premium ACTIVATED! (Founder — FREE)", Toast.LENGTH_LONG).show();
+                    refreshState();
+                    return;
+                }
+                // Stage 4: FairyChat backend (Render) se code verify hoga.
                 if (code.matches("(?i)FC-[A-Z0-9]{4}-[A-Z0-9]{4}")) {
-                    Toast.makeText(getContext(), "Code mil gaya! Backend verification jald aayegi.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "Backend verification jald aayegi — abhi founder code use karo (FC-FOUNDER-2026)", Toast.LENGTH_LONG).show();
                 } else {
                     Toast.makeText(getContext(), "Code galat format me hai (FC-XXXX-XXXX)", Toast.LENGTH_SHORT).show();
                 }
@@ -166,7 +229,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
         root.addView(redeemCard, cardParams());
 
         TextView foot = new TextView(context);
-        foot.setText("FairyChat Premium \u2022 Telegram engine ke upar bana\nQuestions? Settings \u2192 Ask a Question");
+        foot.setText("FairyChat Premium \u2022 Telegram engine ke upar bana");
         foot.setTextColor(sub);
         foot.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         foot.setGravity(Gravity.CENTER);
@@ -175,7 +238,23 @@ public class FairyChatPremiumActivity extends BaseFragment {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         fragmentView = scroll;
+        refreshState();
         return scroll;
+    }
+
+    private void refreshState() {
+        boolean active = isPremiumActive(getContext());
+        if (activeCard != null) {
+            activeCard.setVisibility(active ? View.VISIBLE : View.GONE);
+        }
+        if (redeemCard != null) {
+            redeemCard.setVisibility(active ? View.GONE : View.VISIBLE);
+        }
+        if (bannerSub != null) {
+            bannerSub.setText(active
+                ? "Premium ACTIVE \u2014 saare features unlocked! \uD83C\uDF89"
+                : "Upgrade karke apni FairyChat ko\npoora personal banao!");
+        }
     }
 
     private void addSectionTitle(Context c, LinearLayout root, String title, int txt) {
