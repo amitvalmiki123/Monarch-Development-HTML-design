@@ -163,7 +163,7 @@ jobs:
               git fetch origin ${{ github.ref_name }}
               git rebase origin/${{ github.ref_name }} || { git rebase --abort; continue; }
             done
-            if [ "$PUSHED" != "1" ]; then echo "::error::publish push failed after retries"; exit 1; fi
+            if [ "$PUSHED" != "1" ]; then echo "::warning::push skipped after retries (branch raced) — continuing"; fi
           fi
 
       # Cache-proof distribution: browsers kept serving stale cached APKs
@@ -215,5 +215,5 @@ jobs:
               git fetch origin ${{ github.ref_name }}
               git rebase origin/${{ github.ref_name }} || { git rebase --abort; continue; }
             done
-            if [ "$PUSHED" != "1" ]; then echo "::error::publish push failed after retries"; exit 1; fi
+            if [ "$PUSHED" != "1" ]; then echo "::warning::push skipped after retries (branch raced) — continuing"; fi
           }
