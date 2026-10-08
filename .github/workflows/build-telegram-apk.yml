@@ -156,7 +156,14 @@ jobs:
             echo "No APK changes to commit."
           else
             git commit -m "chore: publish FairyChat Telegram-source debug APK [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            PUSHED=0
+            for attempt in 1 2 3; do
+              if git push origin HEAD:${{ github.ref_name }}; then PUSHED=1; break; fi
+              echo "push rejected (branch moved) — fetch + rebase, attempt $attempt"
+              git fetch origin ${{ github.ref_name }}
+              git rebase origin/${{ github.ref_name }} || { git rebase --abort; continue; }
+            done
+            if [ "$PUSHED" != "1" ]; then echo "::error::publish push failed after retries"; exit 1; fi
           fi
 
       # Cache-proof distribution: browsers kept serving stale cached APKs
@@ -201,5 +208,12 @@ jobs:
           git add telegram-fork/last-build-error.log
           git diff --cached --quiet || {
             git commit -m "chore: capture Telegram build failure log [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            PUSHED=0
+            for attempt in 1 2 3; do
+              if git push origin HEAD:${{ github.ref_name }}; then PUSHED=1; break; fi
+              echo "push rejected (branch moved) — fetch + rebase, attempt $attempt"
+              git fetch origin ${{ github.ref_name }}
+              git rebase origin/${{ github.ref_name }} || { git rebase --abort; continue; }
+            done
+            if [ "$PUSHED" != "1" ]; then echo "::error::publish push failed after retries"; exit 1; fi
           }
