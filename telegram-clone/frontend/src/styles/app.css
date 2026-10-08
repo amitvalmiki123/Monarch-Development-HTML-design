@@ -2390,3 +2390,91 @@
 .animated-emoji-lock-overlay__sub { font-size: 12px; color: var(--text-secondary); }
 
 .premium-upsell-box__title { display: flex; align-items: center; gap: 6px; }
+
+/* ===== FairyChat Sticker Pack preview page (/stickers) ===== */
+.sticker-pack-page {
+  min-height: 100vh;
+  background: #14121f;
+  color: #efeaff;
+  padding: 24px 16px 60px;
+  font-family: inherit;
+}
+.sticker-header {
+  max-width: 1100px;
+  margin: 0 auto 20px;
+  text-align: center;
+}
+.sticker-header h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  color: #b794ff;
+}
+.sticker-header p {
+  margin: 0 auto 14px;
+  max-width: 640px;
+  color: #a89ec9;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.sticker-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #d6c8ff;
+}
+.copy-btn {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: #6d28d9; }
+.sticker-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+.sticker-card {
+  background: #1d1930;
+  border: 1px solid #2c2547;
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sticker-anim {
+  width: 120px;
+  height: 120px;
+}
+.sticker-num {
+  font-size: 12px;
+  color: #8f83bd;
+  margin: 4px 0 8px;
+}
+.sticker-emojis {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.emoji-btn {
+  background: #26203f;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 15px;
+  padding: 3px 5px;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.emoji-btn.active {
+  opacity: 1;
+  border-color: #7c3aed;
+  background: #332a58;
+}

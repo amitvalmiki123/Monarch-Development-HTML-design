@@ -18,3 +18,9 @@ services:
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT
         sync: false
+      # FairyChat Premium (Stage 4): UPI shown for payment + admin panel key.
+      # Set the REAL values in Render dashboard (Environment) — never commit.
+      - key: UPI_ID
+        value: fairychat@upi
+      - key: ADMIN_KEY
+        sync: false

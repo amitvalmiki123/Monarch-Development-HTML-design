@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatApp from './pages/ChatApp';
+import StickerPack from './pages/StickerPack.jsx';
 import PasscodeLockScreen from './components/security/PasscodeLockScreen';
 import usePasscodeLock from './hooks/usePasscodeLock';
 import { applyNativeAppIcon } from './utils/appIcon';
@@ -43,6 +44,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
       <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
+      <Route path="/stickers" element={<StickerPack />} />
       <Route
         path="/"
         element={

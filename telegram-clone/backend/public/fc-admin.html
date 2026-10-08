@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FairyChat Premium — Admin</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #14121f; color: #efeaff; margin: 0; padding: 24px; }
+  h1 { color: #b794ff; font-size: 22px; }
+  .card { background: #1d1930; border: 1px solid #2c2547; border-radius: 12px; padding: 16px; margin: 14px 0; }
+  input, select { background: #26203f; color: #efeaff; border: 1px solid #3a3160; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+  button { background: #7c3aed; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 14px; cursor: pointer; margin: 2px; }
+  button.gray { background: #443a6e; }
+  button.red { background: #b3261e; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #2c2547; }
+  .pill { padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .pending { background: #5b4a17; } .approved { background: #1c5b2e; } .rejected { background: #5b1c1c; }
+  #newcode { color: #ffd76a; font-size: 18px; font-weight: bold; letter-spacing: 1px; }
+  .muted { color: #8f83bd; font-size: 13px; }
+</style>
+</head>
+<body>
+  <h1>👑 FairyChat Premium — Admin Panel</h1>
+  <div class="card">
+    Admin key: <input id="key" type="password" size="24" placeholder="ADMIN_KEY" />
+    <button onclick="loadOrders()">🔄 Load pending orders</button>
+    <button class="gray" onclick="loadOrders('all')">Load ALL</button>
+    <span class="muted"> (Key = ADMIN_KEY env var set on Render)</span>
+  </div>
+
+  <div class="card">
+    <b>Pending verification</b> (buyer ne UTR submit kiya hai — bank/UPI app me UTR/amount match karke Approve kar)
+    <div id="orders">—</div>
+  </div>
+
+  <div class="card">
+    <b>Pre-paid code banao</b> (direct sale / gift — buyer app me redeem karega)
+    <br /><br />
+    Plan: <select id="plan"><option value="monthly">Monthly ₹99</option><option value="yearly">Yearly ₹599</option></select>
+    <button onclick="createCode()">➕ Create code</button>
+    <div id="newcode"></div>
+  </div>
+
+<script>
+  const API = '/api/fairychat';
+  const key = () => document.getElementById('key').value.trim();
+
+  async function loadOrders(filter) {
+    filter = filter || 'pending_verification';
+    const r = await fetch(`${API}/admin/orders?filter=${filter}&key=${encodeURIComponent(key())}`);
+    const j = await r.json();
+    if (!j.ok) { document.getElementById('orders').innerText = j.error || 'error'; return; }
+    if (!j.orders.length) { document.getElementById('orders').innerHTML = '<span class="muted">Koi order nahi ✓</span>'; return; }
+    document.getElementById('orders').innerHTML =
+      '<table><tr><th>Code</th><th>Plan</th><th>₹</th><th>UTR</th><th>Status</th><th>When</th><th></th></tr>' +
+      j.orders.map((o) =>
+        `<tr><td><b>${o.code}</b></td><td>${o.plan}</td><td>${o.amount_inr}</td><td>${o.utr || '—'}</td>` +
+        `<td><span class="pill ${o.status}">${o.status}</span></td>` +
+        `<td class="muted">${new Date(o.created_at * 1000).toLocaleString()}</td>` +
+        `<td>${o.status === 'pending_verification'
+          ? `<button onclick="approve('${o.code}')">✅ Approve</button><button class="red" onclick="reject('${o.code}')">✖ Reject</button>`
+          : ''}</td></tr>`
+      ).join('') + '</table>';
+  }
+
+  async function approve(code) {
+    await fetch(`${API}/admin/approve?key=${encodeURIComponent(key())}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    loadOrders();
+  }
+
+  async function reject(code) {
+    await fetch(`${API}/admin/reject?key=${encodeURIComponent(key())}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    loadOrders();
+  }
+
+  async function createCode() {
+    const r = await fetch(`${API}/admin/code/create?key=${encodeURIComponent(key())}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: document.getElementById('plan').value }),
+    });
+    const j = await r.json();
+    document.getElementById('newcode').innerText =
+      j.ok ? `Code: ${j.code} (${j.plan}, ₹${j.amount_inr}) — isko buyer ko bhej do` : (j.error || 'error');
+  }
+</script>
+</body>
+</html>

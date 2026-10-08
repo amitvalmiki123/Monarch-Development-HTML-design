@@ -1,10 +1,12 @@
 package org.telegram.ui;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -16,6 +18,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONObject;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -41,11 +44,22 @@ public class FairyChatPremiumActivity extends BaseFragment {
     private static final int PURPLE_DARK = 0xFF6D28D9;
     private static final int GOLD = 0xFFD9B64C;
     private static final String FOUNDER_CODE = "FC-FOUNDER-2026";
+    // Stage 4 backend (Render). Change here if the service URL changes.
+    private static final String API_BASE = "https://monarch-chat-backend.onrender.com/api/fairychat";
 
     private TextView bannerTitle;
     private TextView bannerSub;
     private LinearLayout activeCard;
     private LinearLayout redeemCard;
+    private LinearLayout orderCard;
+    private TextView orderInfoText;
+    private EditText utrInput;
+    private String orderCode;
+    private String orderUpi;
+    private int orderAmount;
+    private final android.os.Handler pollHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable pollRunnable;
+    private boolean polling = false;
 
     /** Premium flag used by all FairyChat premium features. */
     public static boolean isPremiumActive(Context ctx) {
@@ -68,6 +82,264 @@ public class FairyChatPremiumActivity extends BaseFragment {
         } catch (Exception ignored) {
             // No account yet (login screen) — flag applies on next launch.
         }
+    }
+
+    // ------------------------------------------------ Stage 4 helpers ----
+
+    /** Stable anonymous device id (stored once in fairychat_config). */
+    private String getDeviceId() {
+        Context ctx = getContext() != null ? getContext() : ApplicationLoader.applicationContext;
+        SharedPreferences prefs = ctx.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE);
+        String id = prefs.getString("device_id", null);
+        if (id == null) {
+            id = java.util.UUID.randomUUID().toString();
+            prefs.edit().putString("device_id", id).apply();
+        }
+        return id;
+    }
+
+    private static String urlEnc(String s) {
+        try {
+            return java.net.URLEncoder.encode(s, "UTF-8");
+        } catch (Exception e) {
+            return s;
+        }
+    }
+
+    /** Tiny blocking HTTP client — always call from a background thread. */
+    private String httpCall(String method, String urlStr, String body) {
+        try {
+            java.net.URL url = new java.net.URL(urlStr);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+            conn.setRequestMethod(method);
+            if (body != null) {
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/json");
+                java.io.OutputStream os = conn.getOutputStream();
+                os.write(body.getBytes("UTF-8"));
+                os.close();
+            }
+            int code = conn.getResponseCode();
+            java.io.InputStream is = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+            if (is == null) {
+                return null;
+            }
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int n;
+            while ((n = is.read(buf)) > 0) {
+                bos.write(buf, 0, n);
+            }
+            is.close();
+            return bos.toString("UTF-8");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void toast(final String msg, final int length) {
+        AndroidUtilities.runOnUIThread(new Runnable() {
+            @Override
+            public void run() {
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), msg, length).show();
+                }
+            }
+        });
+    }
+
+    /** Buy button -> create an order on the backend and show the pay card. */
+    private void createOrder(final String plan) {
+        toast("Order ban raha hai...", Toast.LENGTH_SHORT);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String resp = null;
+                try {
+                    JSONObject body = new JSONObject();
+                    body.put("device_id", getDeviceId());
+                    body.put("plan", plan);
+                    resp = httpCall("POST", API_BASE + "/order/create", body.toString());
+                } catch (Exception ignored) {
+                }
+                if (resp == null) {
+                    toast("Server se connect nahi hua \u2014 internet check karke dobara try karo", Toast.LENGTH_LONG);
+                    return;
+                }
+                try {
+                    JSONObject j = new JSONObject(resp);
+                    if (j.optBoolean("ok")) {
+                        JSONObject order = j.getJSONObject("order");
+                        final String code = order.getString("code");
+                        final int amount = order.getInt("amount_inr");
+                        final String upi = order.optString("upi_id", "fairychat@upi");
+                        AndroidUtilities.runOnUIThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                showOrderCard(code, amount, upi);
+                            }
+                        });
+                    } else {
+                        toast(j.optString("error", "Order nahi ban paya"), Toast.LENGTH_LONG);
+                    }
+                } catch (Exception e) {
+                    toast("Order nahi ban paya \u2014 dobara try karo", Toast.LENGTH_LONG);
+                }
+            }
+        }).start();
+    }
+
+    private void showOrderCard(String code, int amount, String upi) {
+        orderCode = code;
+        orderUpi = upi;
+        orderAmount = amount;
+        orderInfoText.setText(
+                "Order: " + code
+                        + "\nAmount: \u20B9" + amount
+                        + "\nUPI ID: " + upi
+                        + "\nStatus: PAYMENT PENDING \u2014 UPI app me pay karke Ref/UTR number neeche daalo");
+        orderCard.setVisibility(View.VISIBLE);
+        orderCard.requestFocus();
+    }
+
+    private void openUpiApp() {
+        if (orderCode == null) {
+            return;
+        }
+        try {
+            String uri = "upi://pay?pa=" + orderUpi
+                    + "&pn=FairyChat&am=" + orderAmount
+                    + "&tn=" + orderCode + "&cu=INR";
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+            getContext().startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "UPI app nahi khula \u2014 manually bhejo: " + orderUpi, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /** UTR submit -> backend marks the order pending_verification; we poll. */
+    private void submitUtr() {
+        if (orderCode == null) {
+            Toast.makeText(getContext(), "Pehle Buy dabao \u2014 order banega", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final String utr = utrInput.getText().toString().trim();
+        if (utr.length() < 6) {
+            Toast.makeText(getContext(), "UPI app me mila Ref/UTR number daalo", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        toast("UTR submit ho raha hai...", Toast.LENGTH_SHORT);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String resp = null;
+                try {
+                    JSONObject body = new JSONObject();
+                    body.put("code", orderCode);
+                    body.put("device_id", getDeviceId());
+                    body.put("utr", utr);
+                    resp = httpCall("POST", API_BASE + "/order/utr", body.toString());
+                } catch (Exception ignored) {
+                }
+                if (resp == null) {
+                    toast("Server se connect nahi hua \u2014 dobara try karo", Toast.LENGTH_LONG);
+                    return;
+                }
+                try {
+                    JSONObject j = new JSONObject(resp);
+                    if (j.optBoolean("ok")) {
+                        AndroidUtilities.runOnUIThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                orderInfoText.setText(
+                                        "Order: " + orderCode
+                                                + "\nStatus: VERIFICATION PENDING"
+                                                + "\nPayment verify hote hi premium AUTOMATIC activate ho jayega \u23F3");
+                                startPolling();
+                            }
+                        });
+                    } else {
+                        toast(j.optString("error", "UTR submit fail"), Toast.LENGTH_LONG);
+                    }
+                } catch (Exception e) {
+                    toast("UTR submit fail \u2014 dobara try karo", Toast.LENGTH_LONG);
+                }
+            }
+        }).start();
+    }
+
+    /** Poll order status every 15s; on approval activate premium. */
+    private void startPolling() {
+        if (polling) {
+            return;
+        }
+        polling = true;
+        pollRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (!polling) {
+                    return;
+                }
+                checkOrderStatus();
+                pollHandler.postDelayed(this, 15000);
+            }
+        };
+        pollHandler.postDelayed(pollRunnable, 3000);
+    }
+
+    private void checkOrderStatus() {
+        if (orderCode == null) {
+            return;
+        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String resp = httpCall("GET",
+                        API_BASE + "/order/status?code=" + urlEnc(orderCode)
+                                + "&device_id=" + urlEnc(getDeviceId()), null);
+                if (resp == null) {
+                    return;
+                }
+                try {
+                    JSONObject j = new JSONObject(resp);
+                    if (j.optBoolean("ok")) {
+                        String status = j.getJSONObject("order").optString("status", "");
+                        if ("approved".equals(status)) {
+                            polling = false;
+                            AndroidUtilities.runOnUIThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        pollHandler.removeCallbacksAndMessages(null);
+                                    } catch (Exception ignored) {
+                                    }
+                                    setPremiumActive(true);
+                                    if (getContext() != null) {
+                                        Toast.makeText(getContext(),
+                                                "\u2B50 Premium ACTIVATED! Shukriya \uD83C\uDF89",
+                                                Toast.LENGTH_LONG).show();
+                                    }
+                                    refreshState();
+                                }
+                            });
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }).start();
+    }
+
+    @Override
+    public void onFragmentDestroy() {
+        polling = false;
+        try {
+            pollHandler.removeCallbacksAndMessages(null);
+        } catch (Exception ignored) {
+        }
+        super.onFragmentDestroy();
     }
 
     @Override
@@ -183,16 +455,110 @@ public class FairyChatPremiumActivity extends BaseFragment {
         addPlanCard(context, root, "Monthly", "\u20B999 / month", "Sab kuch unlock — month ke hisab se", false, sub);
         addPlanCard(context, root, "Yearly \u2014 BEST VALUE", "\u20B9599 / year", "2 month free ke sath (49% bachat!)", true, sub);
 
-        // ---- how to pay ----
-        addSectionTitle(context, root, "Kaise kharidein", txt);
-        LinearLayout payCard = card(context);
-        TextView pay1 = new TextView(context);
-        pay1.setText("1. Payment karo (UPI): fairychat@upi\n2. Payment screenshot + apna FairyChat number bhejo support ko\n3. Aapko 12-digit ka Premium Code milega\n4. Neeche code enter karke Activate karo\n\n(Owner/testing ke liye founder code bhi chalta hai)");
-        pay1.setTextColor(txt);
-        pay1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        pay1.setLineSpacing(AndroidUtilities.dp(3), 1f);
-        payCard.addView(pay1);
-        root.addView(payCard, cardParams());
+        // ---- buy flow (automated UPI + UTR verify + auto-activate) ----
+        addSectionTitle(context, root, "Kharidein (UPI)", txt);
+        LinearLayout buyCard = card(context);
+        Button buyMonthly = new Button(context);
+        buyMonthly.setText("Buy \u2014 \u20B999 / month");
+        buyMonthly.setTextColor(Color.WHITE);
+        buyMonthly.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        GradientDrawable mbBg = new GradientDrawable();
+        mbBg.setColor(PURPLE);
+        mbBg.setCornerRadius(AndroidUtilities.dp(12));
+        buyMonthly.setBackground(mbBg);
+        buyMonthly.setPadding(0, AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10));
+        buyMonthly.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                createOrder("monthly");
+            }
+        });
+        buyCard.addView(buyMonthly, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Button buyYearly = new Button(context);
+        buyYearly.setText("Buy \u2014 \u20B9599 / year (BEST)");
+        buyYearly.setTextColor(Color.WHITE);
+        buyYearly.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        GradientDrawable ybBg = new GradientDrawable();
+        ybBg.setColor(PURPLE_DARK);
+        ybBg.setCornerRadius(AndroidUtilities.dp(12));
+        buyYearly.setBackground(ybBg);
+        buyYearly.setPadding(0, AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10));
+        buyYearly.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                createOrder("yearly");
+            }
+        });
+        buyCard.addView(buyYearly, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        TextView buyNote = new TextView(context);
+        buyNote.setText("Pay karne ke baad UPI app me jo Ref/UTR number mile, wahi neeche daalna \u2014 verify hote hi premium AUTOMATIC activate ho jayega (koi code nahi chahiye).");
+        buyNote.setTextColor(sub);
+        buyNote.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        buyNote.setPadding(0, AndroidUtilities.dp(8), 0, 0);
+        buyNote.setLineSpacing(AndroidUtilities.dp(2), 1f);
+        buyCard.addView(buyNote);
+        root.addView(buyCard, cardParams());
+
+        // ---- current order status (appears after Buy) ----
+        orderCard = card(context);
+        orderInfoText = new TextView(context);
+        orderInfoText.setTextColor(txt);
+        orderInfoText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        orderInfoText.setLineSpacing(AndroidUtilities.dp(3), 1f);
+        orderCard.addView(orderInfoText, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Button upiBtn = new Button(context);
+        upiBtn.setText("\uD83D\uDCB3 UPI app me pay karo");
+        upiBtn.setTextColor(Color.WHITE);
+        upiBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        GradientDrawable ubBg = new GradientDrawable();
+        ubBg.setColor(GOLD);
+        ubBg.setCornerRadius(AndroidUtilities.dp(12));
+        upiBtn.setTextColor(0xFF3B2A00);
+        upiBtn.setBackground(ubBg);
+        upiBtn.setPadding(0, AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10));
+        upiBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openUpiApp();
+            }
+        });
+        orderCard.addView(upiBtn, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        utrInput = new EditText(context);
+        utrInput.setHint("UPI Ref / UTR number (12 digit)");
+        utrInput.setTextColor(txt);
+        utrInput.setHintTextColor(sub);
+        utrInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        utrInput.setSingleLine();
+        orderCard.addView(utrInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Button utrBtn = new Button(context);
+        utrBtn.setText("Payment ho gaya \u2014 verify karo");
+        utrBtn.setTextColor(Color.WHITE);
+        utrBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        GradientDrawable uvBg = new GradientDrawable();
+        uvBg.setColor(PURPLE);
+        uvBg.setCornerRadius(AndroidUtilities.dp(12));
+        utrBtn.setBackground(uvBg);
+        utrBtn.setPadding(0, AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10));
+        utrBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                submitUtr();
+            }
+        });
+        orderCard.addView(utrBtn, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        orderCard.setVisibility(View.GONE);
+        root.addView(orderCard, cardParams());
 
         // ---- redeem ----
         addSectionTitle(context, root, "Premium Code Activate karo", txt);
@@ -229,9 +595,49 @@ public class FairyChatPremiumActivity extends BaseFragment {
                     refreshState();
                     return;
                 }
-                // Stage 4: FairyChat backend (Render) se code verify hoga.
+                // Stage 4: verify against the FairyChat backend (Render).
                 if (code.matches("(?i)FC-[A-Z0-9]{4}-[A-Z0-9]{4}")) {
-                    Toast.makeText(getContext(), "Backend verification jald aayegi — abhi founder code use karo (FC-FOUNDER-2026)", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "Code verify ho raha hai...", Toast.LENGTH_SHORT).show();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            String resp = null;
+                            try {
+                                JSONObject body = new JSONObject();
+                                body.put("code", code);
+                                body.put("device_id", getDeviceId());
+                                resp = httpCall("POST", API_BASE + "/redeem", body.toString());
+                            } catch (Exception ignored) {
+                            }
+                            boolean ok = false;
+                            String err = "Server se connect nahi hua \u2014 thodi der baad try karo";
+                            if (resp != null) {
+                                try {
+                                    JSONObject j = new JSONObject(resp);
+                                    if (j.optBoolean("ok")) {
+                                        ok = true;
+                                    } else {
+                                        err = j.optString("error", err);
+                                    }
+                                } catch (Exception ignored) {
+                                }
+                            }
+                            final boolean okF = ok;
+                            final String errF = err;
+                            AndroidUtilities.runOnUIThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (okF) {
+                                        setPremiumActive(true);
+                                        Toast.makeText(getContext(), "\u2B50 FairyChat Premium ACTIVATED!", Toast.LENGTH_LONG).show();
+                                        refreshState();
+                                    } else {
+                                        Toast.makeText(getContext(), errF, Toast.LENGTH_LONG).show();
+                                    }
+                                }
+                            });
+                        }
+                    }).start();
                 } else {
                     Toast.makeText(getContext(), "Code galat format me hai (FC-XXXX-XXXX)", Toast.LENGTH_SHORT).show();
                 }
