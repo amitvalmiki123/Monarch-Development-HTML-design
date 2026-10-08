@@ -25,6 +25,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
+import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -60,6 +61,9 @@ public class FairyChatPremiumActivity extends BaseFragment {
     private final android.os.Handler pollHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable pollRunnable;
     private boolean polling = false;
+    // FairyChat profile colors (Stage 5.2): cache of other users' colors
+    // fetched from our backend — {userId: {n: nameColor, p: profileColor}}.
+    private static JSONObject colorMapCache;
 
     /** Premium flag used by all FairyChat premium features. */
     public static boolean isPremiumActive(Context ctx) {
@@ -87,8 +91,10 @@ public class FairyChatPremiumActivity extends BaseFragment {
     // ------------------------------------------------ Stage 4 helpers ----
 
     /** Stable anonymous device id (stored once in fairychat_config). */
-    private String getDeviceId() {
-        Context ctx = getContext() != null ? getContext() : ApplicationLoader.applicationContext;
+    private static String getDeviceId(Context ctx) {
+        if (ctx == null) {
+            ctx = ApplicationLoader.applicationContext;
+        }
         SharedPreferences prefs = ctx.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE);
         String id = prefs.getString("device_id", null);
         if (id == null) {
@@ -96,6 +102,10 @@ public class FairyChatPremiumActivity extends BaseFragment {
             prefs.edit().putString("device_id", id).apply();
         }
         return id;
+    }
+
+    private String getMyDeviceId() {
+        return getDeviceId(getContext());
     }
 
     private static String urlEnc(String s) {
@@ -107,7 +117,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
     }
 
     /** Tiny blocking HTTP client — always call from a background thread. */
-    private String httpCall(String method, String urlStr, String body) {
+    private static String httpCall(String method, String urlStr, String body) {
         try {
             java.net.URL url = new java.net.URL(urlStr);
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
@@ -159,7 +169,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
                 String resp = null;
                 try {
                     JSONObject body = new JSONObject();
-                    body.put("device_id", getDeviceId());
+                    body.put("device_id", getMyDeviceId());
                     body.put("plan", plan);
                     resp = httpCall("POST", API_BASE + "/order/create", body.toString());
                 } catch (Exception ignored) {
@@ -238,7 +248,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
                 try {
                     JSONObject body = new JSONObject();
                     body.put("code", orderCode);
-                    body.put("device_id", getDeviceId());
+                    body.put("device_id", getMyDeviceId());
                     body.put("utr", utr);
                     resp = httpCall("POST", API_BASE + "/order/utr", body.toString());
                 } catch (Exception ignored) {
@@ -298,7 +308,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
             public void run() {
                 String resp = httpCall("GET",
                         API_BASE + "/order/status?code=" + urlEnc(orderCode)
-                                + "&device_id=" + urlEnc(getDeviceId()), null);
+                                + "&device_id=" + urlEnc(getMyDeviceId()), null);
                 if (resp == null) {
                     return;
                 }
@@ -340,6 +350,149 @@ public class FairyChatPremiumActivity extends BaseFragment {
         } catch (Exception ignored) {
         }
         super.onFragmentDestroy();
+    }
+
+    // ------------------------------------ FairyChat profile colors ----
+    // Telegram's server only stores name/profile colors for real
+    // Telegram-Premium accounts — a FairyChat-premium user's choice
+    // resets on the next refresh. We (a) persist the choice locally and
+    // re-apply it on every user update, and (b) push it to the FairyChat
+    // backend so OTHER FairyChat apps can render it too.
+
+    /** PeerColorActivity hook: user picked a name/profile color. */
+    public static void savePeerColor(Context ctx, boolean forProfile, int color) {
+        try {
+            if (ctx == null) {
+                ctx = ApplicationLoader.applicationContext;
+            }
+            SharedPreferences prefs = ctx.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE);
+            String key = forProfile ? "fc_own_profile_color" : "fc_own_name_color";
+            if (color < 0) {
+                prefs.edit().remove(key).apply();
+            } else {
+                prefs.edit().putInt(key, color).apply();
+            }
+            long uid = AccountInstance.getInstance(UserConfig.selectedAccount).getUserConfig().getClientUserId();
+            pushColorToBackend(prefs, uid, forProfile, color);
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** MessagesController.putUser hook: re-apply FairyChat colors after
+     *  every server user refresh (own + other FairyChat premium users). */
+    public static void applyPeerColors(TLRPC.User user) {
+        try {
+            if (user == null) {
+                return;
+            }
+            Context ctx = ApplicationLoader.applicationContext;
+            if (ctx == null) {
+                return;
+            }
+            SharedPreferences prefs = ctx.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE);
+            if (user.self) {
+                applyColorToObject(user, prefs.getInt("fc_own_name_color", -1), prefs.getInt("fc_own_profile_color", -1));
+            }
+            if (colorMapCache == null) {
+                String raw = prefs.getString("fc_peer_colors_map", null);
+                if (raw != null) {
+                    try {
+                        colorMapCache = new JSONObject(raw);
+                    } catch (Exception e) {
+                        colorMapCache = null;
+                    }
+                }
+            }
+            if (colorMapCache != null) {
+                JSONObject entry = colorMapCache.optJSONObject(String.valueOf(user.id));
+                if (entry != null) {
+                    applyColorToObject(user, entry.optInt("n", -1), entry.optInt("p", -1));
+                }
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static void applyColorToObject(TLRPC.User user, int nameColor, int profileColor) {
+        if (nameColor >= 0) {
+            if (user.color == null) {
+                user.color = new TLRPC.TL_peerColor();
+            }
+            user.flags2 |= 256;
+            user.color.flags |= 1;
+            user.color.color = nameColor;
+        }
+        if (profileColor >= 0) {
+            if (user.profile_color == null) {
+                user.profile_color = new TLRPC.TL_peerColor();
+            }
+            user.flags2 |= 512;
+            user.profile_color.flags |= 1;
+            user.profile_color.color = profileColor;
+        }
+    }
+
+    /** Best-effort push of the chosen color to the FairyChat backend. */
+    private static void pushColorToBackend(final SharedPreferences prefs, final long userId, final boolean forProfile, final int color) {
+        final String code = prefs.getString("fc_last_code", null);
+        if (code == null) {
+            return; // not activated on this device — nothing to sync
+        }
+        final String deviceId = getDeviceId(null);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    JSONObject body = new JSONObject();
+                    body.put("code", code);
+                    body.put("device_id", deviceId);
+                    body.put("user_id", userId);
+                    if (forProfile) {
+                        body.put("profile_color", color);
+                    } else {
+                        body.put("name_color", color);
+                    }
+                    httpCall("POST", API_BASE + "/profile-color", body.toString());
+                } catch (Exception ignored) {
+                }
+            }
+        }).start();
+    }
+
+    /** Fetch every FairyChat user's colors (background, cached in prefs). */
+    public static void fetchColorMap(final Context ctx) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String resp = httpCall("GET", API_BASE + "/profile-colors", null);
+                if (resp == null) {
+                    return;
+                }
+                try {
+                    JSONObject j = new JSONObject(resp);
+                    if (j.optBoolean("ok")) {
+                        JSONObject colors = j.getJSONObject("colors");
+                        Context c = ctx != null ? ctx : ApplicationLoader.applicationContext;
+                        c.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE)
+                                .edit().putString("fc_peer_colors_map", colors.toString()).apply();
+                        colorMapCache = colors;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }).start();
+    }
+
+    /** Remember the code used for activation (used to authorize color sync). */
+    public static void saveLastCode(Context ctx, String code) {
+        try {
+            if (ctx == null) {
+                ctx = ApplicationLoader.applicationContext;
+            }
+            ctx.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE)
+                    .edit().putString("fc_last_code", code).apply();
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
@@ -591,6 +744,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
                 }
                 if (FOUNDER_CODE.equalsIgnoreCase(code)) {
                     setPremiumActive(true);
+                    saveLastCode(getContext(), FOUNDER_CODE);
                     Toast.makeText(getContext(), "\u2B50 FairyChat Premium ACTIVATED! (Founder — FREE)", Toast.LENGTH_LONG).show();
                     refreshState();
                     return;
@@ -605,7 +759,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
                             try {
                                 JSONObject body = new JSONObject();
                                 body.put("code", code);
-                                body.put("device_id", getDeviceId());
+                                body.put("device_id", getMyDeviceId());
                                 resp = httpCall("POST", API_BASE + "/redeem", body.toString());
                             } catch (Exception ignored) {
                             }
@@ -629,6 +783,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
                                 public void run() {
                                     if (okF) {
                                         setPremiumActive(true);
+                                        saveLastCode(getContext(), code);
                                         Toast.makeText(getContext(), "\u2B50 FairyChat Premium ACTIVATED!", Toast.LENGTH_LONG).show();
                                         refreshState();
                                     } else {
@@ -657,6 +812,7 @@ public class FairyChatPremiumActivity extends BaseFragment {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         fragmentView = scroll;
+        fetchColorMap(getContext());
         refreshState();
         return scroll;
     }

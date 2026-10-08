@@ -48,6 +48,32 @@ CREATE TABLE IF NOT EXISTS fc_premium_orders (
 );
 `);
 
+// FairyChat profile colors (Stage 5.2): Telegram's server only saves
+// name/profile colors for real Telegram-Premium accounts, so FairyChat
+// stores its buyers' colors here and every FairyChat app applies them
+// locally on every user refresh.
+//   POST /profile-color {code, device_id, user_id, name_color?, profile_color?}
+//   GET  /profile-colors  ->  {ok, colors: {userId: {n, p}}}
+db.exec(`
+CREATE TABLE IF NOT EXISTS fc_profile_colors (
+  user_id TEXT PRIMARY KEY,
+  name_color INTEGER NOT NULL DEFAULT -1,
+  profile_color INTEGER NOT NULL DEFAULT -1,
+  updated_at INTEGER NOT NULL
+);
+`);
+
+// First color push binds the premium/founder code to one device+user;
+// later pushes must match (blocks impersonating other users' colors).
+db.exec(`
+CREATE TABLE IF NOT EXISTS fc_color_bindings (
+  code TEXT PRIMARY KEY,
+  device_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+`);
+
 function nowSec() {
   return Math.floor(Date.now() / 1000);
 }
@@ -227,6 +253,60 @@ router.post('/admin/code/create', requireAdmin, (req, res) => {
     "INSERT INTO fc_premium_orders (code, device_id, plan, amount_inr, status, created_at, premium_until) VALUES (?, '', ?, ?, 'approved', ?, 0)"
   ).run(code, plan, planDef.amount, nowSec());
   res.json({ ok: true, code, plan, amount_inr: planDef.amount });
+});
+
+// --------------------------------------------------- profile colors
+// A FairyChat-premium device pushes its user's chosen name/profile
+// color. Authorized by an approved order bound to that device, or by
+// the founder code (bound to its first device+user).
+router.post('/profile-color', (req, res) => {
+  const { code, device_id, user_id, name_color, profile_color } = req.body || {};
+  if (!code || !device_id || !user_id) {
+    return res.status(400).json({ ok: false, error: 'code, device_id, user_id required' });
+  }
+  const uid = String(user_id);
+  const FOUNDER = process.env.FOUNDER_CODE || 'FC-FOUNDER-2026';
+  let authorized = false;
+  const binding = db.prepare('SELECT * FROM fc_color_bindings WHERE code = ?').get(code);
+  if (binding) {
+    authorized = binding.device_id === device_id && binding.user_id === uid;
+  } else if (code === FOUNDER) {
+    db.prepare('INSERT INTO fc_color_bindings (code, device_id, user_id, created_at) VALUES (?, ?, ?, ?)')
+      .run(code, device_id, uid, nowSec());
+    authorized = true;
+  } else {
+    const order = db.prepare('SELECT * FROM fc_premium_orders WHERE code = ?').get(code);
+    if (order && order.status === 'approved' && order.device_id && order.device_id === device_id) {
+      db.prepare('INSERT INTO fc_color_bindings (code, device_id, user_id, created_at) VALUES (?, ?, ?, ?)')
+        .run(code, device_id, uid, nowSec());
+      authorized = true;
+    }
+  }
+  if (!authorized) {
+    return res.status(403).json({ ok: false, error: 'not authorized' });
+  }
+  const existing = db.prepare('SELECT * FROM fc_profile_colors WHERE user_id = ?').get(uid);
+  const nc = Number.isInteger(name_color) ? name_color : (existing ? existing.name_color : -1);
+  const pc = Number.isInteger(profile_color) ? profile_color : (existing ? existing.profile_color : -1);
+  db.prepare(`
+    INSERT INTO fc_profile_colors (user_id, name_color, profile_color, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      name_color = excluded.name_color,
+      profile_color = excluded.profile_color,
+      updated_at = excluded.updated_at
+  `).run(uid, nc, pc, nowSec());
+  res.json({ ok: true });
+});
+
+// Public: the whole color map (FairyChat apps fetch + apply locally).
+router.get('/profile-colors', (req, res) => {
+  const rows = db.prepare('SELECT * FROM fc_profile_colors').all();
+  const colors = {};
+  for (const r of rows) {
+    colors[r.user_id] = { n: r.name_color, p: r.profile_color };
+  }
+  res.json({ ok: true, colors });
 });
 
 module.exports = router;

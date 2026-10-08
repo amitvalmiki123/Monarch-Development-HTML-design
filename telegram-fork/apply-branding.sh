@@ -516,6 +516,79 @@ else
   echo "    ::warning::UserConfig.java not found — founder unlock skipped"
 fi
 
+# --- Stage 5.2 — FairyChat Profile Colors (persist + share):
+# Telegram's server only saves name/profile colors for real
+# Telegram-Premium accounts, so a FairyChat-premium user's picked color
+# resets on the next refresh. Three patches:
+#   (1) PeerColorActivity: when the user picks a color, ALSO save it to
+#       fairychat_config and push it to the FairyChat backend (so other
+#       FairyChat apps can render it).
+#   (2) MessagesController.putUser: after every server user refresh,
+#       re-apply FairyChat colors (own + fetched color map).
+#   (3) The activity itself ships savePeerColor/applyPeerColors/
+#       fetchColorMap helpers (see FairyChatPremiumActivity.java).
+PCA_FILE="$SRC/TMessagesProj/src/main/java/org/telegram/ui/PeerColorActivity.java"
+if [ -f "$PCA_FILE" ]; then
+  echo "==> FairyChat profile colors: persist picks"
+  python3 - "$PCA_FILE" << 'PYEOF5' || echo "    ::warning::profile color save hooks failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+hooks = [
+    ('                applyingName = true;\n',
+     '                applyingName = true;\n'
+     '                org.telegram.ui.FairyChatPremiumActivity.savePeerColor(getContext(), false, namePage.selectedColor);\n'),
+    ('                applyingProfile = true;\n',
+     '                applyingProfile = true;\n'
+     '                org.telegram.ui.FairyChatPremiumActivity.savePeerColor(getContext(), true, profilePage.selectedColor);\n'),
+]
+n = 0
+for old, new in hooks:
+    if old in s:
+        s = s.replace(old, new, 1)
+        n += 1
+    else:
+        print("    ::warning::hook anchor missing: %s" % old.strip())
+open(p, 'w', encoding='utf-8').write(s)
+print("    patched: %d/2 PeerColorActivity save hooks" % n)
+PYEOF5
+else
+  echo "    ::warning::PeerColorActivity.java not found — color picks won't persist"
+fi
+
+MC_FILE="$SRC/TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java"
+if [ -f "$MC_FILE" ]; then
+  echo "==> FairyChat profile colors: re-apply after user refresh"
+  python3 - "$MC_FILE" << 'PYEOF6' || echo "    ::warning::putUser color hook failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+old = (
+    '    public boolean putUser(TLRPC.User user, boolean fromCache, boolean force) {\n'
+    '        if (user == null) {\n'
+    '            return false;\n'
+    '        }\n'
+)
+new = (
+    '    public boolean putUser(TLRPC.User user, boolean fromCache, boolean force) {\n'
+    '        if (user == null) {\n'
+    '            return false;\n'
+    '        }\n'
+    '        // FairyChat: re-apply FairyChat profile/name colors (own + other\n'
+    '        // FairyChat premium users) — Telegram\'s server resets them for\n'
+    '        // non-Telegram-Premium accounts.\n'
+    '        org.telegram.ui.FairyChatPremiumActivity.applyPeerColors(user);\n'
+)
+if old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print("    patched: putUser applies FairyChat colors")
+else:
+    print("    ::warning::putUser anchor not found — colors won't be re-applied")
+PYEOF6
+else
+  echo "    ::warning::MessagesController.java not found — colors won't be re-applied"
+fi
+
 # --- FairyChat default palette (Stage 2.5): Telegram's blue accent family →
 # FairyChat purple (#7C3AED accent / #6D28D9 text) with gold (#D9B64C)
 # gradient highlights. The two TELEGRAM_COLOR constants cover most of the
