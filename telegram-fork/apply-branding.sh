@@ -374,6 +374,36 @@ else
   echo "    (branding assets missing — App Icon picker left as Telegram's)"
 fi
 
+# --- Stage 3.4 — Unlock ALL 6 icon editions (they're ours now):
+# Telegram's LauncherIconController marks the Premium/Turbo/Nox slots as
+# premium (premium=true), so applying them shows a Telegram-Premium
+# upsell and fails. These are OUR FairyChat editions now — remove the
+# premium flag from all three so every FairyChat user can switch icons
+# freely, no premium needed.
+LIC_FILE="$SRC/TMessagesProj/src/main/java/org/telegram/ui/LauncherIconController.java"
+if [ -f "$LIC_FILE" ]; then
+  echo "==> unlock all 6 icon editions (remove TG premium locks)"
+  python3 - "$LIC_FILE" << 'PYEOF4' || echo "    ::warning::icon unlock patch failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+n = 0
+for name in ('AppIconPremium', 'AppIconTurbo', 'AppIconNox'):
+    old = 'R.string.' + name + ', true)'
+    new = 'R.string.' + name + ')'
+    if old in s:
+        s = s.replace(old, new, 1)
+        n += 1
+open(p, 'w', encoding='utf-8').write(s)
+if n:
+    print("    patched: %d icon premium locks removed" % n)
+else:
+    print("    ::warning::no icon premium flags found")
+PYEOF4
+else
+  echo "    ::warning::LauncherIconController.java not found — icon locks stay"
+fi
+
 # --- Stage 3.2 — OUR OWN FairyChat Premium page (INR 99/month, 599/year):
 # the settings row previously opened Telegram's PremiumPreviewFragment
 # (Telegram's features, Telegram's billing). Ship our own branded premium

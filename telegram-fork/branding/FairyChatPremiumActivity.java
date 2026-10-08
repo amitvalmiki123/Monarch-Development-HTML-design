@@ -403,12 +403,12 @@ public class FairyChatPremiumActivity extends BaseFragment {
         // ---- features ----
         addSectionTitle(context, root, "Advanced FairyChat Features (sirf FairyChat me)", txt);
         String[][] features = {
-            {"\uD83C\uDFA8", "Exclusive FairyChat Themes", "Purple/Gold, Midnight, Neon aur bhi — sirf premium ke liye"},
-            {"\u2728", "720 Animated Emoji Pack", "Text ke sath Lottie animated emojis aur stickers"},
-            {"\uD83C\uDF1F", "Premium Badge", "Apne naam ke sath premium star badge"},
-            {"\uD83D\uDDBC\uFE0F", "Profile BG Colors + Animated Profile", "Custom profile background colors aur animated profile elements"},
-            {"\uD83D\uDCF1", "6 App Icon Editions", "Default, Vintage, Aqua, Premium, Turbo, Nox"},
-            {"\uD83D\uDE80", "Early Access", "Naye features sabse pehle"}
+            {"\uD83C\uDFA8", "Exclusive FairyChat Themes", "Premium-only theme designs (bante hi milenge)"},
+            {"\uD83C\uDF1F", "Premium Badge", "App me naam ke sath premium star badge"},
+            {"\uD83C\uDF80", "FairyChat Sticker Packs", "Naye animated sticker packs sabse pehle"},
+            {"\uD83D\uDCF1", "6 App Icon Editions", "Vintage, Aqua, Premium, Turbo, Nox \u2014 sab FREE hain"},
+            {"\uD83D\uDE80", "Early Access", "Naye features sabse pehle test karne ko milenge"},
+            {"\u2764\uFE0F", "Support FairyChat", "\u20B999/mo se app ki development me madad"}
         };
         for (String[] f : features) {
             addFeatureRow(context, root, f[0], f[1], f[2], txt, sub);
