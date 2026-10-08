@@ -435,6 +435,57 @@ else
   echo "    (telegram-fork/branding/telegram_logo.png missing — skipping logo swap)"
 fi
 
+# --- Stage 5.1 — Founder Premium Unlock (REAL premium visuals):
+# FairyChatPremiumActivity.isPremiumActive() is our flag (founder code
+# FC-FOUNDER-2026 sets it, premium page also sets it after backend
+# verification in Stage 4). OR it into UserConfig.isPremium() so the
+# app's premium surfaces light up on this device: premium badge next to
+# the name, profile/name colors, animated emojis, premium stickers UI.
+# Server-enforced limits (upload size etc.) stay as-is — this is the
+# client-side visual unlock so the founder can test every premium
+# feature FREE. (Activity also posts currentUserPremiumStatusChanged on
+# activate/deactivate so the UI refreshes instantly.)
+UC_FILE="$SRC/TMessagesProj/src/main/java/org/telegram/messenger/UserConfig.java"
+if [ -f "$UC_FILE" ]; then
+  echo "==> FairyChat founder unlock: premium visuals on this device"
+  python3 - "$UC_FILE" << 'PYEOF3' || echo "    ::warning::founder unlock patch failed"
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+old = (
+    '    public boolean isPremium() {\n'
+    '        TLRPC.User user = currentUser;\n'
+    '        if (user == null) {\n'
+    '            return false;\n'
+    '        }\n'
+    '        return user.premium;\n'
+    '    }\n'
+)
+new = (
+    '    public boolean isPremium() {\n'
+    '        TLRPC.User user = currentUser;\n'
+    '        if (user == null) {\n'
+    '            return false;\n'
+    '        }\n'
+    '        // FairyChat: founder/premium flag (FC-FOUNDER-2026) unlocks\n'
+    '        // premium visuals on this device - badge, profile colors,\n'
+    '        // animated emojis.\n'
+    '        if (org.telegram.ui.FairyChatPremiumActivity.isPremiumActive(ApplicationLoader.applicationContext)) {\n'
+    '            return true;\n'
+    '        }\n'
+    '        return user.premium;\n'
+    '    }\n'
+)
+if old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print("    patched: UserConfig.isPremium() ORs in our premium flag")
+else:
+    print("    ::warning::isPremium() body not found — founder unlock skipped")
+PYEOF3
+else
+  echo "    ::warning::UserConfig.java not found — founder unlock skipped"
+fi
+
 # --- FairyChat default palette (Stage 2.5): Telegram's blue accent family →
 # FairyChat purple (#7C3AED accent / #6D28D9 text) with gold (#D9B64C)
 # gradient highlights. The two TELEGRAM_COLOR constants cover most of the

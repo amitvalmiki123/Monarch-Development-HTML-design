@@ -16,9 +16,12 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -57,6 +60,14 @@ public class FairyChatPremiumActivity extends BaseFragment {
         Context ctx = getContext() != null ? getContext() : ApplicationLoader.applicationContext;
         ctx.getSharedPreferences("fairychat_config", Context.MODE_PRIVATE)
             .edit().putBoolean("premium_active", active).apply();
+        // Refresh every premium surface in the app (badge, colors, emoji...).
+        try {
+            NotificationCenter notificationCenter = AccountInstance
+                .getInstance(UserConfig.selectedAccount).getNotificationCenter();
+            notificationCenter.postNotificationName(NotificationCenter.currentUserPremiumStatusChanged);
+        } catch (Exception ignored) {
+            // No account yet (login screen) — flag applies on next launch.
+        }
     }
 
     @Override
